@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import OfficeWorld from "./game/OfficeWorld";
+import InstaDashboard from "./InstaDashboard";
 import {
   buildReport,
   fetchIntegrations,
@@ -15,7 +16,7 @@ import { CEO, DEPT_BRIEF, DEPT_LEAD, STAFF } from "./game/staff";
 import { DEPT_ROOMS } from "./game/world";
 import { COMPANY, SAMPLE_PROPOSAL, STORAGE_LINK } from "../company.config";
 
-type View = "live" | "dashboard";
+type View = "live" | "dashboard" | "insta";
 
 /** 서버 없이 여는 한 장짜리 버전(static/main.tsx)인지 — 이때는 보고 발행 서버가 없다 */
 const isServerless = () =>
@@ -216,6 +217,9 @@ export default function Home() {
             <button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}>
               📊 대시보드
             </button>
+            <button className={view === "insta" ? "active" : ""} onClick={() => setView("insta")}>
+              📸 인스타
+            </button>
             <button
               className={`todo-tab ${todo ? "urgent" : ""}`}
               onClick={() => {
@@ -246,6 +250,8 @@ export default function Home() {
             publishBusy={publishState.busy}
             publishResult={publishState.result}
           />
+        ) : view === "insta" ? (
+          <InstaDashboard />
         ) : (
           <DashboardView
             teams={teams}

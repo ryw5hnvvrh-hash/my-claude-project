@@ -1,0 +1,11 @@
+{
+ "date": "2026-09-30",
+ "fetched_at": "2026-09-30T04:57+09:00",
+ "account": {"username": "thth_lll", "media_count": 20, "followers_count": null, "follows_count": null},
+ "posts": [
+  {"id": "18265922872305982", "timestamp": "2026-09-30T01:47+09:00", "media_type": "CAROUSEL_ALBUM", "caption": "오늘 옷 색에 맞춘 그립톡", "permalink": "", "like_count": 2, "comments_count": 0, "views": 18, "reach": 5, "saved": 0, "shares": 0},
+  {"id": "post-2026-09-28", "timestamp": "2026-09-28T21:10+09:00", "media_type": "VIDEO", "caption": "추석 다들 잘 보내셨나요?", "permalink": "", "like_count": 8, "comments_count": 1, "views": null, "reach": null, "saved": null, "shares": null},
+  {"id": "post-2026-09-17", "timestamp": "2026-09-17T21:33+09:00", "media_type": "VIDEO", "caption": "고민상담&포장영상 [ASMR]", "permalink": "", "like_count": 13, "comments_count": 0, "views": null, "reach": null, "saved": null, "shares": null}
+ ],
+ "errors": ["연결 시험(04:57) 때 받은 값이에요. 인사이트는 첫 게시물만, 팔로워 수는 요청하지 않았어요. 08:50 자동 실행이 최근 10개로 다시 채워요."]
+}

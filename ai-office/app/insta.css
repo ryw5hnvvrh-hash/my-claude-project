@@ -1,0 +1,57 @@
+/* 인스타 인사이트 대시보드 — theme-nature.css 토큰 사용 */
+.ig-dash { display: grid; gap: 14px; }
+.ig-dash .win-body { padding: 16px; }
+.ig-meta { margin: 0 0 12px; font-size: 12px; color: var(--ink-soft); }
+.ig-warn { margin: 0 0 12px; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--yellow); font-size: 12px; }
+.ig-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ig-tile { display: grid; gap: 2px; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--win); }
+.ig-tile span { font-size: 11px; font-weight: 900; color: var(--ink-soft); }
+.ig-tile b { font: 900 28px/1.1 "Archivo", "Noto Sans KR", sans-serif; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ig-tile small { font-size: 11px; color: var(--ink-faint); }
+.ig-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ig-card { position: relative; overflow: visible; }
+.ig-chart { display: block; width: 100%; height: auto; font-family: "Noto Sans KR", sans-serif; }
+.ig-axis, .ig-grid { stroke: var(--pink-line); stroke-width: 1; }
+.ig-grid { stroke-dasharray: 3 4; }
+.ig-bar { fill: var(--pink-deep); }
+.ig-row:hover .ig-bar, .ig-row:focus .ig-bar { fill: #4a7338; }
+.ig-row:focus { outline: none; }
+.ig-row:focus-visible .ig-hit { stroke: var(--pink-deep); stroke-width: 2; }
+.ig-hit { fill: transparent; cursor: pointer; }
+.ig-label { font-size: 12px; fill: var(--ink); }
+.ig-muted { font-size: 11px; fill: var(--ink-faint); }
+.ig-value { font-size: 12px; font-weight: 900; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.ig-line { fill: none; stroke: var(--pink-deep); stroke-width: 2; stroke-linejoin: round; }
+.ig-dot { fill: var(--pink-deep); stroke: var(--win); stroke-width: 2; }
+.ig-note, .ig-empty { margin: 8px 0 0; font-size: 11px; color: var(--ink-faint); }
+.ig-empty { font-size: 13px; color: var(--ink-soft); }
+.ig-tip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  max-width: 240px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--win);
+  box-shadow: 3px 3px 0 rgba(74, 51, 34, .2);
+  font-size: 12px;
+  pointer-events: none;
+  transform: translate(8px, 34px);
+}
+.ig-tip b { font-size: 12px; }
+.ig-tip span { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ig-table-wrap { overflow-x: auto; }
+.ig-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ig-table th, .ig-table td { padding: 8px 10px; border-bottom: 1.5px dashed var(--pink-line); text-align: right; white-space: nowrap; }
+.ig-table th { font-size: 11px; color: var(--ink-soft); background: #f7efdf; }
+.ig-table th:nth-child(-n+3), .ig-table td:nth-child(-n+3) { text-align: left; }
+.ig-cap { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.ig-cap a { color: var(--pink-deep); font-weight: 700; text-decoration: none; }
+.ig-empty-state h2 { margin: 0 0 8px; font-size: 20px; }
+.ig-empty-state p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+@media (max-width: 900px) {
+  .ig-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ig-grid2 { grid-template-columns: 1fr; }
+}
