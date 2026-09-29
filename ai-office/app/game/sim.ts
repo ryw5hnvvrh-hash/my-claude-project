@@ -152,7 +152,20 @@ const BLOCKED_DEPTS = new Set(Object.keys(BLOCK_NEED));
 
 /** 연동 대기 부서가 멈춰 있는 진짜 이유 */
 const BLOCK_REASON: Record<string, string> = {
-  finance: "정산 자료가 아직 finance/input/ 에 없어요. 스마트스토어·아이디어스 내역을 넣어주시면 정산합니다.",
+  finance: "드라이브 '정산' 폴더에 확인할 파일이 없어요. 스마트스토어·아이디어스·광고비·재료비 폴더에 올려주시면 정산합니다.",
+};
+
+/** 차례를 기다릴 때 부서별 답 — 그 부서가 언제 움직이는지 말한다 */
+const WAIT_LINE: Record<string, string> = {
+  research: "출근하면 제일 먼저 시장조사부터 시작해요.",
+  strategy1: "전체 성과 회의 끝나면 성과 근거 붙여서 아이디어 10개 만들어요.",
+  qa: "기획 1팀 아이디어 10개 넘어오면 바로 검수해요.",
+  strategy2: "대표님이 TOP 3 중에 고르시면 그때 대본 써요.",
+  reels: "확정 대본이랑 대표님이 고르신 후킹 받으면 바로 편집 들어가요.",
+  carousel: "확정 문구 받으면 바로 캐러셀 만들어요.",
+  finance: "비서실 브리핑 직전에 드라이브 '정산' 폴더 확인해요. 아직 제 차례 전이에요.",
+  review: "시장조사 끝나면 전체 성과 회의 열어요. 인스타 숫자는 받아뒀어요.",
+  secretary: "각 팀 결과 모아서 마지막에 대표님께 브리핑해요.",
 };
 
 /** 지시창에서 부서를 찾을 때 쓰는 키워드 — 구체적인 것부터 검사한다 */
@@ -401,28 +414,28 @@ export class Company {
     this.phaseIndex = 2;
     yield* this.runDept("research", "레진 소품 트렌드·행사 공식 출처 확인", 6.5, "공식 출처 확인한 후보만 정리했어요.");
 
-    // ② 브랜드 분석 — 시장조사팀이 같이 맡음. förc 미연동이면 만들지 않고 기록만
+    // ② 브랜드 분석 — 시장조사팀이 같이 맡음. 08:50 인스타 API 파일로 하고, 파일이 없으면 만들지 않는다
     const researcher = this.agentById.get("research-lead")!;
     this.stand(researcher);
-    this.say(researcher, "förc 데이터 미연동이라 브랜드 분석은 못 만들어요.", 3);
-    this.pushLog("🧬", "브랜드 분석(시장조사팀): förc 성과 데이터 미연동 → 분석을 만들지 않고 '연동 대기'로 기록", "lav");
+    this.say(researcher, "인스타 숫자로 브랜드 분석했어요. 없는 숫자는 미확인이에요.", 3);
+    this.pushLog("🧬", "브랜드 분석(시장조사팀): 08:50 인스타 API 파일(좋아요·팔로워·조회수) 기준 — 파일이 없으면 분석하지 않고 '인스타 숫자 없음'으로 기록", "lav");
     yield 1.8;
     this.sitAtDesk(researcher);
 
-    // ③ 전체 성과 회의 — 성과 리뷰실 주재, 9명 전원. 시장조사 결과 공유도 여기서
+    // ③ 전체 성과 회의 — 성과 리뷰실 주재, 팀장 전원 + 후킹 전담. 시장조사 결과 공유도 여기서
     this.phaseIndex = 3;
     this.deptStatus.review = "진행 중";
     const reviewer = this.agentById.get("review-lead")!;
     this.stand(reviewer);
-    this.say(reviewer, "드라이브 성과 폴더부터 확인할게요. 보이는 숫자만 적어요.", 3);
-    this.pushLog("📈", "성과 리뷰실: 드라이브 '성과' 폴더 새 캡처 확인 → 보이는 숫자만 노션 '게시물 성과'에 기록 (없으면 '새 수치 없음')", "lav");
+    this.say(reviewer, "인스타 숫자부터 볼게요. 좋아요 수부터 확인해볼게요.", 3);
+    this.pushLog("📈", "성과 리뷰실: 인스타 API 파일(좋아요·팔로워·조회수) 먼저, 드라이브 '성과' 캡처는 보조로 확인 → 노션 '게시물 성과'에 기록 (없으면 '새 수치 없음')", "lav");
     yield 1.8;
     const hookIds = STAFF.filter((st) => st.deptId === "strategy2" && st.rank === "member").map((st) => st.id);
     yield* this.meeting(
       "전체 성과 회의",
       [...DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id), ...hookIds],
       [
-        ["review-lead", "최근 게시물 성과부터 볼게요. 새 수치가 없으면 없다고 할게요."],
+        ["review-lead", "좋아요·팔로워·조회수부터 볼게요. 새 수치가 없으면 없다고 할게요."],
         ["review-lead", "반복할 점 하나, 바꿀 점 하나 정리했어요."],
         ["research-lead", "오늘 조사 결과 공유드려요. 미확인은 표시해뒀어요."],
         ["strategy1-lead", "성과 근거 붙여서 아이디어 10개 만들게요."],
@@ -519,12 +532,12 @@ export class Company {
     const courier = hooker?.id ?? "strategy2-lead";
     if (hooker) {
       const h = this.agentById.get(hooker.id);
-      if (h) this.say(h, "후킹 3안 붙였어요. 1안 추천이에요.", 3);
+      if (h) this.say(h, "후킹 3안 붙였어요. 추천안은 이유도 달았어요.", 3);
       this.pushLog("🪝", `${hooker.name}: 릴스 첫 1~3초·캐러셀 첫 장 후킹 3안 작성 → 제작팀 전달`, "yellow");
       yield 1.6;
     }
-    yield* this.deliver(courier, "reels", "릴스 대본이랑 후킹 3안이에요. 첫 1초는 1안으로 가요.", "장면 순서 한 번만 확인 부탁드립니다.");
-    yield* this.deliver(courier, "carousel", "캐러셀 문구랑 첫 장 후킹 문구예요.", "확정된 가격만 알려주시길 부탁드립니다.");
+    yield* this.deliver(courier, "reels", "확정 대본이랑 대표님이 고르신 후킹이에요. 첫 1초는 이걸로 가요.", "장면 순서 한 번만 확인 부탁드립니다.");
+    yield* this.deliver(courier, "carousel", "캐러셀 문구랑 대표님이 고르신 첫 장 문구예요.", "확정된 가격만 알려주시길 부탁드립니다.");
 
     this.startDept("reels", "media/ 원본 복제 → 릴스 편집", 8);
     this.startDept("carousel", "원본 사진 복제 → 캐러셀 제작", 8);
@@ -538,10 +551,12 @@ export class Company {
 
     // ⑪ 브리핑 직전 — 정산팀이 드라이브 새 파일 확인 → 비서실에 전달 (없으면 "없습니다")
     const finance = this.agentById.get("finance-lead")!;
+    this.deptStatus.finance = "진행 중";
     this.stand(finance);
     this.say(finance, "드라이브 정산 폴더 확인했습니다. 비서실에 넘길게요.", 3);
     this.pushLog("🧾", "정산팀: 드라이브 '정산' 폴더 새 파일 확인 → 비서실 전달 (새 파일이 없으면 '없습니다')", "lav");
     yield* this.deliver("finance-lead", "secretary", "오늘 정산 확인 결과예요. 없으면 '없습니다'로 넣어주세요.", "네, 브리핑에 넣겠습니다.");
+    this.deptStatus.finance = "완료";
 
     // ⑪ 비서실 브리핑 (성과 회의·정산 한 줄 포함)
     this.phaseIndex = 11;
@@ -895,7 +910,7 @@ export class Company {
     } else if (status === "승인 대기") {
       lines.push("대표님 결재를 기다리는 중입니다. 승인 주시면 바로 움직여요.");
     } else {
-      lines.push(`앞 단계 결과를 기다리는 중이에요. 오늘 제 일은 ‘${DEPT_BRIEF[deptId].task}’입니다.`);
+      lines.push(WAIT_LINE[deptId] ?? `앞 단계 결과를 기다리는 중이에요. 오늘 제 일은 ‘${DEPT_BRIEF[deptId].task}’입니다.`);
     }
     lines.push(`팀원 현황: ${crew.map((a) => `${a.name}(${a.status})`).join(" · ")}`);
     if (/왜|늦|지연/.test(question) && status === "대기") {
@@ -996,7 +1011,7 @@ export class Company {
             ? "오늘 몫은 끝냈습니다."
             : status === "연동 대기"
               ? (BLOCK_REASON[agent.deptId] ?? "외부 연동 대기 중입니다.")
-              : "앞 단계 결과를 기다리는 중입니다.";
+              : (WAIT_LINE[agent.deptId] ?? "앞 단계 결과를 기다리는 중입니다.");
       return [id, text] as [string, string];
     });
     yield* this.meeting("대표 긴급 소집 · 전 부서 한 줄 보고", ids, lines);
@@ -1297,7 +1312,7 @@ export class Company {
         (a) => a.deptId === agent.deptId && a.id !== agent.id && !this.busy(a) && a.status !== "출근 전",
       );
       if (mate) {
-        this.say(agent, rand(["이거 어떻게 생각해요?", "잠깐만요, 이거 봐봐요", "저장할 만한가요 이거?"]), 3);
+        this.say(agent, rand(["이거 어떻게 생각해요?", "잠깐만요, 이거 봐봐요", "이거 좋아요 많이 받을 것 같아요?"]), 3);
         this.say(mate, rand(["오, 괜찮은데요?", "각도를 살짝 틀면 좋겠어요", "근거만 붙이면 돼요"]), 3);
         agent.anim = "talk";
         mate.anim = "talk";
@@ -1376,7 +1391,7 @@ export class Company {
       return ["여긴 뭐가 막혔어요?", BLOCK_REASON[dept] ?? "외부 연동을 기다리는 중이에요.", "연동 대기"];
     }
     if (status === "승인 대기") return ["결재 기다리는 중이죠?", "네 대표님, 승인만 주시면 바로 움직여요.", "대표 결재 대기"];
-    return [`${call}, 오늘 할 일 뭐예요?`, `‘${DEPT_BRIEF[dept].task}’예요. 앞 팀 결과 기다리는 중이에요.`, "앞 단계 대기"];
+    return [`${call}, 오늘 할 일 뭐예요?`, WAIT_LINE[dept] ?? `‘${DEPT_BRIEF[dept].task}’예요. 앞 팀 결과 기다리는 중이에요.`, "앞 단계 대기"];
   }
 
   private patrolNow(deptId: string | null) {
@@ -1425,9 +1440,15 @@ export class Company {
     } else {
       const status = this.deptStatus[agent.deptId];
       reply = isHook
-        ? status === "진행 중" || status === "완료"
+        ? status === "진행 중"
           ? `명철님 대본 나오는 대로 후킹 3안 붙이고 있어요. 지금 저는 ‘${agent.status}’이에요.`
-          : `대본이 나오면 후킹 3안 붙여서 제작팀에 넘겨요. 지금은 ‘${agent.status}’이에요.`
+          : status === "완료"
+            ? this.phaseIndex >= 9
+              ? "후킹 3안 붙여서 제작팀에 넘겼어요. 대표님이 고르신 후킹으로 편집 들어가요."
+              : "대본 나왔어요. 후킹 3안 붙이는 중이에요."
+            : status === "승인 대기"
+              ? "TOP 3 결재 기다리는 중이에요. 승인 나면 명철님 대본에 후킹 3안 붙일게요."
+              : `대본이 나오면 후킹 3안 붙여서 제작팀에 넘겨요. 지금은 ‘${agent.status}’이에요.`
         : `지금 ‘${agent.status}’이에요.`;
       this.pushLog("🎤", `대표 지시: ${agent.callsign ?? agent.name} 상황 확인`, "yellow");
     }

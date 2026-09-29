@@ -67,7 +67,7 @@ export const DEPARTMENTS = [
     short: "trend.lab",
     icon: "🔎",
     task: "레진 소품 트렌드·플랫폼 행사 조사",
-    report: "공식 페이지에서 확인 못 한 건 미확인으로 적어요.",
+    report: "공식 출처로 확인한 후보만 정리했어요. 확인 못 한 건 미확인으로 적었어요.",
   },
   {
     id: "strategy1",
@@ -75,7 +75,7 @@ export const DEPARTMENTS = [
     short: "idea.studio",
     icon: "💡",
     task: "아이디어 10개 → TOP 3",
-    report: "검수 통과한 안 중에서만 TOP 3를 골라요.",
+    report: "성과 회의 근거를 붙여 아이디어 10개를 넘겼어요. TOP 3는 검수 통과한 안에서만 골라요.",
   },
   {
     id: "qa",
@@ -83,7 +83,7 @@ export const DEPARTMENTS = [
     short: "qa.check",
     icon: "🛡️",
     task: "표기·가격·중복·금칙어 검사",
-    report: "확정 안 된 가격·할인·배송 표기는 반려해요.",
+    report: "10개 모두 검사하고 통과·반려 사유를 적었어요. 확정 안 된 가격·할인·배송 표기는 반려했어요.",
   },
   {
     id: "strategy2",
@@ -91,7 +91,7 @@ export const DEPARTMENTS = [
     short: "script.team",
     icon: "✍️",
     task: "승인된 안 대본·후킹 3안·게시물 문구",
-    report: "대표님이 승인한 안만 대본으로 쓰고, 후킹은 다솜님이 뽑아 제작팀에 넘겨요.",
+    report: "승인된 안으로 대본을 썼어요. 후킹 3안은 다솜님이 붙여서 제작팀에 넘겨요.",
   },
   {
     id: "reels",
@@ -99,7 +99,7 @@ export const DEPARTMENTS = [
     short: "reels.edit",
     icon: "🎬",
     task: "확정 대본으로 릴스 편집본",
-    report: "원본은 그대로 두고 복제본으로만 편집해요.",
+    report: "원본은 그대로 두고 복제본으로 릴스 편집본을 만들었어요.",
   },
   {
     id: "carousel",
@@ -107,7 +107,7 @@ export const DEPARTMENTS = [
     short: "carousel.studio",
     icon: "🖼️",
     task: "확정 대본으로 캐러셀 이미지",
-    report: "대본에 없는 가격·할인 문구는 넣지 않아요.",
+    report: "확정 대본 문구로만 캐러셀 이미지를 만들었어요. 대본에 없는 가격·할인 문구는 넣지 않았어요.",
   },
   {
     id: "finance",
@@ -115,15 +115,15 @@ export const DEPARTMENTS = [
     short: "finance.xls",
     icon: "🧾",
     task: "매일 브리핑 전 드라이브 확인 · 일요일 17:00 주간 종합",
-    report: "드라이브 '정산' 폴더에 올려주신 파일만 씁니다. 없으면 '없습니다'.",
+    report: "드라이브 '정산' 폴더를 확인해 비서실에 넘겼어요. 새 파일이 없으면 '없습니다'로 보고해요.",
   },
   {
     id: "review",
     name: "성과 리뷰실",
     short: "review.data",
     icon: "📈",
-    task: "도달·저장·댓글·공유 기록",
-    report: "수치 없는 건 만들지 않고 미확인으로 적어요.",
+    task: "좋아요·팔로워·조회수 기록 · 전체 성과 회의 주재",
+    report: "좋아요·팔로워·조회수를 전체 성과 회의에서 공유했어요. 수치 없는 건 미확인으로 적었어요.",
   },
   {
     id: "secretary",
@@ -131,7 +131,7 @@ export const DEPARTMENTS = [
     short: "secretary.hq",
     icon: "📋",
     task: "부서별 한 줄 보고 → 대표 브리핑",
-    report: "승인할 것과 단순 공유를 나눠서 올려드려요.",
+    report: "승인할 것과 단순 공유를 나눠서 대표님께 브리핑했어요.",
   },
 ] as const;
 
@@ -195,7 +195,7 @@ export const STAFF_LIST: StaffEntry[] = [
   // ⑧ 성과 리뷰실
   { dept: "review", rank: "lead", name: "김희선", role: "성과 리뷰실장", callsign: "희선님",
     colors: ["#9c5c72", "#ff8fc0", "#ff8fc0"],
-    thoughts: ["수치 없는 건 추정 안합니다.", "저장 수부터 확인해볼게요."] },
+    thoughts: ["수치 없는 건 추정 안합니다.", "좋아요 수부터 확인해볼게요."] },
 
 
   // ⑨ 비서실
