@@ -114,8 +114,8 @@ export const DEPARTMENTS = [
     name: "정산팀",
     short: "finance.xls",
     icon: "🧾",
-    task: "광고비·입금·재료비 주간 정산 (일요일 17:00)",
-    report: "finance/input/ 에 넣어주신 기록만 씁니다.",
+    task: "매일 브리핑 전 드라이브 확인 · 일요일 17:00 주간 종합",
+    report: "드라이브 '정산' 폴더에 올려주신 파일만 씁니다. 없으면 '없습니다'.",
   },
   {
     id: "review",
@@ -206,7 +206,6 @@ export const STAFF_LIST: StaffEntry[] = [
  * 연동을 다 붙였거나, 그냥 전부 초록불로 보고 싶으면 빈 객체 {}로 두세요.
  */
 export const PENDING_INTEGRATIONS: Record<string, string> = {
-  finance: "finance/input/ 정산 자료",
 };
 
 /**

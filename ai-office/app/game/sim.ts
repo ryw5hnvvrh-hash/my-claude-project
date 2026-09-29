@@ -398,7 +398,6 @@ export class Company {
     this.pushLog("🧬", "브랜드 분석(시장조사팀): förc 성과 데이터 미연동 → 분석을 만들지 않고 '연동 대기'로 기록", "lav");
     yield 1.8;
     this.sitAtDesk(researcher);
-    this.pushLog("🧾", "정산팀: 일요일 17:00 주간 정산 업무라 오늘은 대기합니다.", "lav");
 
     // ③ 전체 성과 회의 — 성과 리뷰실 주재, 9명 전원. 시장조사 결과 공유도 여기서
     this.phaseIndex = 3;
@@ -511,7 +510,14 @@ export class Company {
     this.pushLog("📦", "제작팀: 오늘 결과물을 media/·scripts/ 에 새 파일로 저장했어요", "mint");
     yield 1.2;
 
-    // ⑪ 비서실 브리핑 (성과 회의 요약 포함)
+    // ⑪ 브리핑 직전 — 정산팀이 드라이브 새 파일 확인 → 비서실에 전달 (없으면 "없습니다")
+    const finance = this.agentById.get("finance-lead")!;
+    this.stand(finance);
+    this.say(finance, "드라이브 정산 폴더 확인했습니다. 비서실에 넘길게요.", 3);
+    this.pushLog("🧾", "정산팀: 드라이브 '정산' 폴더 새 파일 확인 → 비서실 전달 (새 파일이 없으면 '없습니다')", "lav");
+    yield* this.deliver("finance-lead", "secretary", "오늘 정산 확인 결과예요. 없으면 '없습니다'로 넣어주세요.", "네, 브리핑에 넣겠습니다.");
+
+    // ⑪ 비서실 브리핑 (성과 회의·정산 한 줄 포함)
     this.phaseIndex = 11;
     this.lock([seri]);
     this.stand(seri);
