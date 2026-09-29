@@ -216,9 +216,9 @@ export const PENDING_INTEGRATIONS: Record<string, string> = {
  */
 export const SAMPLE_PROPOSAL = {
   score: "예시",
-  title: "쉐이커 그립톡이 완성되기까지",
-  summary: "레진을 붓고 굳혀 흔들리는 쉐이커가 되기까지, 직접 만드는 과정을 보여주는 릴스 예시 안이에요.",
-  points: ["레진 붓는 장면", "쉐이커가 흔들리는 클로즈업", "선물 포장하는 순간"],
+  title: "레진으로 만드는 과정부터 포장까지, 모든 순간",
+  summary: "레진으로 만드는 과정과 포장하는 순간까지, 제품이 완성되는 모든 순간을 보여주는 릴스 예시 안이에요.",
+  points: ["레진으로 만드는 과정", "완성된 제품", "포장하는 순간"],
 };
 
 /**
