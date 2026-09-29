@@ -128,6 +128,7 @@
 - **드라이브 성과 폴더** (2026-09-29 생성): [THING THAT HIT 성과](https://drive.google.com/drive/folders/1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3) `1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3`
   - 대표가 인스타 인사이트·förc 화면 등을 캡처해 아무 때나 올린다. 폴더 안 '읽어주세요 - 성과 폴더 사용법' 문서는 안내문이라 자료로 세지 않는다.
   - **매일 ③ 회의 직전**: `performance/processed.md` 에 없는 새 캡처를 읽는다. 캡처에 **보이는 숫자만** 📈 게시물 성과(노션)와 `company/posts.md` 에 기록하고, 읽은 파일을 processed.md 에 적는다. 읽을 수 없거나 가려진 숫자는 '미확인'.
+  - **이미지 읽는 법**: 드라이브 read_file_content 는 이미지에서 빈 값을 돌려준다. 이미지는 download_file_content 로 받아(base64) 파일로 저장한 뒤 직접 보고 숫자를 읽는다. 빈 값을 "숫자 없음"으로 판단하지 않는다. 원본 사본은 `company/source/<날짜>_insights_<게시물>.jpg` 로 남긴다.
   - 새 캡처가 없으면 회의에서 "새 수치 없음". 드라이브 접속에 실패하면 "새 수치 없음"이 아니라 **"성과 폴더 확인 불가(연결 문제)"** 로 말한다.
   - förc 화면 캡처가 들어오면 시장조사팀은 그 캡처로 브랜드 분석을 한다(캡처에 없는 수치는 만들지 않는다).
 - **전체 성과 회의 (매일, 시장조사 직후, 회의실)**
