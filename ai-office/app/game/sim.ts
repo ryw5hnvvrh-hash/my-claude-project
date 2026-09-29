@@ -135,8 +135,8 @@ export type Snapshot = {
 const PHASES = [
   "출근 대기",
   "07:00 전사 출근",
-  "시장조사",
-  "브랜드 분석",
+  "시장조사·브랜드 분석",
+  "전체 성과 회의",
   "아이디어 10개",
   "브랜드 QA",
   "TOP 3 선정",
@@ -391,8 +391,7 @@ export class Company {
     this.phaseIndex = 2;
     yield* this.runDept("research", "레진 소품 트렌드·행사 공식 출처 확인", 6.5, "공식 출처 확인한 후보만 정리했어요.");
 
-    // ③ 브랜드 분석 — 시장조사팀이 같이 맡음. förc 미연동이면 만들지 않고 기록만
-    this.phaseIndex = 3;
+    // ② 브랜드 분석 — 시장조사팀이 같이 맡음. förc 미연동이면 만들지 않고 기록만
     const researcher = this.agentById.get("research-lead")!;
     this.stand(researcher);
     this.say(researcher, "förc 데이터 미연동이라 브랜드 분석은 못 만들어요.", 3);
@@ -401,20 +400,31 @@ export class Company {
     this.sitAtDesk(researcher);
     this.pushLog("🧾", "정산팀: 일요일 17:00 주간 정산 업무라 오늘은 대기합니다.", "lav");
 
-    // ④ 회의 1 — 시장조사 → 전략1 → QA 인수인계
+    // ③ 전체 성과 회의 — 성과 리뷰실 주재, 9명 전원. 시장조사 결과 공유도 여기서
+    this.phaseIndex = 3;
+    this.deptStatus.review = "진행 중";
     yield* this.meeting(
-      "오늘의 후보 인수인계",
-      ["research-lead", "strategy1-lead", "qa-lead"],
+      "전체 성과 회의",
+      DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id),
       [
-        ["research-lead", "오늘 조사 결과예요. 출처 없는 건 미확인으로 적었어요."],
-        ["strategy1-lead", "좋아요. 촬영 가능한 아이디어 10개로 풀게요."],
-        ["qa-lead", "표기·가격·중복부터 확인할게요."],
+        ["review-lead", "최근 게시물 성과부터 볼게요. 새 수치가 없으면 없다고 할게요."],
+        ["review-lead", "반복할 점 하나, 바꿀 점 하나 정리했어요."],
+        ["research-lead", "오늘 조사 결과 공유드려요. 미확인은 표시해뒀어요."],
+        ["strategy1-lead", "성과 근거 붙여서 아이디어 10개 만들게요."],
+        ["qa-lead", "'바꿀 점'이 반복되면 수정 요청할게요."],
+        ["strategy2-lead", "아~ 반응 좋았던 표현은 문구에 살릴게요."],
+        ["reels-lead", "반응 좋았던 장면 순서, 편집에 살려보겠습니다."],
+        ["carousel-lead", "사진 순서도 성과 보고 맞춰보겠습니다."],
+        ["finance-lead", "광고비·판매랑 이어서 볼 건 일요일 정산에 넣을게요."],
+        ["secretary-lead", "회의 요약은 대표님 브리핑에 넣겠습니다."],
       ],
     );
+    this.deptStatus.review = "완료";
+    this.pushLog("📈", "전체 성과 회의 완료 — 전 부서가 성과를 공유하고 반영할 점을 한 줄씩 정했어요", "mint");
 
-    // ⑤ 아이디어 10개
+    // ④ 아이디어 10개
     this.phaseIndex = 4;
-    yield* this.runDept("strategy1", "아이디어 10개 · 100점 채점", 7, "10개 만들어서 검수팀에 넘겼어요.");
+    yield* this.runDept("strategy1", "성과 회의 근거로 아이디어 10개 · 100점 채점", 7, "성과 근거 달아서 10개 넘겼어요.");
 
     // ⑥ 브랜드 QA
     this.phaseIndex = 5;
@@ -501,11 +511,7 @@ export class Company {
     this.pushLog("📦", "제작팀: 오늘 결과물을 media/·scripts/ 에 새 파일로 저장했어요", "mint");
     yield 1.2;
 
-    // ⑪ 성과 기록
-    this.startDept("review", "성과·학습점 기록", 5);
-    yield () => this.deptStatus.review === "완료";
-
-    // ⑫ 비서실 브리핑
+    // ⑪ 비서실 브리핑 (성과 회의 요약 포함)
     this.phaseIndex = 11;
     this.lock([seri]);
     this.stand(seri);
@@ -592,7 +598,7 @@ export class Company {
       this.goto(agent, seat, "회의 중");
       this.enqueue(
         agent,
-        { k: "face", dir: seat.y < 7 ? "down" : "up" },
+        { k: "face", dir: seat.x < 31 ? "right" : seat.x > 40 ? "left" : seat.y < 7 ? "down" : "up" },
         { k: "anim", a: "sit" },
         { k: "status", s: "회의 중" },
       );
@@ -650,7 +656,7 @@ export class Company {
 
   /** 테이블을 사이에 두고 마주보도록 위·아래 줄을 번갈아 배정한다 */
   private bookSeat(agent: Agent, preferred: number): Pt {
-    const zigzag = [0, 4, 1, 5, 2, 6, 3, 7];
+    const zigzag = [0, 4, 1, 5, 2, 6, 3, 7, 8, 9];
     const taken = new Set([...this.seatBook.values()].map((p) => `${p.x},${p.y}`));
     const order = [zigzag[preferred % zigzag.length], ...zigzag];
     for (const i of order) {
