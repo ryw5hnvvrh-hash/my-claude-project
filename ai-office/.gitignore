@@ -46,3 +46,4 @@ next-env.d.ts
 /outputs/
 /work/
 *.tsbuildinfo
+/dist-static/
