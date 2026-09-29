@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./office.css";
+import "./theme-nature.css";
 import { COMPANY } from "../company.config";
 
 export const metadata: Metadata = {

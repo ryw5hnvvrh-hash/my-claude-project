@@ -92,7 +92,7 @@ const PropLayer = memo(function PropLayer() {
       {PROPS.map((prop, i) => (
         <div
           key={i}
-          className={`pr pr-${prop.kind}`}
+          className={`pr pr-${prop.kind}${prop.variant ? ` ${prop.variant}` : ""}`}
           style={{
             left: prop.x * TILE,
             top: prop.y * TILE,

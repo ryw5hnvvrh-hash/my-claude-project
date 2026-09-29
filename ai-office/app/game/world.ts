@@ -186,6 +186,8 @@ export type Prop = {
   w: number;
   h: number;
   label?: string;
+  /** 모양 변형 (예: 키 큰 화분) */
+  variant?: "tall";
 };
 
 /** 가구 목록 — 렌더링과 충돌 판정에 함께 사용 */
@@ -198,6 +200,16 @@ for (const room of DEPT_ROOMS) {
   PROPS.push({ kind: "shelf", x: room.x + 1, y: room.y + 1, w: 3, h: 1 });
   PROPS.push({ kind: "plant", x: room.x + room.w - 2, y: room.y + 1, w: 1, h: 1 });
   PROPS.push({ kind: "cabinet", x: room.x + room.w - 3, y: room.y + 8, w: 2, h: 1 });
+  PROPS.push({ kind: "plant", x: room.x + 1, y: room.y + room.h - 2, w: 1, h: 1, variant: "tall" });
+}
+
+// 복도 가장자리·방 사이 화분 (걷는 길은 막지 않는 자리)
+for (const [x, y] of [
+  [1, 15], [1, 29], [1, 43], [1, 56],
+  [72, 15], [72, 29], [72, 43], [72, 56],
+  [21, 3], [21, 11], [50, 3], [50, 11],
+]) {
+  PROPS.push({ kind: "plant", x, y, w: 1, h: 1, variant: "tall" });
 }
 
 PROPS.push({ kind: "ceo-desk", x: 9, y: 6, w: 5, h: 2 });
@@ -214,8 +226,9 @@ PROPS.push({ kind: "plant", x: 46, y: 11, w: 1, h: 1 });
 PROPS.push({ kind: "sofa", x: 56, y: 5, w: 5, h: 1 });
 PROPS.push({ kind: "table", x: 62, y: 8, w: 3, h: 2 });
 PROPS.push({ kind: "coffee", x: 66, y: 4, w: 3, h: 1, label: "☕" });
-PROPS.push({ kind: "plant", x: 70, y: 11, w: 1, h: 1 });
+PROPS.push({ kind: "plant", x: 70, y: 11, w: 1, h: 1, variant: "tall" });
 PROPS.push({ kind: "plant", x: 53, y: 11, w: 1, h: 1 });
+PROPS.push({ kind: "plant", x: 70, y: 3, w: 1, h: 1 });
 
 /** 걷기 가능 여부 그리드 */
 function buildGrid(): Uint8Array {

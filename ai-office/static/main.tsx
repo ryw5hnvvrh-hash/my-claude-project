@@ -3,6 +3,7 @@
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import "../app/office.css";
+import "../app/theme-nature.css";
 import Home from "../app/page";
 
 // 보고 발행 서버가 없다는 표시 — 화면이 발행을 시도하지 않고 안내만 한다
