@@ -515,6 +515,8 @@ const QUICK_ORDERS = [
   { label: "지금 브리핑", command: "지금 브리핑 올라와" },
   { label: "집중 모드", command: "집중 모드" },
   { label: "속도 올려", command: "속도 좀 올려줘" },
+  { label: "순찰 돌기", command: "순찰 돌아볼게요" },
+  { label: "다솜님 반영", command: "다솜님 반영해줘" },
 ];
 
 function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
@@ -576,7 +578,7 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="예: 캐러셀팀 지금 뭐해? / 왜 늦어져?"
+            placeholder="예: 다솜님 반영해줘 / 기획 2팀 둘러봐"
             aria-label="대표 지시 입력"
           />
           <button type="submit">지시</button>

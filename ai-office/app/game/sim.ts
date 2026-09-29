@@ -168,6 +168,14 @@ const DEPT_KEYWORDS: [string, string[]][] = [
   ["secretary", ["비서", SECRETARY, "비서실"]],
 ];
 
+/** 회의실 보조석 — 대표·후킹 전담까지 들어오면 10자리를 넘는다 */
+const EXTRA_SEATS: Pt[] = [
+  { x: 26, y: 10 },
+  { x: 45, y: 10 },
+  { x: 26, y: 5 },
+  { x: 45, y: 5 },
+].filter((p) => walkable(p.x, p.y));
+
 function rand<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -193,6 +201,8 @@ export class Company {
   /** 대표 지시창 */
   chat: ChatEntry[] = [];
   focusMode = false;
+  /** 대표 순찰까지 남은 시간(초) */
+  private ceoPatrolIn = 10;
   spotlight: string | null = null;
 
   private spotlightUntil = 0;
@@ -407,9 +417,10 @@ export class Company {
     this.say(reviewer, "드라이브 성과 폴더부터 확인할게요. 보이는 숫자만 적어요.", 3);
     this.pushLog("📈", "성과 리뷰실: 드라이브 '성과' 폴더 새 캡처 확인 → 보이는 숫자만 노션 '게시물 성과'에 기록 (없으면 '새 수치 없음')", "lav");
     yield 1.8;
+    const hookIds = STAFF.filter((st) => st.deptId === "strategy2" && st.rank === "member").map((st) => st.id);
     yield* this.meeting(
       "전체 성과 회의",
-      DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id),
+      [...DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id), ...hookIds],
       [
         ["review-lead", "최근 게시물 성과부터 볼게요. 새 수치가 없으면 없다고 할게요."],
         ["review-lead", "반복할 점 하나, 바꿀 점 하나 정리했어요."],
@@ -417,6 +428,7 @@ export class Company {
         ["strategy1-lead", "성과 근거 붙여서 아이디어 10개 만들게요."],
         ["qa-lead", "'바꿀 점'이 반복되면 수정 요청할게요."],
         ["strategy2-lead", "아~ 반응 좋았던 표현은 문구에 살릴게요."],
+        ...hookIds.map((id) => [id, "반응 좋았던 첫 1초, 후킹 3안에 살릴게요."] as [string, string]),
         ["reels-lead", "반응 좋았던 장면 순서, 편집에 살려보겠습니다."],
         ["carousel-lead", "사진 순서도 성과 보고 맞춰보겠습니다."],
         ["finance-lead", "광고비·판매랑 이어서 볼 건 일요일 정산에 넣을게요."],
@@ -606,11 +618,29 @@ export class Company {
   }
 
   /** 회의: 참석자 소집 → 대사 → 자리 복귀 */
-  private *meeting(title: string, ids: string[], lines: [string, string][]) {
+  private *meeting(title: string, ids: string[], lines: [string, string][], withCeo = true) {
     this.meetingTitle = title;
     this.pushLog("💬", `회의 소집: ${title} (${ids.length}명)`, "lav");
     const crew = ids.map((id) => this.agentById.get(id)!);
     this.lock(crew);
+    // 대표도 회의에 참석한다 — 다른 장면(결재 등)에 묶여 있으면 빠진다
+    const ceo = this.agentById.get("ceo")!;
+    const ceoJoins = withCeo && !this.locked.has(ceo.id);
+    if (ceoJoins) {
+      this.lock([ceo]);
+      this.releaseSeat(ceo);
+      this.stand(ceo);
+      this.say(ceo, "저도 들어갈게요~", 2);
+      const ceoSeat = this.bookCeoSeat(ceo);
+      this.enqueue(
+        ceo,
+        { k: "status", s: "회의 중" },
+        { k: "walk", to: ceoSeat },
+        { k: "face", dir: ceoSeat.x < 31 ? "right" : ceoSeat.x > 40 ? "left" : ceoSeat.y < 7 ? "down" : "up" },
+        { k: "anim", a: "sit" },
+      );
+      this.pushLog("🎀", `${CEO.name} 대표 회의 참석: ${title}`, "pink");
+    }
     crew.forEach((agent, i) => {
       this.stand(agent);
       this.say(agent, "회의실로 갈게요.", 2);
@@ -623,8 +653,14 @@ export class Company {
         { k: "status", s: "회의 중" },
       );
     });
-    yield this.allFree(crew);
+    yield this.allFree(ceoJoins ? [...crew, ceo] : crew);
     yield 0.6;
+    if (ceoJoins) {
+      ceo.anim = "talk";
+      this.say(ceo, rand(["자, 시작해봐요~", "한 줄씩 들어볼게요~", "다들 모였죠? 가봅시다~"]), 2.6);
+      yield 1.8;
+      ceo.anim = "sit";
+    }
 
     for (const [id, text] of lines) {
       const speaker = this.agentById.get(id)!;
@@ -635,15 +671,33 @@ export class Company {
       speaker.anim = "sit";
     }
 
+    if (ceoJoins) {
+      ceo.anim = "talk";
+      this.say(ceo, rand(["좋아요, 이대로 가요!", "오케이~ 다들 고생했어요", "좋다! 오늘도 잘 부탁해요~"]), 2.6);
+      yield 1.8;
+    }
     yield 0.8;
     for (const agent of crew) {
       this.releaseSeat(agent);
       this.stand(agent);
       this.sitAtDesk(agent);
     }
+    if (ceoJoins) {
+      this.releaseSeat(ceo);
+      this.stand(ceo);
+      this.enqueue(ceo, { k: "walk", to: CEO_SEAT }, { k: "face", dir: "down" }, { k: "anim", a: "sit" }, { k: "status", s: "업무 중" });
+    }
     this.meetingTitle = null;
-    yield this.allFree(crew);
-    this.unlock(crew);
+    yield this.allFree(ceoJoins ? [...crew, ceo] : crew);
+    this.unlock(ceoJoins ? [...crew, ceo] : crew);
+  }
+
+  /** 대표는 테이블 머리(왼쪽 끝) 자리부터 앉는다 */
+  private bookCeoSeat(ceo: Agent): Pt {
+    const taken = new Set([...this.seatBook.values()].map((p) => `${p.x},${p.y}`));
+    const seat = [MEETING_SEATS[8], MEETING_SEATS[9], ...EXTRA_SEATS].find((p) => p && !taken.has(`${p.x},${p.y}`)) ?? MEETING_SEATS[8];
+    this.seatBook.set(ceo.id, seat);
+    return seat;
   }
 
   /** 부서 간 전달 — 직접 걸어가서 말하고 돌아온다 */
@@ -686,6 +740,12 @@ export class Company {
         return seat;
       }
     }
+    // 10자리가 다 차면 테이블 옆 보조석
+    const extra = EXTRA_SEATS.find((p) => !taken.has(`${p.x},${p.y}`));
+    if (extra) {
+      this.seatBook.set(agent.id, extra);
+      return extra;
+    }
     return MEETING_SEATS[0];
   }
 
@@ -705,6 +765,15 @@ export class Company {
     if (!text) return;
     this.pushChat("ceo", CEO.name, text);
     const q = text.toLowerCase();
+
+    // ⓪ 대표 순찰 — "순찰 돌아", "기획 2팀 둘러봐"
+    if (/순찰|돌아보|둘러|한 바퀴|돌아다|체크하러/.test(text)) {
+      return this.patrolNow(this.matchDept(text));
+    }
+
+    // ⓪ 팀원 지목 — "다솜님 반영해줘", "후킹 어디까지?"
+    const member = this.matchMember(text);
+    if (member && !/전체|모두|다들/.test(text)) return this.memberReport(member, text);
 
     // ① 특정 부서·직원 지목
     const deptId = this.matchDept(text);
@@ -734,7 +803,7 @@ export class Company {
     this.pushChat(
       "staff",
       SECRETARY,
-      "이렇게 물어보시면 제일 빨라요 — “현황 보고” / “왜 늦어져?” / “시장조사팀 뭐해?” / “회의 소집” / “집중 모드” / “지금 브리핑”.",
+      "이렇게 물어보시면 제일 빨라요 — “현황 보고” / “왜 늦어져?” / “시장조사팀 뭐해?” / “다솜님 반영해줘” / “순찰 돌아” / “회의 소집” / “집중 모드” / “지금 브리핑”.",
     );
   }
 
@@ -1193,7 +1262,8 @@ export class Company {
 
   /** 할 일이 없을 때의 자율 행동 — 생각 말풍선, 커피, 잡담 */
   private idleBrain(agent: Agent, dt: number) {
-    if (agent.rank === "ceo" || this.locked.has(agent.id)) return;
+    if (agent.rank === "ceo") return this.ceoBrain(agent, dt);
+    if (this.locked.has(agent.id)) return;
     agent.idleFor -= dt;
     if (agent.idleFor > 0) return;
     agent.idleFor = 7 + Math.random() * 14;
@@ -1240,6 +1310,133 @@ export class Company {
     if (Math.abs(agent.x - agent.home.x) > 0.1 || Math.abs(agent.y - agent.home.y) > 0.1) {
       this.sitAtDesk(agent);
     }
+  }
+
+  // ── 대표 순찰 ────────────────────────────────────────────
+  /** 대표는 업무 중에 가끔 부서를 돌며 진행 상황을 직접 확인한다 */
+  private ceoBrain(ceo: Agent, dt: number) {
+    if (this.locked.has(ceo.id) || !this.running || this.dayComplete || this.approvalPending || this.meetingTitle) return;
+    this.ceoPatrolIn -= dt;
+    if (this.ceoPatrolIn > 0) return;
+    this.ceoPatrolIn = 16 + Math.random() * 14;
+    this.patrol();
+  }
+
+  /** 한 부서로 걸어가 확인하고 대표실로 돌아온다. 간 부서 id를 돌려준다 */
+  private patrol(target?: string): string | null {
+    const ceo = this.agentById.get("ceo")!;
+    const present = DEPT_ROOMS.map((r) => r.id).filter((d) => this.deptAgents(d).some((a) => a.status !== "출근 전"));
+    if (!present.length) return null;
+    const working = present.filter((d) => this.deptStatus[d] === "진행 중");
+    const dept = target && present.includes(target) ? target : rand(working.length && Math.random() < 0.75 ? working : present);
+    const lead = this.agentById.get(DEPT_LEAD[dept].id);
+    if (!lead) return null;
+    const room = roomOf(dept);
+    const spot = { x: lead.home.x, y: Math.min(lead.home.y + 2, room.y + room.h - 2) };
+    const to = walkable(spot.x, spot.y) ? spot : doorApproach(room);
+    const [ask, reply, note] = this.patrolLines(dept, lead);
+
+    ceo.queue.length = 0;
+    ceo.current = null;
+    this.stand(ceo);
+    this.enqueue(
+      ceo,
+      { k: "status", s: "이동 중" },
+      { k: "say", text: rand(["한 바퀴 돌아볼까~", "다들 잘하고 있나~", "어디 보자~"]), dur: 1.4, kind: "think" },
+      { k: "walk", to },
+      { k: "face", dir: "up" },
+      { k: "anim", a: "talk" },
+      { k: "say", text: ask, dur: 2.6, kind: "talk" },
+      {
+        k: "fn",
+        fn: () => {
+          if (!this.locked.has(lead.id)) this.say(lead, reply, 3);
+          this.pushLog("👀", `대표 순찰: ${room.name} — ${note}`, "yellow");
+        },
+      },
+      { k: "wait", dur: 2.6 },
+      { k: "anim", a: "idle" },
+      { k: "walk", to: CEO_SEAT },
+      { k: "face", dir: "down" },
+      { k: "anim", a: "sit" },
+      { k: "status", s: "업무 중" },
+    );
+    return dept;
+  }
+
+  private patrolLines(dept: string, lead: Agent): [string, string, string] {
+    const call = lead.callsign ?? lead.name;
+    const status = this.deptStatus[dept];
+    if (status === "진행 중") {
+      const pct = this.deptProgress(dept);
+      return [`${call}, 잘 되고 있어요?`, `${pct}%예요. 정상 속도입니다!`, `${this.deptTaskLabel(dept)} ${pct}% · 정상`];
+    }
+    if (status === "완료") return ["오 벌써 끝났어요? 좋다~", "네, 오늘 몫은 끝냈어요!", "오늘 몫 완료"];
+    if (status === "연동 대기") {
+      return ["여긴 뭐가 막혔어요?", BLOCK_REASON[dept] ?? "외부 연동을 기다리는 중이에요.", "연동 대기"];
+    }
+    if (status === "승인 대기") return ["결재 기다리는 중이죠?", "네 대표님, 승인만 주시면 바로 움직여요.", "대표 결재 대기"];
+    return [`${call}, 오늘 할 일 뭐예요?`, `‘${DEPT_BRIEF[dept].task}’예요. 앞 팀 결과 기다리는 중이에요.`, "앞 단계 대기"];
+  }
+
+  private patrolNow(deptId: string | null) {
+    const ceo = this.agentById.get("ceo")!;
+    if (!this.running) {
+      this.pushChat("staff", SECRETARY, "아직 출근 전이라 돌아보실 곳이 없어요. ‘오늘 업무 시작하기’부터 눌러주세요.");
+      return;
+    }
+    if (this.locked.has(ceo.id)) {
+      this.pushChat("staff", SECRETARY, "대표님 지금 회의·결재 중이세요. 끝나면 바로 도시면 돼요.");
+      return;
+    }
+    const dept = this.patrol(deptId ?? undefined);
+    if (!dept) {
+      this.pushChat("staff", SECRETARY, "지금 자리에 있는 팀이 없어요.");
+      return;
+    }
+    this.ceoPatrolIn = 20 + Math.random() * 10;
+    this.pushChat("staff", SECRETARY, `대표님 순찰 나가십니다 — ${roomOf(dept).name}부터 보세요.`);
+    this.pushLog("🎤", `대표 지시: 순찰 (${roomOf(dept).name})`, "yellow");
+  }
+
+  // ── 팀원 지목 ────────────────────────────────────────────
+  private matchMember(text: string): Agent | null {
+    return (
+      this.agents.find(
+        (a) =>
+          a.rank === "member" &&
+          (text.includes(a.name) ||
+            (a.callsign && text.includes(a.callsign)) ||
+            text.includes(a.name.slice(1)) ||
+            (a.role.includes("후킹") && text.includes("후킹"))),
+      ) ?? null
+    );
+  }
+
+  private memberReport(agent: Agent, text: string) {
+    const room = roomOf(agent.deptId);
+    const isHook = agent.role.includes("후킹");
+    let reply: string;
+    if (/반영|적용|넣어|붙여|해줘|부탁/.test(text)) {
+      reply = isHook
+        ? "네 대표님! 오늘 대본부터 후킹 3안(릴스 첫 1~3초·캐러셀 첫 장·캡션 첫 줄) 붙이고, 추천 1안에 이유 한 줄 달게요. 확정되면 제가 제작팀에 바로 넘길게요."
+        : "네, 바로 반영하겠습니다.";
+      this.pushLog("🎤", `대표 지시: ${agent.callsign ?? agent.name} — ${isHook ? "후킹 3안 반영" : "지시 반영"}`, "yellow");
+    } else {
+      const status = this.deptStatus[agent.deptId];
+      reply = isHook
+        ? status === "진행 중" || status === "완료"
+          ? `명철님 대본 나오는 대로 후킹 3안 붙이고 있어요. 지금 저는 ‘${agent.status}’이에요.`
+          : `대본이 나오면 후킹 3안 붙여서 제작팀에 넘겨요. 지금은 ‘${agent.status}’이에요.`
+        : `지금 ‘${agent.status}’이에요.`;
+      this.pushLog("🎤", `대표 지시: ${agent.callsign ?? agent.name} 상황 확인`, "yellow");
+    }
+    this.pushChat("staff", `${agent.name} · ${room.name}`, reply);
+    if (agent.status !== "출근 전") {
+      this.say(agent, isHook ? "네! 후킹 챙길게요 ✨" : "네, 대표님!", 3);
+      if (!this.locked.has(agent.id) && !this.busy(agent)) agent.anim = "talk";
+    }
+    this.spotlightRoom(agent.deptId, 8);
   }
 
   // ── 스냅샷 ──────────────────────────────────────────────
