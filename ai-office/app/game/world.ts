@@ -36,10 +36,10 @@ export type Room = {
   loiter: Pt[];
 };
 
-/** 부서 방 배치 — 4열 3행 */
-const COL_X = [2, 20, 38, 56];
+/** 부서 방 배치 — 3열 3행 (부서 9개) */
+const COL_X = [2, 26, 50];
 const ROW_Y = [17, 31, 45];
-const DEPT_W = 15;
+const DEPT_W = 22;
 const DEPT_H = 11;
 
 // 부서 이름·아이콘은 company.config.ts 에서 가져옵니다.
@@ -49,9 +49,9 @@ const DEPT_LAYOUT: { id: string; name: string; short: string; icon: string }[] =
 
 function deptRoom(index: number): Room {
   const meta = DEPT_LAYOUT[index];
-  const x = COL_X[index % 4];
-  const y = ROW_Y[Math.floor(index / 4)];
-  const desks: Desk[] = [3, 7, 11].map((dx) => ({
+  const x = COL_X[index % COL_X.length];
+  const y = ROW_Y[Math.floor(index / COL_X.length)];
+  const desks: Desk[] = [5, 11, 17].map((dx) => ({
     deskX: x + dx - 1,
     deskY: y + 5,
     seat: { x: x + dx, y: y + 6 },
@@ -64,15 +64,15 @@ function deptRoom(index: number): Room {
     w: DEPT_W,
     h: DEPT_H,
     doors: [
-      { x: x + 7, y },
-      { x: x + 8, y },
+      { x: x + 10, y },
+      { x: x + 11, y },
     ],
     desks,
     loiter: [
-      { x: x + 1, y: y + 8 },
-      { x: x + 5, y: y + 8 },
-      { x: x + 9, y: y + 8 },
-      { x: x + 13, y: y + 3 },
+      { x: x + 2, y: y + 8 },
+      { x: x + 8, y: y + 8 },
+      { x: x + 14, y: y + 8 },
+      { x: x + DEPT_W - 2, y: y + 3 },
     ],
   };
 }
@@ -196,8 +196,8 @@ for (const room of DEPT_ROOMS) {
     PROPS.push({ kind: "desk", x: desk.deskX, y: desk.deskY, w: 3, h: 1 });
   }
   PROPS.push({ kind: "shelf", x: room.x + 1, y: room.y + 1, w: 3, h: 1 });
-  PROPS.push({ kind: "plant", x: room.x + 13, y: room.y + 1, w: 1, h: 1 });
-  PROPS.push({ kind: "cabinet", x: room.x + 12, y: room.y + 8, w: 2, h: 1 });
+  PROPS.push({ kind: "plant", x: room.x + room.w - 2, y: room.y + 1, w: 1, h: 1 });
+  PROPS.push({ kind: "cabinet", x: room.x + room.w - 3, y: room.y + 8, w: 2, h: 1 });
 }
 
 PROPS.push({ kind: "ceo-desk", x: 9, y: 6, w: 5, h: 2 });

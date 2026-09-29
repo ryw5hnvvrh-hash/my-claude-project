@@ -34,20 +34,20 @@
 |---|---|
 | 회사 이름, 로고 글자, 화면 제목 | `COMPANY` |
 | 대표(사용자 본인) 이름·성격 | `CEO_PROFILE` |
-| 부서 12개의 이름·아이콘·하는 일 | `DEPARTMENTS` |
+| 부서 9개의 이름·아이콘·하는 일 | `DEPARTMENTS` |
 | 직원 이름·직책·색·혼잣말 | `STAFF_LIST` |
 
 ### 🚨 절대 어기면 안 되는 규칙 3가지
 
 1. **부서 `id`를 바꾸지 마세요.**
-   `research` `brand` `strategy1` `qa` `strategy2` `reels`
-   `carousel` `partner` `finance` `review` `ops` `secretary`
-   → 시뮬레이션 엔진(`app/game/sim.ts`)이 이 id를 26곳에서 직접 참조합니다.
+   `research` `strategy1` `qa` `strategy2` `reels`
+   `carousel` `finance` `review` `secretary`
+   → 시뮬레이션 엔진(`app/game/sim.ts`)이 이 id를 직접 참조합니다.
    바꾸면 캐릭터가 길을 잃고 화면이 깨집니다.
    **바꿔도 되는 건 `name` · `icon` · `short` · `task` · `report` 입니다.**
 
-2. **부서는 정확히 12개를 유지하세요.**
-   사무실 배치가 4열 3행 = 12칸 고정입니다.
+2. **부서는 정확히 9개를 유지하세요.**
+   사무실 배치가 3열 3행 = 9칸 고정입니다.
    안 쓸 부서는 지우지 말고 **이름만 바꿔서** 쓰세요.
 
 3. **`app/game/` 안의 파일을 고치지 마세요.**

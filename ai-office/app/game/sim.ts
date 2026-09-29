@@ -152,24 +152,19 @@ const BLOCKED_DEPTS = new Set(Object.keys(BLOCK_NEED));
 
 /** 연동 대기 부서가 멈춰 있는 진짜 이유 */
 const BLOCK_REASON: Record<string, string> = {
-  brand: "förc 성과 데이터가 아직 연결되지 않아 브랜드 분석을 못 하고 있어요. 없는 숫자를 만들지는 않습니다. 연결되면 바로 돌려요.",
-  partner: "제휴 창구는 아직 담당자가 정해지지 않은 빈 칸이에요. 대표님이 정해주시면 채울게요.",
   finance: "정산 자료가 아직 finance/input/ 에 없어요. 스마트스토어·아이디어스 내역을 넣어주시면 정산합니다.",
 };
 
 /** 지시창에서 부서를 찾을 때 쓰는 키워드 — 구체적인 것부터 검사한다 */
 const DEPT_KEYWORDS: [string, string[]][] = [
   ["qa", ["qa", "큐아", "검수", "금칙어", leadName("qa")]],
-  ["brand", ["브랜드 분석", "förc", leadName("brand"), "브랜드 인텔"]],
   ["strategy1", ["전략 1", "전략1", "기획", "아이디어", leadName("strategy1"), "톱3", "top 3"]],
   ["strategy2", ["전략 2", "전략2", "대본", leadName("strategy2"), "스크립트"]],
-  ["research", ["시장조사", "리서치", "조사팀", "트렌드", leadName("research")]],
+  ["research", ["시장조사", "리서치", "조사팀", "트렌드", "브랜드 분석", "förc", leadName("research")]],
   ["reels", ["릴스", "영상", "편집", "하민", leadName("reels")]],
   ["carousel", ["캐러셀", "카드뉴스", "canva", "칸바", leadName("carousel")]],
-  ["partner", ["파트너", "협찬", "광고 제안", "메일", leadName("partner")]],
   ["finance", ["재무", "정산", "입금", "돈", "광고비", leadName("finance")]],
   ["review", ["성과", "리뷰", "지표", leadName("review")]],
-  ["ops", ["자료", "보관", "저장", leadName("ops")]],
   ["secretary", ["비서", SECRETARY, "비서실"]],
 ];
 
@@ -396,16 +391,15 @@ export class Company {
     this.phaseIndex = 2;
     yield* this.runDept("research", "레진 소품 트렌드·행사 공식 출처 확인", 6.5, "공식 출처 확인한 후보만 정리했어요.");
 
-    // ③ 브랜드 분석 — 연동 대기라 라운지로
+    // ③ 브랜드 분석 — 시장조사팀이 같이 맡음. förc 미연동이면 만들지 않고 기록만
     this.phaseIndex = 3;
-    const bora = this.agentById.get("brand-lead")!;
-    this.stand(bora);
-    this.say(bora, "förc 데이터 미연동이라 분석은 못 만들어요.", 3);
-    this.pushLog("🧬", "브랜드 분석: förc 성과 데이터 미연동 → 분석을 만들지 않고 '연동 대기'로 기록", "lav");
-    this.goto(bora, rand(LOUNGE_ROOM.loiter), "휴식");
-    this.enqueue(bora, { k: "wait", dur: 4 }, { k: "fn", fn: () => this.say(bora, "연결되면 바로 돌립니다.", 2.4) });
-    this.sitAtDesk(bora);
-    this.pushLog("💌", "제휴 창구(담당자 미정)·정산팀(일요일 17:00 업무): 오늘은 대기합니다.", "lav");
+    const researcher = this.agentById.get("research-lead")!;
+    this.stand(researcher);
+    this.say(researcher, "förc 데이터 미연동이라 브랜드 분석은 못 만들어요.", 3);
+    this.pushLog("🧬", "브랜드 분석(시장조사팀): förc 성과 데이터 미연동 → 분석을 만들지 않고 '연동 대기'로 기록", "lav");
+    yield 1.8;
+    this.sitAtDesk(researcher);
+    this.pushLog("🧾", "정산팀: 일요일 17:00 주간 정산 업무라 오늘은 대기합니다.", "lav");
 
     // ④ 회의 1 — 시장조사 → 전략1 → QA 인수인계
     yield* this.meeting(
@@ -502,12 +496,14 @@ export class Company {
     yield () => this.deptStatus.reels === "완료" && this.deptStatus.carousel === "완료";
     this.pushLog("🎬", "릴스 편집본 · 캐러셀 이미지 제작 완료 (원본은 그대로 보존)", "mint");
 
-    // ⑪ 저장 + 성과 기록
+    // ⑩ 결과물 저장 — 제작팀
     this.phaseIndex = 10;
-    this.startDept("ops", "media/·scripts/ 에 새 파일로 저장", 5);
+    this.pushLog("📦", "제작팀: 오늘 결과물을 media/·scripts/ 에 새 파일로 저장했어요", "mint");
+    yield 1.2;
+
+    // ⑪ 성과 기록
     this.startDept("review", "성과·학습점 기록", 5);
-    yield () => this.deptStatus.ops === "완료" && this.deptStatus.review === "완료";
-    this.pushLog("📦", "오늘 결과물을 media/·scripts/ 에 새 파일로 저장했어요", "mint");
+    yield () => this.deptStatus.review === "완료";
 
     // ⑫ 비서실 브리핑
     this.phaseIndex = 11;
