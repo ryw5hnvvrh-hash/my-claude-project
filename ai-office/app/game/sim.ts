@@ -402,6 +402,11 @@ export class Company {
     // ③ 전체 성과 회의 — 성과 리뷰실 주재, 9명 전원. 시장조사 결과 공유도 여기서
     this.phaseIndex = 3;
     this.deptStatus.review = "진행 중";
+    const reviewer = this.agentById.get("review-lead")!;
+    this.stand(reviewer);
+    this.say(reviewer, "드라이브 성과 폴더부터 확인할게요. 보이는 숫자만 적어요.", 3);
+    this.pushLog("📈", "성과 리뷰실: 드라이브 '성과' 폴더 새 캡처 확인 → 보이는 숫자만 노션 '게시물 성과'에 기록 (없으면 '새 수치 없음')", "lav");
+    yield 1.8;
     yield* this.meeting(
       "전체 성과 회의",
       DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id),
