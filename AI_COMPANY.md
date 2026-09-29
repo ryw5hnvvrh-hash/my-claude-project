@@ -125,7 +125,10 @@
 ### 6. 성과 리뷰실 — ③ 전체 성과 회의 주재
 - **할 일**: 게시 후 도달·저장·댓글·공유와 판매 관련 반응을 기록하고, 매일 **③ 전체 성과 회의**를 연다. 모든 부서가 성과를 알고 자기 일로 뒷받침하게 하는 자리다.
   - 대표가 수치를 알려주면 그때그때 📈 게시물 성과(노션)와 `company/posts.md` 에 기록한다.
-- **드라이브 성과 폴더** (2026-09-29 생성): [THING THAT HIT 성과](https://drive.google.com/drive/folders/1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3) `1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3`
+- **인스타 API (2026-09-30 연결)**: 별도 세션 'THING THAT HIT 인스타 데이터 담당'이 매일 08:50 에 최근 게시물 10개의 조회·도달·저장·공유·좋아요·댓글을 가져와 `performance/instagram_<날짜>.md` 로 올린다. 성과 리뷰실은 ③ 회의 직전에 이 파일을 **먼저** 반영한다.
+  - 토큰은 작업 환경 변수 `INSTAGRAM_ACCESS_TOKEN` 에만 있다. 어떤 파일·채팅·커밋에도 토큰 값을 쓰지 않는다.
+  - 토큰은 약 60일마다 만료된다. 11/19 자동 연장, 11/22 만료 전 확인 알림이 예약돼 있다. 상태는 `performance/instagram_token_status.md`.
+- **드라이브 성과 폴더** (2026-09-29 생성, API 연결 뒤에는 API에 없는 숫자 보충용): [THING THAT HIT 성과](https://drive.google.com/drive/folders/1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3) `1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3`
   - 대표가 인스타 인사이트·förc 화면 등을 캡처해 아무 때나 올린다. 폴더 안 '읽어주세요 - 성과 폴더 사용법' 문서는 안내문이라 자료로 세지 않는다.
   - **매일 ③ 회의 직전**: `performance/processed.md` 에 없는 새 캡처를 읽는다. 캡처에 **보이는 숫자만** 📈 게시물 성과(노션)와 `company/posts.md` 에 기록하고, 읽은 파일을 processed.md 에 적는다. 읽을 수 없거나 가려진 숫자는 '미확인'.
   - **이미지 읽는 법**: 드라이브 read_file_content 는 이미지에서 빈 값을 돌려준다. 이미지는 download_file_content 로 받아(base64) 파일로 저장한 뒤 직접 보고 숫자를 읽는다. 빈 값을 "숫자 없음"으로 판단하지 않는다. 원본 사본은 `company/source/<날짜>_insights_<게시물>.jpg` 로 남긴다.
