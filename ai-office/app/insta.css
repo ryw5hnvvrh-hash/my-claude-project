@@ -3,7 +3,7 @@
 .ig-dash .win-body { padding: 16px; }
 .ig-meta { margin: 0 0 12px; font-size: 12px; color: var(--ink-soft); }
 .ig-warn { margin: 0 0 12px; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--yellow); font-size: 12px; }
-.ig-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ig-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .ig-tile { display: grid; gap: 2px; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--win); }
 .ig-tile span { font-size: 11px; font-weight: 900; color: var(--ink-soft); }
 .ig-tile b { font: 900 28px/1.1 "Archivo", "Noto Sans KR", sans-serif; font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -52,6 +52,5 @@
 .ig-empty-state h2 { margin: 0 0 8px; font-size: 20px; }
 .ig-empty-state p { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
 @media (max-width: 900px) {
-  .ig-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ig-grid2 { grid-template-columns: 1fr; }
 }

@@ -4,6 +4,7 @@
 // 데이터: 인스타 데이터 담당 세션이 매일 08:50 에 올리는 performance/instagram_<날짜>.json
 //        → static/collect-insights.mjs 가 app/insights-data.json 으로 모은다.
 // 원칙: 숫자가 없으면 만들지 않고 "–" 로 둔다.
+// 매일 보는 숫자: 팔로워·조회·좋아요. 저장률은 일요일 주간보고(performance/<날짜>_weekly_saverate.md)에서 본다.
 
 import { useState } from "react";
 import insightsData from "./insights-data.json";
@@ -44,8 +45,6 @@ const sum = (posts: Post[], key: keyof Post) => {
   const values = posts.map((p) => p[key]).filter((v): v is number => typeof v === "number");
   return values.length ? values.reduce((a, b) => a + b, 0) : null;
 };
-const saveRate = (p: Post) => (p.saved != null && p.reach ? p.saved / p.reach : null);
-const pct = (r: number | null) => (r == null ? "–" : `${(r * 100).toFixed(1)}%`);
 /** 게시일은 보는 기기와 상관없이 한국 시간으로 */
 const KST_DATE = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
 const shortDate = (iso: string) => {
@@ -239,9 +238,7 @@ export default function InstaDashboard() {
 
   const posts = latest.posts;
   const totalViews = sum(posts, "views");
-  const totalReach = sum(posts, "reach");
-  const totalSaved = sum(posts, "saved");
-  const avgSave = totalSaved != null && totalReach ? totalSaved / totalReach : null;
+  const totalLikes = sum(posts, "like_count");
   const prev = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const followerDelta =
     prev && latest.account.followers_count != null && prev.account.followers_count != null
@@ -278,14 +275,9 @@ export default function InstaDashboard() {
               <small>최근 {posts.length}개</small>
             </div>
             <div className="ig-tile">
-              <span>도달 합계</span>
-              <b>{fmt(totalReach)}</b>
-              <small>본 계정 수</small>
-            </div>
-            <div className="ig-tile">
-              <span>저장 합계</span>
-              <b>{fmt(totalSaved)}</b>
-              <small>저장률 {pct(avgSave)}</small>
+              <span>좋아요 합계</span>
+              <b>{fmt(totalLikes)}</b>
+              <small>최근 {posts.length}개</small>
             </div>
           </div>
         </div>
@@ -295,8 +287,8 @@ export default function InstaDashboard() {
         <ChartCard title="👀 게시물별 조회" note="막대를 누르면 숫자가 보여요. 가장 높은 게시물만 숫자를 표시했어요.">
           {(setTip) => <BarChart posts={posts} value={(p) => p.views} format={(n) => `조회 ${fmt(n)}`} setTip={setTip} />}
         </ChartCard>
-        <ChartCard title="🔖 게시물별 저장률 (저장 ÷ 도달)" note={'저장이 목적인 게시물은 이 막대로 봐요. 도달이 없으면 "–".'}>
-          {(setTip) => <BarChart posts={posts} value={saveRate} format={(n) => `저장률 ${pct(n)}`} setTip={setTip} />}
+        <ChartCard title="❤️ 게시물별 좋아요" note="막대를 누르면 숫자가 보여요. 저장률은 일요일 주간보고에서 따로 봐요.">
+          {(setTip) => <BarChart posts={posts} value={(p) => p.like_count} format={(n) => `좋아요 ${fmt(n)}`} setTip={setTip} />}
         </ChartCard>
       </div>
 
@@ -315,12 +307,8 @@ export default function InstaDashboard() {
                   <th>형식</th>
                   <th>캡션</th>
                   <th>조회</th>
-                  <th>도달</th>
-                  <th>저장</th>
-                  <th>공유</th>
                   <th>좋아요</th>
                   <th>댓글</th>
-                  <th>저장률</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,12 +326,8 @@ export default function InstaDashboard() {
                       )}
                     </td>
                     <td>{fmt(p.views)}</td>
-                    <td>{fmt(p.reach)}</td>
-                    <td>{fmt(p.saved)}</td>
-                    <td>{fmt(p.shares)}</td>
                     <td>{fmt(p.like_count)}</td>
                     <td>{fmt(p.comments_count)}</td>
-                    <td>{pct(saveRate(p))}</td>
                   </tr>
                 ))}
               </tbody>
