@@ -355,7 +355,15 @@ section.block { display: grid; gap: 4px; }
       lines: ['촬영 못 하는 아이디어는 안 해요.', 'TOP 3부터 추려볼게요.'] },
     { id: 'qa', name: '브랜드 검수팀', short: '검수', person: '홍선', role: '팀장',
       lines: ['근거 없는 가격 표기는 통과 안 해요.', '금칙어부터 확인할게요.'] },
-    { id: 'ceo', name: '대표실', short: '대표', person: '이선홍', role: '대표', lines: [] },
+    // 대표: 장난기 가득한 반존대. linesTo는 상대·순서별 대사 (to:먼저 말 걸 때, from:대답할 때)
+    { id: 'ceo', name: '대표실', short: '대표', person: '이선홍', role: '대표',
+      lines: ['다들 오늘도 파이팅이에요~ 알죠?', '커피 한 잔 할 사람? 농담이고요, 일해요~'],
+      linesTo: {
+        'to:secretary': ['치원님, 보고는? 다 정리했나요?', '치원님~ 오늘 별일 없었죠? 얼른 말해봐요.'],
+        'to:plan1': ['곽범님, 이거 좋다! 이걸로 가요~', '곽범님 TOP 3 중에 이게 제일 끌리는데?'],
+        'to:plan2': ['명철님, 승인 났어요~ 대본 부탁해요!', '명철님~ 이거 재밌게 써줄 거죠?'],
+        'from:plan2': ['명철님, 대본 어디 봐봐요~ 오 괜찮은데?', '명철님 이번 대본 좀 치는데요?'],
+      } },
     { id: 'plan2', name: '기획 2팀', short: '기획2', person: '정명철', role: '팀장',
       lines: ['아~승인 안 난 건 안써요.', '아~ 촬영 순서부터 확인요.'] },
     { id: 'review', name: '성과 리뷰실', short: '성과', person: '김희선', role: '팀장',
@@ -465,14 +473,19 @@ section.block { display: grid; gap: 4px; }
       a.talkUntil = b.talkUntil = time + TALK_SEC;
       a.talkStart = b.talkStart = time;
       a.talkFirst = true; b.talkFirst = false;
-      a.line = pick(a); b.line = pick(b);
+      a.line = pick(a, b, true); b.line = pick(b, a, false);
       a.dir = b.x >= a.x ? 1 : -1; b.dir = -a.dir;
       a.afterTalk = () => { a.talkWith = null; if (then) then(); };
       b.afterTalk = () => { b.talkWith = null; };
     }
 
     const who = a => a.id === 'ceo' ? `${a.person} 대표` : `${a.person}(${a.name})`;
-    const pick = a => a.lines.length ? a.lines[Math.floor(rand() * a.lines.length)] : '';
+    // 말할 문장 고르기: 상대·순서에 맞는 대사가 있으면 그것, 없으면 평소 말버릇
+    const pick = (a, other, first) => {
+      const ctx = other && a.linesTo && a.linesTo[(first ? 'to:' : 'from:') + other.id];
+      const pool = ctx || a.lines;
+      return pool.length ? pool[Math.floor(rand() * pool.length)] : '';
+    };
     // 지금 말하고 있는 문장. 대화 중이면 자기 차례일 때, 아니면 눌렀을 때 SAY_SEC 동안.
     function speech(a) {
       if (a.state === 'talk') {
@@ -581,7 +594,12 @@ section.block { display: grid; gap: 4px; }
       yield () => a.state !== 'talk' && b.state !== 'talk';
     }
     function* visit(aId, bId) {
-      // a가 b 옆 칸까지 걸어가서 대화한다. b가 그사이 움직였으면 다시 따라간다.
+      // a가 b 옆 칸까지 걸어가서, a가 먼저 말을 건다
+      yield* approach(aId, bId);
+      yield* converse(aId, bId);
+    }
+    function* approach(aId, bId) {
+      // a가 b 옆 칸까지 걸어간다. b가 그사이 움직였으면 다시 따라간다.
       const a = byId[aId], b = byId[bId];
       for (let tries = 0; tries < 4; tries++) {
         send(aId, [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y]);
@@ -589,7 +607,6 @@ section.block { display: grid; gap: 4px; }
         if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= 1) break;
       }
       yield () => settled(b) || b.state === 'sit' || b.state === 'type';
-      yield* converse(aId, bId);
     }
     function* work(id, sec) {
       // 자기 자리에 앉아서 sec초 동안 일한다
@@ -741,7 +758,9 @@ section.block { display: grid; gap: 4px; }
       setStep(12, `${who(byId.secretary)}: 부서 보고 정리`);
       yield* work('secretary', 2);
       setStep(12, '비서실 브리핑 — 대표실로 보고');
-      yield* visit('secretary', 'ceo');
+      // 비서실장이 대표실로 걸어오면 대표가 먼저 묻는다: "치원님, 보고는? 다 정리했나요?"
+      yield* approach('secretary', 'ceo');
+      yield* converse('ceo', 'secretary');
       byId.secretary.work = 'done';
       byId.ceo.work = 'done';
       goHome('secretary');

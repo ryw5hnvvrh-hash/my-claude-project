@@ -55,7 +55,7 @@ for (let seed = 1; seed <= 20; seed++) {
   const linked = seed % 2 === 0, sunday = seed % 3 === 0;
   sim.links.data = sim.links.finance = linked;
   sim.options.sunday = sunday;
-  const seenSteps = new Set(), approvals = [];
+  const seenSteps = new Set(), approvals = [], spoken = [];
   let entered = 0, handover = false, bothMaking = false, briefingInCeoRoom = false, maxStep = 0;
   sim.startDay();
   run(sim, 400, () => !sim.day.running && allSettled(sim), `하루 seed=${seed}`, () => {
@@ -92,6 +92,14 @@ for (let seed = 1; seed <= 20; seed++) {
     if (d.step === 9 && sim.byId.reels.work === 'doing' && sim.byId.carousel.work === 'doing') bothMaking = true;
     // ⑫ 비서가 대표실로 걸어와 보고
     if (d.step === 12 && sim.byId.secretary.state === 'talk' && inRoom(sim.byId.secretary, room('ceo'))) briefingInCeoRoom = true;
+    // 말하는 사람은 한 번에 한 명, 자기 대사만. ⑫에서는 대표가 먼저 치원님에게 묻는다.
+    const speaking = sim.agents.filter(a => a.state === 'talk' && sim.speech(a));
+    assert.ok(speaking.length <= 1, '대화에서는 한 번에 한 명만 말한다');
+    for (const a of speaking) {
+      const all = [...a.lines, ...Object.values(a.linesTo || {}).flat()];
+      assert.ok(all.includes(sim.speech(a)), `${a.person}: 자기 대사만 말한다`);
+      spoken.push([d.step, a.id, sim.speech(a)]);
+    }
   });
   assert.strictEqual(entered, 10, '10명 모두 출근');
   assert.deepStrictEqual([...seenSteps].sort((a, b) => a - b), DAY.map(s => s.n), '12단계 모두 지남');
@@ -99,6 +107,10 @@ for (let seed = 1; seed <= 20; seed++) {
   assert.deepStrictEqual(approvals, ['TOP 3 중 1개 승인', '대본 최종 확인'], '승인 2번');
   assert.ok(bothMaking, '⑨ 동시 제작');
   assert.ok(briefingInCeoRoom, '⑫ 대표실에서 보고');
+  const brief = spoken.filter(([n]) => n === 12);
+  assert.strictEqual(brief[0][1], 'ceo', '⑫ 대표가 먼저 말한다');
+  assert.ok(sim.byId.ceo.linesTo['to:secretary'].includes(brief[0][2]), '⑫ 대표가 치원님에게 보고를 묻는다');
+  assert.ok(brief.some(([, id]) => id === 'secretary'), '⑫ 비서실장이 대답한다');
   assert.deepStrictEqual(sim.day.results.qa, { reject: 3, pass: 7 }, '⑤ 반려 3 / 통과 7');
   assert.strictEqual(sim.day.results.brand, linked ? '완료' : '연동 대기', '③ 미연동이면 만들지 않음');
   assert.ok(/^(0[7-9]|1\d|2[0-3]):[0-5]\d$/.test(sim.clock()), '시계 ' + sim.clock());
