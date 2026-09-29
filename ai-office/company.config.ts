@@ -225,4 +225,4 @@ export const SAMPLE_PROPOSAL = {
  * 결과 보관함 링크 (Notion 등). 비워두면 화면에서 링크 버튼이 숨겨집니다.
  * 예: "https://www.notion.so/내페이지주소"
  */
-export const STORAGE_LINK = "";
+export const STORAGE_LINK = "https://app.notion.com/p/3ea58207fbaf81c0bafee07ee834abf4";
