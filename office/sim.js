@@ -28,10 +28,10 @@
       lines: ['판매금액 정리했습니다.', '입금 대기 건부터 확인하겠습니다.'] },
     { id: 'secretary', name: '비서실', short: '비서', person: '박치원', role: '비서실장',
       lines: ['보고 드리겠습니다 대표님.', '대표님 괜찮으신가요?.'] },
-    { id: 'reels', name: '제작팀', short: '릴스', person: '릴스 담당', role: '팀원', room: 'studio', seat: 0,
-      lines: ['받은 대본 장면 순서대로 편집하겠습니다.', '원본은 덮어쓰지 않겠습니다.'] },
-    { id: 'carousel', name: '제작팀', short: '캐러셀', person: '캐러셀 담당', role: '팀원', room: 'studio', seat: 1,
-      lines: ['확인된 가격만 넣을게요.', '장수부터 맞춰볼게요.'] },
+    { id: 'reels', name: '제작팀', short: '릴스', person: '하민', role: '릴스 담당', room: 'studio', seat: 0,
+      lines: ['장면 순서 한 번만 확인 부탁드립니다.', '원본 영상 전달 부탁드립니다.'] },
+    { id: 'carousel', name: '제작팀', short: '캐러셀', person: '김석진', role: '캐러셀 담당', room: 'studio', seat: 1,
+      lines: ['확정된 가격만 알려주시길 부탁드립니다.', '사진 순서 한 번 봐주시길 부탁드립니다.'] },
   ];
   // 하루 12단계. 화면의 단계표와 테스트가 이 목록을 쓴다.
   const DAY = [
