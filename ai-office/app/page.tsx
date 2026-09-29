@@ -17,6 +17,11 @@ import { COMPANY, SAMPLE_PROPOSAL, STORAGE_LINK } from "../company.config";
 
 type View = "live" | "dashboard";
 
+/** 서버 없이 여는 한 장짜리 버전(static/main.tsx)인지 — 이때는 보고 발행 서버가 없다 */
+const isServerless = () =>
+  typeof window !== "undefined" && (window as { __AI_OFFICE_SERVERLESS__?: boolean }).__AI_OFFICE_SERVERLESS__ === true;
+const SERVERLESS_NOTE = "이 페이지는 서버 없이 여는 버전이라 보고 발행(Notion·Discord)은 안 돼요. 컴퓨터에서 npm run dev로 실행하면 쓸 수 있어요.";
+
 const statusClass: Record<DeptStatus, string> = {
   "완료": "done",
   "진행 중": "working",
@@ -102,6 +107,7 @@ export default function Home() {
 
   // 연동 설정 여부를 서버에서 받아온다 (값이 아니라 설정 여부만)
   useEffect(() => {
+    if (isServerless()) return;
     fetchIntegrations()
       .then(setIntegrations)
       .catch(() => setIntegrations(null));
@@ -109,6 +115,11 @@ export default function Home() {
 
   const sendReport = useCallback(
     async (auto: boolean) => {
+      if (isServerless()) {
+        engine.pushLog("📴", `보고 발행 건너뜀 — ${SERVERLESS_NOTE}`, "lav");
+        if (!auto) showToast("이 페이지에서는 보고 발행이 안 돼요");
+        return;
+      }
       setPublishState((state) => ({ ...state, busy: true, error: "" }));
       try {
         const result = await publish(buildReport(engine.snapshot()));
