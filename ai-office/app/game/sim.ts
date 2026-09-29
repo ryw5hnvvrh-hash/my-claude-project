@@ -502,8 +502,17 @@ export class Company {
 
     // ⑩ 제작 인수인계 → 릴스·캐러셀 동시 작업
     this.phaseIndex = 9;
-    yield* this.deliver("strategy2-lead", "reels", "릴스 대본이에요. 촬영 순서대로 썼어요.", "장면 순서 한 번만 확인 부탁드립니다.");
-    yield* this.deliver("strategy2-lead", "carousel", "캐러셀 문구예요. 사진 순서에 맞췄어요.", "확정된 가격만 알려주시길 부탁드립니다.");
+    // 후킹 전담(기획 2팀 팀원)이 첫 1~3초 후킹 3안을 붙여 제작팀에 전달 — 없으면 팀장이 전달
+    const hooker = STAFF.find((s) => s.deptId === "strategy2" && s.rank === "member");
+    const courier = hooker?.id ?? "strategy2-lead";
+    if (hooker) {
+      const h = this.agentById.get(hooker.id);
+      if (h) this.say(h, "후킹 3안 붙였어요. 1안 추천이에요.", 3);
+      this.pushLog("🪝", `${hooker.name}: 릴스 첫 1~3초·캐러셀 첫 장 후킹 3안 작성 → 제작팀 전달`, "yellow");
+      yield 1.6;
+    }
+    yield* this.deliver(courier, "reels", "릴스 대본이랑 후킹 3안이에요. 첫 1초는 1안으로 가요.", "장면 순서 한 번만 확인 부탁드립니다.");
+    yield* this.deliver(courier, "carousel", "캐러셀 문구랑 첫 장 후킹 문구예요.", "확정된 가격만 알려주시길 부탁드립니다.");
 
     this.startDept("reels", "media/ 원본 복제 → 릴스 편집", 8);
     this.startDept("carousel", "원본 사진 복제 → 캐러셀 제작", 8);

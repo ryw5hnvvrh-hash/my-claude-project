@@ -90,8 +90,8 @@ export const DEPARTMENTS = [
     name: "기획 2팀",
     short: "script.team",
     icon: "✍️",
-    task: "승인된 안 대본·게시물 문구",
-    report: "대표님이 승인한 안만 대본으로 씁니다.",
+    task: "승인된 안 대본·후킹 3안·게시물 문구",
+    report: "대표님이 승인한 안만 대본으로 쓰고, 후킹은 다솜님이 뽑아 제작팀에 넘겨요.",
   },
   {
     id: "reels",
@@ -172,6 +172,9 @@ export const STAFF_LIST: StaffEntry[] = [
   { dept: "strategy2", rank: "lead", name: "정명철", role: "기획 2팀장 (대본)", callsign: "명철님",
     colors: ["#8b534a", "#fff3b0", "#ff8fc0"],
     thoughts: ["아~승인 안 난 건 안써요.", "아~ 촬영 순서부터 확인요."] },
+  { dept: "strategy2", rank: "member", name: "윤다솜", role: "기획 2팀 · 후킹 전담", callsign: "다솜님",
+    colors: ["#5a3a4a", "#c9b8ff", "#fff3b0"],
+    thoughts: ["첫 1초에 손이 멈춰야 해요.", "후킹 3안 뽑아서 제작팀에 넘길게요."] },
 
   // ⑤ 제작팀 · 릴스
   { dept: "reels", rank: "lead", name: "하민", role: "제작팀 · 릴스 담당", callsign: "하민님",
