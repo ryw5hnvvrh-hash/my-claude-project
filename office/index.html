@@ -88,6 +88,20 @@ canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .sel { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 14px; }
 .role { color: var(--muted); font-size: 12px; }
 .sel .lines { color: var(--muted); font-size: 13px; }
+.clockbox { display: flex; align-items: center; gap: 12px; }
+.clock { font-family: var(--font-mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.speed { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.speed select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; }
+.days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; }
+.days li { display: grid; grid-template-columns: 26px 1fr; gap: 2px 8px; align-items: start; padding: 7px 8px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; }
+.days li .n { grid-row: span 2; font-family: var(--font-mono); font-size: 12px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: var(--muted); }
+.days li .t { font-weight: 500; }
+.days li .r { color: var(--muted); font-size: 12px; }
+.days li.done .n { background: var(--ws-done); border-color: var(--ws-done); color: var(--ws-ink); }
+.days li.now { border-color: var(--accent); background: var(--accent-soft); }
+.days li.now .n { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.days li.star.now { border-color: var(--ws-approve); background: color-mix(in srgb, var(--ws-approve) 10%, var(--sheet)); }
+.days li.star.now .n { background: var(--ws-approve); border-color: var(--ws-approve); }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -132,18 +146,21 @@ section.block { display: grid; gap: 4px; }
   <header>
     <span class="eyebrow">@thth_lll · 레진 소품 스튜디오</span>
     <h1>THING THAT HIT 사무실</h1>
-    <p class="sub">직원 머리 위 말풍선이 지금 하는 일을 보여줍니다. 하루 흐름을 재생하면 단계마다 상태가 바뀌고, 승인 지점에서는 대표가 승인을 눌러야 이어집니다.</p>
+    <p class="sub">07:00 출근부터 비서실 브리핑까지 하루 12단계를 직원들이 직접 걸어 다니며 진행합니다. 머리 위 말풍선이 지금 하는 일이고, 승인 지점에서는 대표가 눌러야 이어집니다.</p>
   </header>
 
   <section class="sheet" aria-label="사무실 지도">
     <div class="bar">
       <div class="actions">
-        <button type="button" class="btn primary" id="btn-flow">하루 흐름 재생</button>
+        <button type="button" class="btn primary" id="btn-flow">하루 시작 07:00</button>
         <button type="button" class="btn" id="btn-meet">회의 소집</button>
         <button type="button" class="btn" id="btn-home">모두 자리로</button>
       </div>
-      <div class="flow" id="flow" aria-live="polite">하루 흐름을 재생하면 단계마다 업무 상태가 바뀝니다</div>
+      <div class="clockbox"><span class="clock" id="clock">--:--</span>
+        <label class="speed">속도 <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+      </div>
     </div>
+    <div class="flow" id="flow" aria-live="polite">하루 시작을 누르면 모두 밖에서 출발해 정문으로 출근합니다</div>
     <div class="summary" id="summary" aria-label="업무 상태별 인원"></div>
     <div class="approve-box" id="approve" hidden>
       <span id="approve-text"></span>
@@ -154,11 +171,17 @@ section.block { display: grid; gap: 4px; }
       <div class="sel" id="sel" aria-live="polite"></div>
     </div>
     <div class="links">
-      <label><input type="checkbox" id="link-review"> 성과 자료 연결됨 (förc)</label>
-      <label><input type="checkbox" id="link-finance"> 정산 자료 들어옴 (finance/input)</label>
-      <span>지금은 둘 다 꺼져 있습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
+      <label><input type="checkbox" id="opt-data"> förc 데이터 연결됨 (③ 브랜드 분석 · ⑪ 성과 기록)</label>
+      <label><input type="checkbox" id="opt-sunday"> 일요일 (⑪에 주간 정산 포함)</label>
+      <label><input type="checkbox" id="opt-finance"> 정산 자료 들어옴 (finance/input)</label>
+      <span>실제 상황에 맞춰 꺼 두었습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
     </div>
     <p class="hint">직원을 누르면 말버릇을 한마디 합니다. 직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
+  </section>
+
+  <section class="block">
+    <h2>하루 12단계</h2>
+    <ol class="days" id="days"></ol>
   </section>
 
   <div class="cols">
@@ -200,7 +223,7 @@ section.block { display: grid; gap: 4px; }
           <tbody id="rooms"></tbody>
         </table>
       </div>
-      <p class="note">회의실 8석은 AI 직원 7명과 대표 1명이 함께 쓰는 자리라서 인원에 따로 세지 않습니다.</p>
+      <p class="note">회의실 10석은 AI 직원 9명과 대표 1명이 함께 쓰는 자리라서 인원에 따로 세지 않습니다.</p>
     </section>
     <section class="block">
       <h2>타일 범례</h2>
@@ -210,7 +233,7 @@ section.block { display: grid; gap: 4px; }
   </div>
 </div>
 
-<script type="application/json" id="mapdata">{"name": "THING THAT HIT 사무실", "width": 64, "height": 17, "tile_size_px": 32, "origin": "왼쪽 위 (0,0), x는 오른쪽, y는 아래", "spawn": [0, 8], "legend": {"#": {"name": "벽", "walkable": false}, ".": {"name": "바닥", "walkable": true}, ",": {"name": "복도", "walkable": true}, "D": {"name": "방문", "walkable": true}, "E": {"name": "정문", "walkable": true}, "c": {"name": "책상 자리(의자)", "walkable": true}, "T": {"name": "책상", "walkable": false}, "M": {"name": "회의 테이블", "walkable": false}, "R": {"name": "안내 데스크", "walkable": false}, "S": {"name": "소파", "walkable": false}, "K": {"name": "커피 머신", "walkable": false}, "B": {"name": "수납장", "walkable": false}, "P": {"name": "화분", "walkable": false}}, "tiles": ["################################################################", "#P....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#", "#......#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#", "#......#..c...#..c...#..c...#..c...#..c...#..c...#..c...#..c...#", "#......#......#......#......#......#......#......#......#......#", "#..RR..#......#......#......#S.....#......#......#......#......#", "#......####D######D######D######D######D######D######D######D###", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "E......D,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......####D#############D######D######D######D######D######D###", "#......#............P#.....K#......#......#......#......#......#", "#.SSS..#....cccc.....#......#......#......#......#......#......#", "#......#....MMMM.....#......#......#......#......#......#......#", "#......#....cccc.....#......#......#......#......#......#......#", "#P....P#............B#PSSSS.#......#......#......#......#......#", "################################################################"], "rooms": [{"id": "entrance", "name": "출입구", "dept": null, "staff": 0, "x": 1, "y": 1, "w": 6, "h": 15, "doors": [[0, 8], [7, 8]], "seats": []}, {"id": "research", "name": "시장조사팀", "dept": 1, "staff": 1, "x": 8, "y": 1, "w": 6, "h": 5, "doors": [[11, 6]], "seats": [[10, 3]]}, {"id": "plan1", "name": "기획 1팀", "dept": 2, "staff": 1, "x": 15, "y": 1, "w": 6, "h": 5, "doors": [[18, 6]], "seats": [[17, 3]]}, {"id": "qa", "name": "브랜드 검수팀", "dept": 3, "staff": 1, "x": 22, "y": 1, "w": 6, "h": 5, "doors": [[25, 6]], "seats": [[24, 3]]}, {"id": "ceo", "name": "대표실", "dept": null, "staff": 1, "x": 29, "y": 1, "w": 6, "h": 5, "doors": [[32, 6]], "seats": [[31, 3]]}, {"id": "plan2", "name": "기획 2팀", "dept": 4, "staff": 1, "x": 36, "y": 1, "w": 6, "h": 5, "doors": [[39, 6]], "seats": [[38, 3]]}, {"id": "review", "name": "성과 리뷰실", "dept": 6, "staff": 1, "x": 43, "y": 1, "w": 6, "h": 5, "doors": [[46, 6]], "seats": [[45, 3]]}, {"id": "finance", "name": "정산팀", "dept": 5, "staff": 1, "x": 50, "y": 1, "w": 6, "h": 5, "doors": [[53, 6]], "seats": [[52, 3]]}, {"id": "secretary", "name": "비서실", "dept": 7, "staff": 1, "x": 57, "y": 1, "w": 6, "h": 5, "doors": [[60, 6]], "seats": [[59, 3]]}, {"id": "meeting", "name": "회의실", "dept": null, "staff": 0, "x": 8, "y": 11, "w": 13, "h": 5, "doors": [[11, 10]], "seats": [[12, 12], [12, 14], [13, 12], [13, 14], [14, 12], [14, 14], [15, 12], [15, 14]], "shared_seats": true}, {"id": "lounge", "name": "라운지", "dept": null, "staff": 0, "x": 22, "y": 11, "w": 6, "h": 5, "doors": [[25, 10]], "seats": [], "shared_seats": false}, {"id": "spare1", "name": "예비실 1", "dept": null, "staff": 0, "x": 29, "y": 11, "w": 6, "h": 5, "doors": [[32, 10]], "seats": [], "shared_seats": false}, {"id": "spare2", "name": "예비실 2", "dept": null, "staff": 0, "x": 36, "y": 11, "w": 6, "h": 5, "doors": [[39, 10]], "seats": [], "shared_seats": false}, {"id": "spare3", "name": "예비실 3", "dept": null, "staff": 0, "x": 43, "y": 11, "w": 6, "h": 5, "doors": [[46, 10]], "seats": [], "shared_seats": false}, {"id": "spare4", "name": "예비실 4", "dept": null, "staff": 0, "x": 50, "y": 11, "w": 6, "h": 5, "doors": [[53, 10]], "seats": [], "shared_seats": false}, {"id": "spare5", "name": "예비실 5", "dept": null, "staff": 0, "x": 57, "y": 11, "w": 6, "h": 5, "doors": [[60, 10]], "seats": [], "shared_seats": false}]}</script>
+<script type="application/json" id="mapdata">{"name": "THING THAT HIT 사무실", "width": 64, "height": 17, "tile_size_px": 32, "origin": "왼쪽 위 (0,0), x는 오른쪽, y는 아래", "spawn": [0, 8], "legend": {"#": {"name": "벽", "walkable": false}, ".": {"name": "바닥", "walkable": true}, ",": {"name": "복도", "walkable": true}, "D": {"name": "방문", "walkable": true}, "E": {"name": "정문", "walkable": true}, "c": {"name": "책상 자리(의자)", "walkable": true}, "T": {"name": "책상", "walkable": false}, "M": {"name": "회의 테이블", "walkable": false}, "R": {"name": "안내 데스크", "walkable": false}, "S": {"name": "소파", "walkable": false}, "K": {"name": "커피 머신", "walkable": false}, "B": {"name": "수납장", "walkable": false}, "P": {"name": "화분", "walkable": false}}, "tiles": ["################################################################", "#P....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#", "#......#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#", "#......#..c...#..c...#..c...#..c...#..c...#..c...#..c...#..c...#", "#......#......#......#......#......#......#......#......#......#", "#..RR..#......#......#......#S.....#......#......#......#......#", "#......####D######D######D######D######D######D######D######D###", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "E......D,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......####D#############D######D######D######D######D######D###", "#......#............P#.....K#......#......#......#......#......#", "#.SSS..#....ccccc....#......#.TT.TT#......#......#......#......#", "#......#....MMMMM....#......#.c..c.#......#......#......#......#", "#......#....ccccc....#......#......#......#......#......#......#", "#P....P#............B#PSSSS.#B....P#......#......#......#......#", "################################################################"], "rooms": [{"id": "entrance", "name": "출입구", "dept": null, "staff": 0, "x": 1, "y": 1, "w": 6, "h": 15, "doors": [[0, 8], [7, 8]], "seats": []}, {"id": "research", "name": "시장조사팀", "dept": 1, "staff": 1, "x": 8, "y": 1, "w": 6, "h": 5, "doors": [[11, 6]], "seats": [[10, 3]]}, {"id": "plan1", "name": "기획 1팀", "dept": 2, "staff": 1, "x": 15, "y": 1, "w": 6, "h": 5, "doors": [[18, 6]], "seats": [[17, 3]]}, {"id": "qa", "name": "브랜드 검수팀", "dept": 3, "staff": 1, "x": 22, "y": 1, "w": 6, "h": 5, "doors": [[25, 6]], "seats": [[24, 3]]}, {"id": "ceo", "name": "대표실", "dept": null, "staff": 1, "x": 29, "y": 1, "w": 6, "h": 5, "doors": [[32, 6]], "seats": [[31, 3]]}, {"id": "plan2", "name": "기획 2팀", "dept": 4, "staff": 1, "x": 36, "y": 1, "w": 6, "h": 5, "doors": [[39, 6]], "seats": [[38, 3]]}, {"id": "review", "name": "성과 리뷰실", "dept": 6, "staff": 1, "x": 43, "y": 1, "w": 6, "h": 5, "doors": [[46, 6]], "seats": [[45, 3]]}, {"id": "finance", "name": "정산팀", "dept": 5, "staff": 1, "x": 50, "y": 1, "w": 6, "h": 5, "doors": [[53, 6]], "seats": [[52, 3]]}, {"id": "secretary", "name": "비서실", "dept": 7, "staff": 1, "x": 57, "y": 1, "w": 6, "h": 5, "doors": [[60, 6]], "seats": [[59, 3]]}, {"id": "meeting", "name": "회의실", "dept": null, "staff": 0, "x": 8, "y": 11, "w": 13, "h": 5, "doors": [[11, 10]], "seats": [[12, 12], [12, 14], [13, 12], [13, 14], [14, 12], [14, 14], [15, 12], [15, 14], [16, 12], [16, 14]], "shared_seats": true}, {"id": "lounge", "name": "라운지", "dept": null, "staff": 0, "x": 22, "y": 11, "w": 6, "h": 5, "doors": [[25, 10]], "seats": [], "shared_seats": false}, {"id": "studio", "name": "제작팀", "dept": 8, "staff": 2, "x": 29, "y": 11, "w": 6, "h": 5, "doors": [[32, 10]], "seats": [[30, 13], [33, 13]], "shared_seats": false}, {"id": "spare1", "name": "예비실 1", "dept": null, "staff": 0, "x": 36, "y": 11, "w": 6, "h": 5, "doors": [[39, 10]], "seats": [], "shared_seats": false}, {"id": "spare2", "name": "예비실 2", "dept": null, "staff": 0, "x": 43, "y": 11, "w": 6, "h": 5, "doors": [[46, 10]], "seats": [], "shared_seats": false}, {"id": "spare3", "name": "예비실 3", "dept": null, "staff": 0, "x": 50, "y": 11, "w": 6, "h": 5, "doors": [[53, 10]], "seats": [], "shared_seats": false}, {"id": "spare4", "name": "예비실 4", "dept": null, "staff": 0, "x": 57, "y": 11, "w": 6, "h": 5, "doors": [[60, 10]], "seats": [], "shared_seats": false}]}</script>
 <script>// A* 경로 탐색 (4방향 격자, 맨해튼 거리). 브라우저에서는 window.OfficePath, Node에서는 require로 쓴다.
 (function (root) {
   // 최소 힙: f가 작은 칸부터 꺼낸다. 동점이면 h가 작은 칸(목적지에 가까운 칸) 먼저.
@@ -296,7 +319,8 @@ section.block { display: grid; gap: 4px; }
     for (let i = 0; i < q.length && i < 4000; i++) {
       const [x, y] = q[i];
       const k = key(x, y);
-      if (walkable(x, y) && !(blocked && blocked.has(k)) && (!from || findPath(from, [x, y], walkable, blocked))) return [x, y];
+      // 도달 가능 여부는 벽·가구만 보고 판단한다. 다른 직원은 곧 비켜 주므로 막힌 칸으로 치지 않는다.
+      if (walkable(x, y) && !(blocked && blocked.has(k)) && (!from || findPath(from, [x, y], walkable))) return [x, y];
       for (const [dx, dy] of DIRS) {
         const nx = x + dx, ny = y + dy, nk = key(nx, ny);
         if (!seen.has(nk) && nx >= 0 && ny >= 0 && nx < 999 && ny < 999) { seen.add(nk); q.push([nx, ny]); }
@@ -322,7 +346,8 @@ section.block { display: grid; gap: 4px; }
     link: { label: '연동 대기', meaning: '외부 자료가 없어 멈춤', say: '연결 기다려요' },
     idle: { label: '대기', meaning: '앞 단계를 기다림', say: '업무 대기중' },
   };
-  // name: 부서 이름, person: 직원 이름, lines: 말버릇 (대화할 때 하나씩 말한다)
+  // name: 부서 이름, person: 직원 이름, room/seat: 책상 위치, lines: 말버릇 (대화할 때 하나씩 말한다)
+  // 목록 순서가 길 양보 우선순위다(앞이 먼저 지나간다).
   const STAFF = [
     { id: 'research', name: '시장조사팀', short: '조사', person: '이희승', role: '팀장',
       lines: ['출처 없는 건 미확인으로 적습니다.', '공식 페이지부터 확인하겠습니다.'] },
@@ -339,24 +364,35 @@ section.block { display: grid; gap: 4px; }
       lines: ['판매금액 정리했습니다.', '입금 대기 건부터 확인하겠습니다.'] },
     { id: 'secretary', name: '비서실', short: '비서', person: '박치원', role: '비서실장',
       lines: ['보고 드리겠습니다 대표님.', '대표님 괜찮으신가요?.'] },
+    { id: 'reels', name: '제작팀', short: '릴스', person: '릴스 담당', role: '팀원', room: 'studio', seat: 0,
+      lines: ['받은 대본 장면 순서대로 편집하겠습니다.', '원본은 덮어쓰지 않겠습니다.'] },
+    { id: 'carousel', name: '제작팀', short: '캐러셀', person: '캐러셀 담당', role: '팀원', room: 'studio', seat: 1,
+      lines: ['확인된 가격만 넣을게요.', '장수부터 맞춰볼게요.'] },
   ];
-  // 하루 파이프라인. approval: 대표가 눌러야 넘어가는 단계. link: 외부 자료가 있어야 하는 단계.
-  const PIPELINE = [
-    { from: 'research', to: 'plan1', what: '조사 자료 전달' },
-    { from: 'plan1', to: 'qa', what: '아이디어 TOP 3 전달' },
-    { from: 'qa', to: 'ceo', what: '검수 통과안 보고', approval: 'TOP 3 중 1개 승인' },
-    { from: 'ceo', to: 'plan2', what: '1차 승인안 전달' },
-    { from: 'plan2', to: 'ceo', what: '대본 최종 확인 요청', approval: '대본 최종 확인' },
-    { from: 'review', to: 'secretary', what: '성과 기록 공유', link: 'review' },
-    { from: 'finance', to: 'secretary', what: '주간 정산 공유 (일요일)', link: 'finance' },
-    { from: 'secretary', to: 'ceo', what: '오늘 브리핑' },
+  // 하루 12단계. 화면의 단계표와 테스트가 이 목록을 쓴다.
+  const DAY = [
+    { n: 1, title: '07:00 전원 출근', note: '정문 → 각자 자리' },
+    { n: 2, title: '시장조사', note: '완료 후 3명이 회의실에서 인수인계' },
+    { n: 3, title: '브랜드 분석', note: '데이터 미연동이면 만들지 않고 연동 대기로 기록' },
+    { n: 4, title: '아이디어 10개', note: '기획 1팀' },
+    { n: 5, title: '브랜드 QA', note: '10개 검사 → 반려·통과' },
+    { n: 6, title: 'TOP 3 선정', note: '통과안 중 3개' },
+    { n: 7, title: '★ 대표 승인 대기', note: '3명 + 대표가 회의실 · 승인 누를 때까지 멈춤' },
+    { n: 8, title: '대본 작성', note: '최종 확인 후 제작팀으로 걸어가 전달' },
+    { n: 9, title: '릴스·캐러셀 제작', note: '동시 진행' },
+    { n: 10, title: '결과물 저장', note: 'media/ · scripts/' },
+    { n: 11, title: '성과 기록', note: '일요일은 정산 포함' },
+    { n: 12, title: '비서실 브리핑', note: '비서가 대표실로 걸어와 보고' },
   ];
-  const SKIP_SEC = 1.2;   // 연동 대기로 건너뛸 때 다음 단계까지 쉬는 시간
-  const SPEED = 4;        // 초당 칸 수
-  const TALK_SEC = 3.2;   // 대화 시간: 앞 절반은 찾아간 직원, 뒤 절반은 받는 직원이 말한다
-  const SAY_SEC = 3;      // 직원을 눌렀을 때 말버릇 말풍선이 떠 있는 시간
-  const SIDESTEP_SEC = 1.0; // 이만큼 막혀 있으면 옆으로 비켜선다
-  const RETARGET_SEC = 2.5; // 목적지가 계속 막혀 있으면 가까운 빈 칸으로 목적지를 바꾼다
+  const QA_RESULT = { reject: 3, pass: 7 };   // 대표가 정한 오늘 검수 결과
+  const DAY_START_MIN = 7 * 60;  // 07:00
+  const MIN_PER_SEC = 4;         // 시뮬레이션 1초 = 회사 시간 4분
+  const SPEED = 4;               // 초당 칸 수
+  const TALK_SEC = 3.2;          // 대화 시간: 앞 절반은 찾아간 직원, 뒤 절반은 받는 직원이 말한다
+  const SAY_SEC = 3;             // 직원을 눌렀을 때 말버릇 말풍선이 떠 있는 시간
+  const SIDESTEP_SEC = 1.0;      // 이만큼 막혀 있으면 옆으로 비켜선다
+  const RETARGET_SEC = 2.5;      // 목적지가 계속 막혀 있으면 가까운 빈 칸으로 목적지를 바꾼다
+  const ARRIVE_GAP = 0.35;       // 출근할 때 정문으로 들어오는 간격
 
   function createSim(MAP, PF, rand) {
     rand = rand || Math.random;
@@ -364,42 +400,49 @@ section.block { display: grid; gap: 4px; }
     const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP.legend[MAP.tiles[y][x]].walkable;
     const key = (x, y) => x + ',' + y;
     const room = id => MAP.rooms.find(r => r.id === id);
-    const meetingSeats = room('meeting').seats;
+    const meetingRoom = room('meeting');
+    const entrance = MAP.spawn;
 
     const agents = STAFF.map(s => {
-      const seat = room(s.id).seats[0];
+      const seat = room(s.room || s.id).seats[s.seat || 0];
       return {
-        ...s, seat, x: seat[0], y: seat[1], next: null, progress: 0,
-        path: [], goal: null, state: 'type', work: 'idle', wait: 0, goalWait: 0,
+        ...s, seat, x: seat[0], y: seat[1], present: true, next: null, progress: 0,
+        path: [], goal: null, state: 'sit', work: 'idle', wait: 0, goalWait: 0,
         onArrive: null, talkUntil: 0, talkStart: 0, talkFirst: false, afterTalk: null, talkWith: null, dir: 1,
         line: '', sayUntil: 0,
       };
     });
     const byId = Object.fromEntries(agents.map(a => [a.id, a]));
     let time = 0;
-    const pipeline = { step: -1, label: '', running: false, awaiting: null };
-    // 외부 자료 연결 여부: 성과 리뷰실(förc), 정산팀(finance/input)
-    const links = { review: false, finance: false };
-    let timers = [];
-    const later = (sec, fn) => timers.push({ at: time + sec, fn });
+    const day = { running: false, step: 0, label: '', awaiting: null, startedAt: null, endedAt: null, results: {} };
+    // 외부 자료: data = förc 성과 데이터(브랜드 분석·성과 기록), finance = 정산 입력 파일
+    const links = { data: false, finance: false };
+    const options = { sunday: false };
+    let script = null, cond = null;
+
+    const atSeat = a => a.present && a.x === a.seat[0] && a.y === a.seat[1];
+    const settled = a => a.present && !a.goal && !a.next && a.state !== 'talk';
+    const inRoom = (a, r) => a.present && a.x >= r.x && a.x < r.x + r.w && a.y >= r.y && a.y < r.y + r.h;
 
     // 다른 직원이 서 있거나 들어가려는 칸
     function blockedFor(me) {
       const s = new Set();
       for (const a of agents) {
-        if (a === me) continue;
+        if (a === me || !a.present) continue;
         s.add(key(a.x, a.y));
         if (a.next) s.add(key(a.next[0], a.next[1]));
       }
       return s;
     }
+    // 멈춰 있을 때의 동작: 자기 자리에서 일하는 중이면 타이핑, 의자면 앉기, 아니면 서 있기
     function restState(a) {
-      if (a.x === a.seat[0] && a.y === a.seat[1]) return 'type';
+      if (atSeat(a)) return a.work === 'doing' ? 'type' : 'sit';
       return MAP.tiles[a.y][a.x] === 'c' ? 'sit' : 'idle';
     }
 
     function send(id, target, onArrive) {
       const a = byId[id];
+      if (!a.present) return;
       // 걷는 중이면 지금 들어가고 있는 칸에서부터 길을 찾는다
       const from = a.next ? [a.next[0], a.next[1]] : [a.x, a.y];
       const goal = PF.nearestFree(target, walkable, blockedFor(a), from) || target;
@@ -425,7 +468,7 @@ section.block { display: grid; gap: 4px; }
       a.line = pick(a); b.line = pick(b);
       a.dir = b.x >= a.x ? 1 : -1; b.dir = -a.dir;
       a.afterTalk = () => { a.talkWith = null; if (then) then(); };
-      b.afterTalk = () => { b.talkWith = null; if (!b.goal) b.state = restState(b); };
+      b.afterTalk = () => { b.talkWith = null; };
     }
 
     const who = a => a.id === 'ceo' ? `${a.person} 대표` : `${a.person}(${a.name})`;
@@ -448,6 +491,7 @@ section.block { display: grid; gap: 4px; }
     }
 
     function stepAgent(a, dt) {
+      if (!a.present) return;
       if (a.state === 'talk') {
         if (time >= a.talkUntil) { const f = a.afterTalk; a.afterTalk = null; a.state = restState(a); if (f) f(); }
         return;
@@ -457,14 +501,14 @@ section.block { display: grid; gap: 4px; }
         if (a.progress < 1) return;
         a.x = a.next[0]; a.y = a.next[1]; a.next = null; a.progress = 0;
       }
-      if (!a.goal) return;
+      if (!a.goal) { a.state = restState(a); return; }
       if (a.x === a.goal[0] && a.y === a.goal[1]) { arrive(a); return; }
 
       const blocked = blockedFor(a);
       let cand = a.path[0];
       // 걸어오는 직원과 마주쳤을 때: 둘 다 동시에 피하면 같은 쪽으로 계속 비켜서는 '거울 춤'이 생긴다.
       // 우선순위(목록 순서)가 낮은 쪽이 잠깐 멈춰 서고, 높은 쪽이 멈춘 직원을 돌아간다.
-      const blocker = cand && agents.find(o => o !== a && ((o.x === cand[0] && o.y === cand[1]) || (o.next && o.next[0] === cand[0] && o.next[1] === cand[1])));
+      const blocker = cand && agents.find(o => o !== a && o.present && ((o.x === cand[0] && o.y === cand[1]) || (o.next && o.next[0] === cand[0] && o.next[1] === cand[1])));
       if (blocker && blocker.goal && agents.indexOf(blocker) < agents.indexOf(a) && a.wait < SIDESTEP_SEC) {
         a.state = 'idle'; a.wait += dt;
         return;
@@ -502,81 +546,250 @@ section.block { display: grid; gap: 4px; }
 
     function tick(dt) {
       time += dt;
-      const due = timers.filter(t => t.at <= time);
-      timers = timers.filter(t => t.at > time);
-      due.forEach(t => t.fn());
       for (const a of agents) stepAgent(a, dt);
+      // 하루 스크립트: 지금 기다리는 조건이 채워지면 다음 줄로 넘어간다
+      for (let guard = 0; script && guard < 50; guard++) {
+        if (cond && !cond()) break;
+        const r = script.next();
+        if (r.done) { script = null; cond = null; break; }
+        cond = r.value;
+      }
     }
 
-    // 명령
-    function stopPipeline() { pipeline.running = false; pipeline.label = ''; pipeline.awaiting = null; timers = []; }
-    function meeting() {
-      stopPipeline();
-      agents.forEach((a, i) => send(a.id, meetingSeats[i]));
+    // ── 하루 스크립트에서 쓰는 동작들 (yield로 조건을 넘기면 그 조건이 참이 될 때까지 멈춘다)
+    function* wait(sec) { const t = time + sec; yield () => time >= t; }
+    function* walkAll(ids, targetOf) {
+      ids.forEach(id => send(id, targetOf(byId[id])));
+      yield () => ids.every(id => settled(byId[id]));
     }
-    function returnAll() {
-      stopPipeline();
-      agents.forEach(a => goHome(a.id));
+    function* gather(ids) {
+      // 회의실 빈 의자에 한 명씩 배정. 말풍선이 겹치지 않게 한 칸씩 띄워 앉힌다:
+      // 위쪽 줄 1·3·5번째 → 아래쪽 줄 2·4번째 → 나머지 순서
+      const taken = new Set(agents.filter(a => a.present && !ids.includes(a.id)).map(a => key(a.x, a.y)));
+      const ys = [...new Set(meetingRoom.seats.map(s => s[1]))].sort((p, q) => p - q);
+      const row = y => meetingRoom.seats.filter(s => s[1] === y).sort((p, q) => p[0] - q[0]);
+      const top = row(ys[0]), bottom = row(ys[ys.length - 1]);
+      const spread = [...top.filter((_, i) => i % 2 === 0), ...bottom.filter((_, i) => i % 2 === 1)];
+      const order = [...spread, ...meetingRoom.seats.filter(s => !spread.includes(s))];
+      const free = order.filter(s => !taken.has(key(s[0], s[1])));
+      ids.forEach((id, i) => send(id, free[i] || meetingRoom.seats[0]));
+      yield () => ids.every(id => settled(byId[id]));
     }
-    function runPipeline() {
-      stopPipeline();
-      agents.forEach(a => a.work = 'idle');
-      pipeline.running = true; pipeline.step = -1;
-      nextStep();
+    function* converse(aId, bId) {
+      const a = byId[aId], b = byId[bId];
+      talk(a, b);
+      yield () => a.state !== 'talk' && b.state !== 'talk';
     }
-    function nextStep() {
-      if (!pipeline.running) return;
-      pipeline.step++;
-      if (pipeline.step >= PIPELINE.length) { pipeline.running = false; pipeline.label = '오늘 흐름 완료'; return; }
-      const st = PIPELINE[pipeline.step];
-      const a = byId[st.from], b = byId[st.to];
-      const last = pipeline.step === PIPELINE.length - 1;
-      if (st.link && !links[st.link]) {
-        // 외부 자료가 없으면 이 단계는 멈춰 두고 다음 단계로 넘어간다
-        a.work = 'link';
-        pipeline.label = `${who(a)}: 외부 자료가 없어 멈춤 — 다음 단계로`;
-        later(SKIP_SEC, nextStep);
-        return;
+    function* visit(aId, bId) {
+      // a가 b 옆 칸까지 걸어가서 대화한다. b가 그사이 움직였으면 다시 따라간다.
+      const a = byId[aId], b = byId[bId];
+      for (let tries = 0; tries < 4; tries++) {
+        send(aId, [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y]);
+        yield () => settled(a);
+        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= 1) break;
       }
+      yield () => settled(b) || b.state === 'sit' || b.state === 'type';
+      yield* converse(aId, bId);
+    }
+    function* work(id, sec) {
+      // 자기 자리에 앉아서 sec초 동안 일한다
+      const a = byId[id];
+      if (!atSeat(a) && !a.goal) goHome(id);
+      yield () => atSeat(a) && settled(a);
       a.work = 'doing';
-      pipeline.label = `${who(a)} → ${who(b)}: ${st.what}`;
-      const target = [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y];
-      send(st.from, target, () => {
-        // 도착했는데 상대가 옆에 없으면(움직였으면) 다시 따라간다
-        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) > 1) { pipeline.step--; nextStep(); return; }
-        talk(a, b, () => {
-          goHome(st.from);
-          if (st.approval) {
-            // 대표 결정을 기다린다. approve()가 불릴 때까지 흐름이 멈춘다.
-            a.work = 'approve'; b.work = 'doing';
-            pipeline.awaiting = { step: pipeline.step, from: a.id, what: st.approval };
-            pipeline.label = `${who(a)}: ${st.approval} 대기 중`;
-            return;
-          }
-          a.work = a.id === 'ceo' ? 'idle' : 'done';
-          b.work = last ? 'done' : 'doing';
-          if (last) a.work = 'done';
-          nextStep();
-        });
-      });
+      yield* wait(sec);
+    }
+    const home = ids => ids.forEach(id => goHome(id));
+    const setStep = (n, label) => { day.step = n; day.label = label; };
+    function* awaitApproval(fromId, what, waiting) {
+      waiting.forEach(id => { if (byId[id].work !== 'link') byId[id].work = 'approve'; });
+      byId.ceo.work = 'doing';
+      day.awaiting = { from: fromId, what, step: day.step };
+      yield () => !day.awaiting;
+      byId.ceo.work = 'idle';
+    }
+
+    function* dayScript() {
+      // ① 07:00 전원 출근: 모두 밖에서 시작해 정문으로 한 명씩 들어와 자기 자리로
+      setStep(1, '07:00 전원 출근 — 정문에서 각자 자리로');
+      day.results = {};
+      for (const a of agents) Object.assign(a, { present: false, goal: null, next: null, path: [], work: 'idle', state: 'idle', onArrive: null, afterTalk: null, talkWith: null });
+      for (const a of agents) {
+        yield () => !blockedFor(a).has(key(entrance[0], entrance[1]));
+        Object.assign(a, { present: true, x: entrance[0], y: entrance[1], dir: 1 });
+        goHome(a.id);
+        yield* wait(ARRIVE_GAP);
+      }
+      yield () => agents.every(a => atSeat(a) && settled(a));
+
+      // ② 시장조사 → 완료 후 3명이 회의실에 모여 인수인계
+      setStep(2, `${who(byId.research)}: 시장조사`);
+      yield* work('research', 3);
+      byId.research.work = 'done';
+      setStep(2, '시장조사 완료 — 3명이 회의실에서 인수인계');
+      yield* gather(['research', 'plan1', 'qa']);
+      yield* converse('research', 'plan1');
+      yield* converse('research', 'qa');
+      home(['research', 'plan1', 'qa']);
+
+      // ③ 브랜드 분석 (시장조사팀이 같이 맡음)
+      if (!links.data) {
+        setStep(3, '브랜드 분석: 데이터 미연동 — 만들지 않고 연동 대기로 기록');
+        byId.research.work = 'link';
+        day.results.brand = '연동 대기';
+        yield* wait(1.5);
+      } else {
+        setStep(3, `${who(byId.research)}: 브랜드 분석`);
+        yield* work('research', 2.5);
+        byId.research.work = 'done';
+        day.results.brand = '완료';
+      }
+
+      // ④ 아이디어 10개 → 검수팀에 전달
+      setStep(4, `${who(byId.plan1)}: 아이디어 10개`);
+      yield* work('plan1', 3);
+      setStep(4, '아이디어 10개 → 브랜드 검수팀에 전달');
+      yield* visit('plan1', 'qa');
+      byId.plan1.work = 'idle';
+      goHome('plan1');
+
+      // ⑤ 브랜드 QA → 반려 3 / 통과 7
+      setStep(5, `${who(byId.qa)}: 10개 검사`);
+      yield* work('qa', 3);
+      day.results.qa = { ...QA_RESULT };
+      setStep(5, `브랜드 QA 결과: 반려 ${QA_RESULT.reject}건 / 통과 ${QA_RESULT.pass}건 → 기획 1팀에 전달`);
+      yield* visit('qa', 'plan1');
+      byId.qa.work = 'done';
+      goHome('qa');
+
+      // ⑥ TOP 3 선정
+      setStep(6, `${who(byId.plan1)}: 통과 ${QA_RESULT.pass}건 중 TOP 3 선정`);
+      yield* work('plan1', 2);
+
+      // ⑦ ★ 대표 승인 대기: 3명 + 대표가 회의실에 모이고, 승인을 누를 때까지 멈춘다
+      setStep(7, '★ 대표 승인 대기 — 3명과 대표가 회의실로');
+      yield* gather(['research', 'plan1', 'qa', 'ceo']);
+      setStep(7, '★ 대표 승인 대기 — TOP 3 중 1개를 골라 승인을 눌러 주세요');
+      yield* awaitApproval('plan1', 'TOP 3 중 1개 승인', ['research', 'plan1', 'qa']);
+      ['plan1', 'qa'].forEach(id => byId[id].work = 'done');
+      if (byId.research.work !== 'link') byId.research.work = 'done';
+      setStep(7, '승인 완료');
+      yield* converse('ceo', 'plan1');
+      home(['research', 'plan1', 'qa']);
+
+      // ⑧ 대본 작성 → 최종 확인 → 제작팀으로 걸어가 전달
+      setStep(8, '대표가 승인안을 기획 2팀에 전달');
+      yield* visit('ceo', 'plan2');
+      goHome('ceo');
+      setStep(8, `${who(byId.plan2)}: 대본 작성`);
+      yield* work('plan2', 3.5);
+      setStep(8, '대본 완성 — 대표실로 최종 확인 요청');
+      yield* visit('plan2', 'ceo');
+      setStep(8, '대본 최종 확인 대기 — 확인을 눌러 주세요');
+      yield* awaitApproval('plan2', '대본 최종 확인', ['plan2']);
+      setStep(8, '최종 확인 완료 — 기획 2팀이 제작팀으로 전달');
+      yield* visit('plan2', 'reels');
+      yield* visit('plan2', 'carousel');
+      byId.plan2.work = 'done';
+      goHome('plan2');
+
+      // ⑨ 릴스·캐러셀 제작 (동시 진행)
+      setStep(9, '릴스·캐러셀 제작 (동시 진행)');
+      const r = work('reels', 4), c = work('carousel', 4);
+      // 두 사람을 같은 시각에 시작시키기 위해 두 스크립트를 번갈아 진행한다
+      let rv = r.next(), cv = c.next();
+      yield () => {
+        while (!rv.done && rv.value()) rv = r.next();
+        while (!cv.done && cv.value()) cv = c.next();
+        return rv.done && cv.done;
+      };
+
+      // ⑩ 결과물 저장
+      setStep(10, '결과물 저장 — media/·scripts/ 에 복제본으로');
+      yield* wait(1.5);
+      byId.reels.work = byId.carousel.work = 'done';
+
+      // ⑪ 성과 기록 (+ 일요일이면 정산)
+      if (!links.data) {
+        setStep(11, '성과 기록: förc 데이터 미연동 — 연동 대기로 기록');
+        byId.review.work = 'link';
+        day.results.review = '연동 대기';
+        yield* wait(1.5);
+      } else {
+        setStep(11, `${who(byId.review)}: 성과 기록`);
+        yield* work('review', 3);
+        byId.review.work = 'done';
+        day.results.review = '완료';
+      }
+      if (options.sunday) {
+        if (!links.finance) {
+          setStep(11, '주간 정산: 입력 자료 없음 — 연동 대기로 기록');
+          byId.finance.work = 'link';
+          day.results.finance = '연동 대기';
+          yield* wait(1.5);
+        } else {
+          setStep(11, `${who(byId.finance)}: 주간 정산`);
+          yield* work('finance', 3);
+          yield* visit('finance', 'secretary');
+          byId.finance.work = 'done';
+          goHome('finance');
+          day.results.finance = '완료';
+        }
+      }
+
+      // ⑫ 비서실 브리핑 → 비서가 대표실로 걸어와 보고
+      setStep(12, `${who(byId.secretary)}: 부서 보고 정리`);
+      yield* work('secretary', 2);
+      setStep(12, '비서실 브리핑 — 대표실로 보고');
+      yield* visit('secretary', 'ceo');
+      byId.secretary.work = 'done';
+      byId.ceo.work = 'done';
+      goHome('secretary');
+      yield () => agents.every(settled);
+      day.running = false; day.endedAt = time;
+      setStep(12, '오늘 흐름 완료');
+    }
+
+    // ── 명령
+    function stopDay() {
+      script = null; cond = null;
+      day.running = false; day.awaiting = null;
+      // 출근 도중에 멈추면 아직 안 들어온 직원은 자기 자리에 바로 둔다
+      for (const a of agents) if (!a.present) Object.assign(a, { present: true, x: a.seat[0], y: a.seat[1], state: 'sit' });
+    }
+    function startDay() {
+      stopDay();
+      day.running = true; day.startedAt = time; day.endedAt = null;
+      script = dayScript(); cond = null;
     }
     function approve() {
-      const w = pipeline.awaiting;
-      if (!w) return false;
-      pipeline.awaiting = null;
-      byId[w.from].work = 'done';
-      byId.ceo.work = 'idle';
-      nextStep();
+      if (!day.awaiting) return false;
+      day.awaiting = null;
       return true;
+    }
+    function meeting() {
+      stopDay(); day.label = '';
+      const seats = meetingRoom.seats;
+      agents.forEach((a, i) => send(a.id, seats[i % seats.length]));
+    }
+    function returnAll() {
+      stopDay(); day.label = '';
+      agents.forEach(a => goHome(a.id));
+    }
+    // 회사 시계 (하루를 시작한 뒤에만)
+    function clock() {
+      if (day.startedAt === null) return null;
+      const m = Math.floor(DAY_START_MIN + ((day.endedAt ?? time) - day.startedAt) * MIN_PER_SEC);
+      return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
     }
 
     return {
-      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, approve, pipeline, links, speech, say, who, TALK_SEC,
-      walkable, STATES, get time() { return time; },
+      agents, byId, tick, send, goHome, meeting, returnAll, startDay, stopDay, approve, day, links, options,
+      speech, say, who, clock, walkable, STATES, TALK_SEC, get time() { return time; },
     };
   }
 
-  const api = { createSim, STATES, WORK, STAFF, PIPELINE };
+  const api = { createSim, STATES, WORK, STAFF, DAY, QA_RESULT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.OfficeSim = api;
 })(typeof window !== 'undefined' ? window : this);
@@ -588,11 +801,12 @@ section.block { display: grid; gap: 4px; }
   const sim = OfficeSim.createSim(MAP, OfficePath);
   const STATES = OfficeSim.STATES;
   const JOBS = {
-    entrance: '정문과 안내 데스크', research: '레진 소품 트렌드·플랫폼 행사 조사',
-    plan1: '아이디어 10개 → TOP 3', qa: 'TOP 3 브랜드 기준 검사',
+    entrance: '정문과 안내 데스크', research: '시장조사 + 브랜드 분석',
+    plan1: '아이디어 10개 → TOP 3 선정', qa: '아이디어 10개 브랜드 QA',
     ceo: '1차 승인 · 최종 확인', plan2: '승인안 대본·문구 작성',
     review: '게시 후 반응 기록', finance: '주간 정산 (일요일 17시)',
-    secretary: '부서 보고 요약', meeting: '8석 테이블', lounge: '커피 머신 · 소파'
+    secretary: '부서 보고 요약', meeting: '10석 테이블', lounge: '커피 머신 · 소파',
+    studio: '릴스·캐러셀 편집, 결과물 저장'
   };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -798,14 +1012,14 @@ section.block { display: grid; gap: 4px; }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(base, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (selected) {
+    if (selected && selected.present) {
       drawPath(ctx, selected);
       const [sx, sy] = pos(selected);
       ctx.strokeStyle = selected.color; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(sx * S + S / 2, sy * S + S / 2, S * .62, 0, 7); ctx.stroke();
     }
     speakers = [];
-    [...sim.agents].sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
+    sim.agents.filter(a => a.present).sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
     speakers.forEach(([a, cx, hy, line]) => drawSpeech(ctx, a, cx, hy, line));
   }
 
@@ -823,15 +1037,44 @@ section.block { display: grid; gap: 4px; }
     staffBody.appendChild(tr); rows.set(a.id, tr);
   });
   let lastUI = '';
+  // 하루 12단계 표
+  const daysEl = document.getElementById('days');
+  const dayItems = OfficeSim.DAY.map(d => {
+    const li = document.createElement('li');
+    if (d.n === 7) li.classList.add('star');
+    li.innerHTML = '<span class="n"></span><span class="t"></span><span class="r"></span>';
+    li.querySelector('.n').textContent = d.n;
+    li.querySelector('.t').textContent = d.title;
+    daysEl.appendChild(li);
+    return [d, li];
+  });
+  function stepResult(n) {
+    const r = sim.day.results;
+    if (n === 3 && r.brand) return r.brand === '완료' ? '브랜드 분석 완료' : '데이터 미연동 → 만들지 않음, 연동 대기로 기록';
+    if (n === 5 && r.qa) return `반려 ${r.qa.reject}건 / 통과 ${r.qa.pass}건`;
+    if (n === 11 && r.review) return '성과 기록 ' + r.review + (r.finance ? ' · 주간 정산 ' + r.finance : '');
+    return '';
+  }
+  function renderDays() {
+    const d = sim.day, started = d.startedAt !== null;
+    dayItems.forEach(([s, li]) => {
+      const done = started && (s.n < d.step || (!d.running && d.step === 12));
+      const now = started && d.running && s.n === d.step;
+      li.classList.toggle('done', done);
+      li.classList.toggle('now', now);
+      li.querySelector('.r').textContent = stepResult(s.n) || s.note;
+    });
+  }
+
   function renderUI() {
-    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.pipeline.label + !!sim.pipeline.awaiting;
+    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.day.label + !!sim.day.awaiting + sim.agents.map(a => a.present).join();
     if (sig === lastUI) return; lastUI = sig;
     sim.agents.forEach(a => {
       const tr = rows.get(a.id);
       tr.querySelector('.dot').style.background = a.color;
       const ws = tr.querySelector('.ws'); ws.className = 'ws ' + a.work; ws.textContent = OfficeSim.WORK[a.work].label;
       const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state; chip.textContent = STATES[a.state];
-      tr.children[3].textContent = placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
+      tr.children[3].textContent = !a.present ? '출근 전' : placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
       tr.classList.toggle('on', a === selected);
     });
     const sel = document.getElementById('sel');
@@ -854,16 +1097,19 @@ section.block { display: grid; gap: 4px; }
       const b = document.createElement('b'); b.textContent = n; el.append(b); sum.append(el);
     });
     const ap = document.getElementById('approve');
-    const w = sim.pipeline.awaiting;
+    const w = sim.day.awaiting;
     ap.hidden = !w;
-    if (w) document.getElementById('approve-text').textContent = `${sim.who(sim.byId[w.from])}이 확인을 기다립니다: ${w.what}`;
-    const flow = document.getElementById('flow');
-    if (sim.pipeline.label) {
-      const n = Math.min(sim.pipeline.step + 1, OfficeSim.PIPELINE.length);
-      flow.innerHTML = '';
-      const b = document.createElement('b'); b.textContent = sim.pipeline.running ? `${n}/${OfficeSim.PIPELINE.length}` : '완료';
-      flow.append(b, ' ' + sim.pipeline.label);
+    if (w) {
+      document.getElementById('approve-text').textContent = `${sim.who(sim.byId[w.from])}이 기다립니다: ${w.what}`;
+      document.getElementById('btn-approve').textContent = w.step === 7 ? '승인' : '최종 확인';
     }
+    const flow = document.getElementById('flow');
+    if (sim.day.label) {
+      flow.innerHTML = '';
+      const b = document.createElement('b'); b.textContent = sim.day.running ? `${sim.day.step}/12` : '완료';
+      flow.append(b, ' ' + sim.day.label);
+    }
+    renderDays();
   }
 
   // 입력
@@ -873,7 +1119,7 @@ section.block { display: grid; gap: 4px; }
   }
   cv.addEventListener('click', e => {
     const [tx, ty] = tileAt(e);
-    const hit = sim.agents.find(a => { const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
+    const hit = sim.agents.find(a => { if (!a.present) return false; const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
     if (hit) { selected = hit; sim.say(hit.id); lastUI = ''; renderUI(); return; }
     if (selected && tx >= 0 && ty >= 0 && tx < W && ty < H) {
       sim.send(selected.id, [tx, ty]);
@@ -889,14 +1135,17 @@ section.block { display: grid; gap: 4px; }
     const nx = from[0] + k[0], ny = from[1] + k[1];
     if (sim.walkable(nx, ny)) sim.send(selected.id, [nx, ny]);
   });
-  document.getElementById('btn-flow').addEventListener('click', () => sim.runPipeline());
+  document.getElementById('btn-flow').addEventListener('click', () => { sim.startDay(); lastUI = ''; });
   document.getElementById('btn-approve').addEventListener('click', () => { sim.approve(); lastUI = ''; renderUI(); });
-  ['review', 'finance'].forEach(k => {
-    const box = document.getElementById('link-' + k);
-    box.checked = sim.links[k];
-    box.addEventListener('change', () => { sim.links[k] = box.checked; });
+  [['opt-data', sim.links, 'data'], ['opt-finance', sim.links, 'finance'], ['opt-sunday', sim.options, 'sunday']].forEach(([id, obj, k]) => {
+    const box = document.getElementById(id);
+    box.checked = obj[k];
+    box.addEventListener('change', () => { obj[k] = box.checked; });
   });
-  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 8명이 회의실로 이동'; });
+  let speed = 2;
+  const sp = document.getElementById('speed');
+  sp.addEventListener('change', () => { speed = Number(sp.value) || 1; });
+  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 10명이 회의실로 이동'; });
   document.getElementById('btn-home').addEventListener('click', () => { sim.returnAll(); document.getElementById('flow').textContent = '모두 자기 자리로 복귀'; });
 
   // 방 목록
@@ -947,9 +1196,11 @@ section.block { display: grid; gap: 4px; }
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(.1, (now - last) / 1000); last = now;
-    sim.tick(dt);
+    for (let i = 0; i < speed; i++) sim.tick(dt);
     frame(now / 1000);
     renderUI();
+    const c = sim.clock(); const ce = document.getElementById('clock');
+    if (ce.textContent !== (c || '--:--')) ce.textContent = c || '--:--';
     requestAnimationFrame(loop);
   }
   repaint();

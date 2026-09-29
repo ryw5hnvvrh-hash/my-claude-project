@@ -83,7 +83,8 @@
     for (let i = 0; i < q.length && i < 4000; i++) {
       const [x, y] = q[i];
       const k = key(x, y);
-      if (walkable(x, y) && !(blocked && blocked.has(k)) && (!from || findPath(from, [x, y], walkable, blocked))) return [x, y];
+      // 도달 가능 여부는 벽·가구만 보고 판단한다. 다른 직원은 곧 비켜 주므로 막힌 칸으로 치지 않는다.
+      if (walkable(x, y) && !(blocked && blocked.has(k)) && (!from || findPath(from, [x, y], walkable))) return [x, y];
       for (const [dx, dy] of DIRS) {
         const nx = x + dx, ny = y + dy, nk = key(nx, ny);
         if (!seen.has(nk) && nx >= 0 && ny >= 0 && nx < 999 && ny < 999) { seen.add(nk); q.push([nx, ny]); }

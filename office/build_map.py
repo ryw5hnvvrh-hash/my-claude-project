@@ -50,11 +50,11 @@ TOP = [
 BOTTOM = [
     ("meeting", "회의실", 2),
     ("lounge", "라운지", 1),
+    ("studio", "제작팀", 1),
     ("spare1", "예비실 1", 1),
     ("spare2", "예비실 2", 1),
     ("spare3", "예비실 3", 1),
     ("spare4", "예비실 4", 1),
-    ("spare5", "예비실 5", 1),
 ]
 
 
@@ -116,23 +116,31 @@ def build():
         g[door[1]][door[0]] = "D"
         seats = []
         if rid == "meeting":
-            # 테이블 4칸, 위아래로 의자 4개씩 = 8석(AI 직원 7 + 대표 1)
+            # 테이블 5칸, 위아래로 의자 5개씩 = 10석(AI 직원 9 + 대표 1)
             ty = BOT_Y0 + 2
-            for dx in range(4, 8):
+            for dx in range(4, 9):
                 g[ty][x0 + dx] = "M"
                 for sy in (ty - 1, ty + 1):
                     g[sy][x0 + dx] = "c"
                     seats.append([x0 + dx, sy])
             g[BOT_Y0 + ROOM_H - 1][x0 + w - 1] = "B"
             g[BOT_Y0][x0 + w - 1] = "P"
+        elif rid == "studio":
+            # 릴스 담당·캐러셀 담당 책상 2개 (책상은 위쪽, 의자는 그 아래)
+            for dx in (1, 4):
+                g[BOT_Y0 + 1][x0 + dx] = g[BOT_Y0 + 1][x0 + dx + 1] = "T"
+                g[BOT_Y0 + 2][x0 + dx] = "c"
+                seats.append([x0 + dx, BOT_Y0 + 2])
+            g[BOT_Y0 + ROOM_H - 1][x0] = "B"
+            g[BOT_Y0 + ROOM_H - 1][x0 + ROOM_W - 1] = "P"
         elif rid == "lounge":
             g[BOT_Y0][x0 + ROOM_W - 1] = "K"
             for dx in range(1, 5):
                 g[BOT_Y0 + ROOM_H - 1][x0 + dx] = "S"
             g[BOT_Y0 + ROOM_H - 1][x0] = "P"
         rooms.append({
-            "id": rid, "name": name, "dept": None,
-            "staff": 0,
+            "id": rid, "name": name, "dept": 8 if rid == "studio" else None,
+            "staff": 2 if rid == "studio" else 0,
             "x": x0, "y": BOT_Y0, "w": w, "h": ROOM_H,
             "doors": [door], "seats": seats,
             "shared_seats": rid == "meeting",
@@ -204,7 +212,7 @@ def main():
         Path(__file__).with_name("index.html").write_text(html, encoding="utf-8")
     print("\n".join(tiles))
     staffed = [r for r in rooms if r["staff"]]
-    print(f"\n{W}x{H}, 방 {len(rooms)}개, 책상 자리 {sum(len(r['seats']) for r in staffed)}개 (AI 직원 7 + 대표 1)")
+    print(f"\n{W}x{H}, 방 {len(rooms)}개, 책상 자리 {sum(len(r['seats']) for r in staffed)}개 (AI 직원 9 + 대표 1)")
     if errors:
         print("오류:\n" + "\n".join(errors))
         raise SystemExit(1)

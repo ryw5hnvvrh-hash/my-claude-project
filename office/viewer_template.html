@@ -88,6 +88,20 @@ canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .sel { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 14px; }
 .role { color: var(--muted); font-size: 12px; }
 .sel .lines { color: var(--muted); font-size: 13px; }
+.clockbox { display: flex; align-items: center; gap: 12px; }
+.clock { font-family: var(--font-mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.speed { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.speed select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; }
+.days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; }
+.days li { display: grid; grid-template-columns: 26px 1fr; gap: 2px 8px; align-items: start; padding: 7px 8px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; }
+.days li .n { grid-row: span 2; font-family: var(--font-mono); font-size: 12px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: var(--muted); }
+.days li .t { font-weight: 500; }
+.days li .r { color: var(--muted); font-size: 12px; }
+.days li.done .n { background: var(--ws-done); border-color: var(--ws-done); color: var(--ws-ink); }
+.days li.now { border-color: var(--accent); background: var(--accent-soft); }
+.days li.now .n { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.days li.star.now { border-color: var(--ws-approve); background: color-mix(in srgb, var(--ws-approve) 10%, var(--sheet)); }
+.days li.star.now .n { background: var(--ws-approve); border-color: var(--ws-approve); }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -132,18 +146,21 @@ section.block { display: grid; gap: 4px; }
   <header>
     <span class="eyebrow">@thth_lll · 레진 소품 스튜디오</span>
     <h1>THING THAT HIT 사무실</h1>
-    <p class="sub">직원 머리 위 말풍선이 지금 하는 일을 보여줍니다. 하루 흐름을 재생하면 단계마다 상태가 바뀌고, 승인 지점에서는 대표가 승인을 눌러야 이어집니다.</p>
+    <p class="sub">07:00 출근부터 비서실 브리핑까지 하루 12단계를 직원들이 직접 걸어 다니며 진행합니다. 머리 위 말풍선이 지금 하는 일이고, 승인 지점에서는 대표가 눌러야 이어집니다.</p>
   </header>
 
   <section class="sheet" aria-label="사무실 지도">
     <div class="bar">
       <div class="actions">
-        <button type="button" class="btn primary" id="btn-flow">하루 흐름 재생</button>
+        <button type="button" class="btn primary" id="btn-flow">하루 시작 07:00</button>
         <button type="button" class="btn" id="btn-meet">회의 소집</button>
         <button type="button" class="btn" id="btn-home">모두 자리로</button>
       </div>
-      <div class="flow" id="flow" aria-live="polite">하루 흐름을 재생하면 단계마다 업무 상태가 바뀝니다</div>
+      <div class="clockbox"><span class="clock" id="clock">--:--</span>
+        <label class="speed">속도 <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+      </div>
     </div>
+    <div class="flow" id="flow" aria-live="polite">하루 시작을 누르면 모두 밖에서 출발해 정문으로 출근합니다</div>
     <div class="summary" id="summary" aria-label="업무 상태별 인원"></div>
     <div class="approve-box" id="approve" hidden>
       <span id="approve-text"></span>
@@ -154,11 +171,17 @@ section.block { display: grid; gap: 4px; }
       <div class="sel" id="sel" aria-live="polite"></div>
     </div>
     <div class="links">
-      <label><input type="checkbox" id="link-review"> 성과 자료 연결됨 (förc)</label>
-      <label><input type="checkbox" id="link-finance"> 정산 자료 들어옴 (finance/input)</label>
-      <span>지금은 둘 다 꺼져 있습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
+      <label><input type="checkbox" id="opt-data"> förc 데이터 연결됨 (③ 브랜드 분석 · ⑪ 성과 기록)</label>
+      <label><input type="checkbox" id="opt-sunday"> 일요일 (⑪에 주간 정산 포함)</label>
+      <label><input type="checkbox" id="opt-finance"> 정산 자료 들어옴 (finance/input)</label>
+      <span>실제 상황에 맞춰 꺼 두었습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
     </div>
     <p class="hint">직원을 누르면 말버릇을 한마디 합니다. 직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
+  </section>
+
+  <section class="block">
+    <h2>하루 12단계</h2>
+    <ol class="days" id="days"></ol>
   </section>
 
   <div class="cols">
@@ -200,7 +223,7 @@ section.block { display: grid; gap: 4px; }
           <tbody id="rooms"></tbody>
         </table>
       </div>
-      <p class="note">회의실 8석은 AI 직원 7명과 대표 1명이 함께 쓰는 자리라서 인원에 따로 세지 않습니다.</p>
+      <p class="note">회의실 10석은 AI 직원 9명과 대표 1명이 함께 쓰는 자리라서 인원에 따로 세지 않습니다.</p>
     </section>
     <section class="block">
       <h2>타일 범례</h2>
@@ -220,11 +243,12 @@ section.block { display: grid; gap: 4px; }
   const sim = OfficeSim.createSim(MAP, OfficePath);
   const STATES = OfficeSim.STATES;
   const JOBS = {
-    entrance: '정문과 안내 데스크', research: '레진 소품 트렌드·플랫폼 행사 조사',
-    plan1: '아이디어 10개 → TOP 3', qa: 'TOP 3 브랜드 기준 검사',
+    entrance: '정문과 안내 데스크', research: '시장조사 + 브랜드 분석',
+    plan1: '아이디어 10개 → TOP 3 선정', qa: '아이디어 10개 브랜드 QA',
     ceo: '1차 승인 · 최종 확인', plan2: '승인안 대본·문구 작성',
     review: '게시 후 반응 기록', finance: '주간 정산 (일요일 17시)',
-    secretary: '부서 보고 요약', meeting: '8석 테이블', lounge: '커피 머신 · 소파'
+    secretary: '부서 보고 요약', meeting: '10석 테이블', lounge: '커피 머신 · 소파',
+    studio: '릴스·캐러셀 편집, 결과물 저장'
   };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -430,14 +454,14 @@ section.block { display: grid; gap: 4px; }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(base, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (selected) {
+    if (selected && selected.present) {
       drawPath(ctx, selected);
       const [sx, sy] = pos(selected);
       ctx.strokeStyle = selected.color; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(sx * S + S / 2, sy * S + S / 2, S * .62, 0, 7); ctx.stroke();
     }
     speakers = [];
-    [...sim.agents].sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
+    sim.agents.filter(a => a.present).sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
     speakers.forEach(([a, cx, hy, line]) => drawSpeech(ctx, a, cx, hy, line));
   }
 
@@ -455,15 +479,44 @@ section.block { display: grid; gap: 4px; }
     staffBody.appendChild(tr); rows.set(a.id, tr);
   });
   let lastUI = '';
+  // 하루 12단계 표
+  const daysEl = document.getElementById('days');
+  const dayItems = OfficeSim.DAY.map(d => {
+    const li = document.createElement('li');
+    if (d.n === 7) li.classList.add('star');
+    li.innerHTML = '<span class="n"></span><span class="t"></span><span class="r"></span>';
+    li.querySelector('.n').textContent = d.n;
+    li.querySelector('.t').textContent = d.title;
+    daysEl.appendChild(li);
+    return [d, li];
+  });
+  function stepResult(n) {
+    const r = sim.day.results;
+    if (n === 3 && r.brand) return r.brand === '완료' ? '브랜드 분석 완료' : '데이터 미연동 → 만들지 않음, 연동 대기로 기록';
+    if (n === 5 && r.qa) return `반려 ${r.qa.reject}건 / 통과 ${r.qa.pass}건`;
+    if (n === 11 && r.review) return '성과 기록 ' + r.review + (r.finance ? ' · 주간 정산 ' + r.finance : '');
+    return '';
+  }
+  function renderDays() {
+    const d = sim.day, started = d.startedAt !== null;
+    dayItems.forEach(([s, li]) => {
+      const done = started && (s.n < d.step || (!d.running && d.step === 12));
+      const now = started && d.running && s.n === d.step;
+      li.classList.toggle('done', done);
+      li.classList.toggle('now', now);
+      li.querySelector('.r').textContent = stepResult(s.n) || s.note;
+    });
+  }
+
   function renderUI() {
-    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.pipeline.label + !!sim.pipeline.awaiting;
+    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.day.label + !!sim.day.awaiting + sim.agents.map(a => a.present).join();
     if (sig === lastUI) return; lastUI = sig;
     sim.agents.forEach(a => {
       const tr = rows.get(a.id);
       tr.querySelector('.dot').style.background = a.color;
       const ws = tr.querySelector('.ws'); ws.className = 'ws ' + a.work; ws.textContent = OfficeSim.WORK[a.work].label;
       const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state; chip.textContent = STATES[a.state];
-      tr.children[3].textContent = placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
+      tr.children[3].textContent = !a.present ? '출근 전' : placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
       tr.classList.toggle('on', a === selected);
     });
     const sel = document.getElementById('sel');
@@ -486,16 +539,19 @@ section.block { display: grid; gap: 4px; }
       const b = document.createElement('b'); b.textContent = n; el.append(b); sum.append(el);
     });
     const ap = document.getElementById('approve');
-    const w = sim.pipeline.awaiting;
+    const w = sim.day.awaiting;
     ap.hidden = !w;
-    if (w) document.getElementById('approve-text').textContent = `${sim.who(sim.byId[w.from])}이 확인을 기다립니다: ${w.what}`;
-    const flow = document.getElementById('flow');
-    if (sim.pipeline.label) {
-      const n = Math.min(sim.pipeline.step + 1, OfficeSim.PIPELINE.length);
-      flow.innerHTML = '';
-      const b = document.createElement('b'); b.textContent = sim.pipeline.running ? `${n}/${OfficeSim.PIPELINE.length}` : '완료';
-      flow.append(b, ' ' + sim.pipeline.label);
+    if (w) {
+      document.getElementById('approve-text').textContent = `${sim.who(sim.byId[w.from])}이 기다립니다: ${w.what}`;
+      document.getElementById('btn-approve').textContent = w.step === 7 ? '승인' : '최종 확인';
     }
+    const flow = document.getElementById('flow');
+    if (sim.day.label) {
+      flow.innerHTML = '';
+      const b = document.createElement('b'); b.textContent = sim.day.running ? `${sim.day.step}/12` : '완료';
+      flow.append(b, ' ' + sim.day.label);
+    }
+    renderDays();
   }
 
   // 입력
@@ -505,7 +561,7 @@ section.block { display: grid; gap: 4px; }
   }
   cv.addEventListener('click', e => {
     const [tx, ty] = tileAt(e);
-    const hit = sim.agents.find(a => { const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
+    const hit = sim.agents.find(a => { if (!a.present) return false; const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
     if (hit) { selected = hit; sim.say(hit.id); lastUI = ''; renderUI(); return; }
     if (selected && tx >= 0 && ty >= 0 && tx < W && ty < H) {
       sim.send(selected.id, [tx, ty]);
@@ -521,14 +577,17 @@ section.block { display: grid; gap: 4px; }
     const nx = from[0] + k[0], ny = from[1] + k[1];
     if (sim.walkable(nx, ny)) sim.send(selected.id, [nx, ny]);
   });
-  document.getElementById('btn-flow').addEventListener('click', () => sim.runPipeline());
+  document.getElementById('btn-flow').addEventListener('click', () => { sim.startDay(); lastUI = ''; });
   document.getElementById('btn-approve').addEventListener('click', () => { sim.approve(); lastUI = ''; renderUI(); });
-  ['review', 'finance'].forEach(k => {
-    const box = document.getElementById('link-' + k);
-    box.checked = sim.links[k];
-    box.addEventListener('change', () => { sim.links[k] = box.checked; });
+  [['opt-data', sim.links, 'data'], ['opt-finance', sim.links, 'finance'], ['opt-sunday', sim.options, 'sunday']].forEach(([id, obj, k]) => {
+    const box = document.getElementById(id);
+    box.checked = obj[k];
+    box.addEventListener('change', () => { obj[k] = box.checked; });
   });
-  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 8명이 회의실로 이동'; });
+  let speed = 2;
+  const sp = document.getElementById('speed');
+  sp.addEventListener('change', () => { speed = Number(sp.value) || 1; });
+  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 10명이 회의실로 이동'; });
   document.getElementById('btn-home').addEventListener('click', () => { sim.returnAll(); document.getElementById('flow').textContent = '모두 자기 자리로 복귀'; });
 
   // 방 목록
@@ -579,9 +638,11 @@ section.block { display: grid; gap: 4px; }
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(.1, (now - last) / 1000); last = now;
-    sim.tick(dt);
+    for (let i = 0; i < speed; i++) sim.tick(dt);
     frame(now / 1000);
     renderUI();
+    const c = sim.clock(); const ce = document.getElementById('clock');
+    if (ce.textContent !== (c || '--:--')) ce.textContent = c || '--:--';
     requestAnimationFrame(loop);
   }
   repaint();
