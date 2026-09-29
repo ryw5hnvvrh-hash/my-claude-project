@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a floor plan sheet — map on top, legend + room roster beneath; resin-clear floors, clover-green accent */
+/* Layout: a floor plan sheet — live map on top with controls, staff roster + rooms + legend beneath; resin-clear floors, clover-green accent */
 :root {
   --bg: #f3f6f5;
   --sheet: #ffffff;
@@ -21,13 +21,23 @@
   --floor-spare: #eceeed;
   --floor-lobby: #f2f5ef;
   --wood: #b98b5e;
-  --chair: #2f8a5b;
+  --chair: #9fb8ae;
   --sofa: #b77ea0;
   --plant: #4c9a5f;
   --metal: #7b8a86;
   --door: #e2a23b;
-  --player: #d4485a;
   --label: #33423e;
+  --skin: #f2c9a5;
+  --bubble: #ffffff;
+  --bubble-ink: #1d2926;
+  --st-walk: #2f6fb0;
+  --st-type: #2f8a5b;
+  --st-talk: #c0612b;
+  --st-sit: #7d5bb0;
+  --st-idle: #6b7773;
+  /* 직원 8명 색: 두 테마에서 모두 보이는 중간 채도 */
+  --a-research: #3a86c8; --a-plan1: #e0823a; --a-qa: #8a5cc2; --a-ceo: #d4485a;
+  --a-plan2: #d1a21c; --a-review: #2aa198; --a-finance: #5b8c3a; --a-secretary: #c2569b;
   --font-display: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
@@ -37,8 +47,10 @@
     --bg: #121816; --sheet: #1a2220; --fg: #e3ebe8; --muted: #93a39e; --line: #2d3935;
     --accent: #5cc48c; --accent-soft: #1f3a2c; --wall: #060908; --corridor: #222b28;
     --floor-dept: #1d2a2e; --floor-ceo: #2e2619; --floor-meet: #22243a; --floor-lounge: #2f2029;
-    --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #5cc48c;
-    --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --player: #ff6b7c; --label: #d5e0dc;
+    --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #4d6660;
+    --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --label: #d5e0dc;
+    --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816;
+    --st-walk: #6aa8e8; --st-type: #5cc48c; --st-talk: #ec9460; --st-sit: #ae8ee0; --st-idle: #98a5a1;
     color-scheme: dark;
   }
 }
@@ -46,8 +58,10 @@
   --bg: #121816; --sheet: #1a2220; --fg: #e3ebe8; --muted: #93a39e; --line: #2d3935;
   --accent: #5cc48c; --accent-soft: #1f3a2c; --wall: #060908; --corridor: #222b28;
   --floor-dept: #1d2a2e; --floor-ceo: #2e2619; --floor-meet: #22243a; --floor-lounge: #2f2029;
-  --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #5cc48c;
-  --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --player: #ff6b7c; --label: #d5e0dc;
+  --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #4d6660;
+  --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --label: #d5e0dc;
+  --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816;
+  --st-walk: #6aa8e8; --st-type: #5cc48c; --st-talk: #ec9460; --st-sit: #ae8ee0; --st-idle: #98a5a1;
   color-scheme: dark;
 }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
@@ -55,71 +69,95 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font-body); f
 header { display: grid; gap: 4px; }
 .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; margin: 0; text-wrap: balance; }
-.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.sub { color: var(--muted); margin: 0; max-width: 64ch; }
 .sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
 .mapbox { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 6px; }
-canvas { display: block; image-rendering: pixelated; outline: none; border-radius: 6px; }
-canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
-.status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 14px; }
-.status b { font-weight: 600; }
-.pill { font-family: var(--font-mono); font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
-.pill.block { background: color-mix(in srgb, var(--player) 16%, transparent); color: var(--player); }
-.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+canvas#map { display: block; outline: none; border-radius: 6px; cursor: pointer; touch-action: manipulation; }
+canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: inherit; font-size: 14px; font-weight: 500; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.flow { font-size: 14px; color: var(--muted); min-height: 1.5em; }
+.flow b { color: var(--fg); font-weight: 600; }
+.sel { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 14px; }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
-.pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 40px); gap: 4px; }
-.pad button { font: inherit; font-size: 16px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 8px; cursor: pointer; }
-.pad button:hover { border-color: var(--accent); }
-.pad button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.pad .up { grid-column: 2; grid-row: 1; }
-.pad .left { grid-column: 1; grid-row: 2; }
-.pad .down { grid-column: 2; grid-row: 2; }
-.pad .right { grid-column: 3; grid-row: 2; }
-.cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.walk { color: var(--st-walk); } .chip.type { color: var(--st-type); } .chip.talk { color: var(--st-talk); }
+.chip.sit { color: var(--st-sit); } .chip.idle { color: var(--st-idle); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
 @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
 h2 { font-family: var(--font-display); font-weight: 400; font-size: 20px; margin: 0 0 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { font-weight: 500; color: var(--muted); font-size: 12px; letter-spacing: .04em; }
 td.num { white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 tbody tr { cursor: pointer; }
 tbody tr:hover td, tbody tr.on td { background: var(--accent-soft); }
 .tablebox { overflow-x: auto; }
-.swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--line); }
+.states { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.states li { display: grid; gap: 2px; }
+.states span.d { color: var(--muted); font-size: 13px; }
 .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; font-size: 14px; margin: 0; padding: 0; list-style: none; }
 .legend li { display: flex; align-items: center; gap: 8px; }
 .legend canvas { border-radius: 3px; flex: none; box-shadow: 0 0 0 1px var(--line); }
 .legend .no { color: var(--muted); font-size: 12px; }
 .note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 code { font-family: var(--font-mono); font-size: 13px; }
+section.block { display: grid; gap: 4px; }
 </style>
 
 <div class="wrap">
   <header>
     <span class="eyebrow">@thth_lll · 레진 소품 스튜디오</span>
     <h1>THING THAT HIT 사무실</h1>
-    <p class="sub">하루 파이프라인 순서대로 방을 배치한 64×17 타일 지도입니다. 빨간 점(대표)을 움직여 보세요. 벽과 가구는 지나갈 수 없습니다.</p>
+    <p class="sub">직원 7명과 대표가 A* 경로 탐색으로 목적지까지 걸어갑니다. 다른 직원이 서 있는 칸은 돌아가고, 벽과 가구는 지나가지 않습니다.</p>
   </header>
 
   <section class="sheet" aria-label="사무실 지도">
-    <div class="mapbox"><canvas id="map" tabindex="0" aria-label="사무실 타일 지도. 방향키로 이동"></canvas></div>
-    <div class="controls">
-      <div class="status" aria-live="polite">
-        <span>위치 <b id="where">출입구</b></span>
-        <span class="pill" id="xy">x 0 · y 8</span>
-        <span class="pill" id="tile">정문</span>
+    <div class="bar">
+      <div class="actions">
+        <button type="button" class="btn primary" id="btn-flow">하루 흐름 재생</button>
+        <button type="button" class="btn" id="btn-meet">회의 소집</button>
+        <button type="button" class="btn" id="btn-home">모두 자리로</button>
       </div>
-      <div class="pad" role="group" aria-label="이동 버튼">
-        <button type="button" class="up" data-d="0,-1" aria-label="위로">↑</button>
-        <button type="button" class="left" data-d="-1,0" aria-label="왼쪽으로">←</button>
-        <button type="button" class="down" data-d="0,1" aria-label="아래로">↓</button>
-        <button type="button" class="right" data-d="1,0" aria-label="오른쪽으로">→</button>
-      </div>
+      <div class="flow" id="flow" aria-live="polite">모두 자기 자리에서 일하는 중</div>
     </div>
-    <p class="hint">지도를 누른 뒤 방향키나 WASD로 움직입니다. 방 목록에서 방을 누르면 지도에 표시됩니다.</p>
+    <div class="mapbox"><canvas id="map" tabindex="0" aria-label="사무실 지도. 직원을 누른 뒤 목적지를 누르면 걸어갑니다"></canvas></div>
+    <div class="bar">
+      <div class="sel" id="sel" aria-live="polite"></div>
+    </div>
+    <p class="hint">직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
   </section>
 
   <div class="cols">
-    <section>
+    <section class="block">
+      <h2>직원</h2>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>직원</th><th>상태</th><th>지금 위치</th><th>목적지</th></tr></thead>
+          <tbody id="staff"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="block">
+      <h2>상태 5종</h2>
+      <ul class="states">
+        <li><span class="chip walk">걷기</span><span class="d">몸이 위아래로 흔들리고 발이 번갈아 움직입니다.</span></li>
+        <li><span class="chip type">타이핑</span><span class="d">자기 책상에 앉아 두 손이 번갈아 키보드를 칩니다.</span></li>
+        <li><span class="chip talk">대화</span><span class="d">말풍선의 점 세 개가 차례로 떠오릅니다.</span></li>
+        <li><span class="chip sit">앉기</span><span class="d">회의실·남의 의자에 앉아 천천히 숨 쉽니다.</span></li>
+        <li><span class="chip idle">대기</span><span class="d">서서 기다립니다. 길이 막혀 비켜주길 기다릴 때도 이 상태입니다.</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="block">
       <h2>방 목록</h2>
       <div class="tablebox">
         <table>
@@ -129,19 +167,309 @@ code { font-family: var(--font-mono); font-size: 13px; }
       </div>
       <p class="note">회의실 8석은 AI 직원 7명과 대표 1명이 함께 쓰는 자리라서 인원에 따로 세지 않습니다.</p>
     </section>
-    <section>
+    <section class="block">
       <h2>타일 범례</h2>
       <ul class="legend" id="legend"></ul>
-      <p class="note">지도 데이터: <code>office/map.json</code> · 생성·검사: <code>office/build_map.py</code></p>
+      <p class="note">지도 <code>office/map.json</code> · 경로 탐색 <code>office/pathfinding.js</code> · 이동 규칙 <code>office/sim.js</code></p>
     </section>
   </div>
 </div>
 
 <script type="application/json" id="mapdata">{"name": "THING THAT HIT 사무실", "width": 64, "height": 17, "tile_size_px": 32, "origin": "왼쪽 위 (0,0), x는 오른쪽, y는 아래", "spawn": [0, 8], "legend": {"#": {"name": "벽", "walkable": false}, ".": {"name": "바닥", "walkable": true}, ",": {"name": "복도", "walkable": true}, "D": {"name": "방문", "walkable": true}, "E": {"name": "정문", "walkable": true}, "c": {"name": "책상 자리(의자)", "walkable": true}, "T": {"name": "책상", "walkable": false}, "M": {"name": "회의 테이블", "walkable": false}, "R": {"name": "안내 데스크", "walkable": false}, "S": {"name": "소파", "walkable": false}, "K": {"name": "커피 머신", "walkable": false}, "B": {"name": "수납장", "walkable": false}, "P": {"name": "화분", "walkable": false}}, "tiles": ["################################################################", "#P....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#B....P#", "#......#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#..TT..#", "#......#..c...#..c...#..c...#..c...#..c...#..c...#..c...#..c...#", "#......#......#......#......#......#......#......#......#......#", "#..RR..#......#......#......#S.....#......#......#......#......#", "#......####D######D######D######D######D######D######D######D###", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "E......D,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#", "#......####D#############D######D######D######D######D######D###", "#......#............P#.....K#......#......#......#......#......#", "#.SSS..#....cccc.....#......#......#......#......#......#......#", "#......#....MMMM.....#......#......#......#......#......#......#", "#......#....cccc.....#......#......#......#......#......#......#", "#P....P#............B#PSSSS.#......#......#......#......#......#", "################################################################"], "rooms": [{"id": "entrance", "name": "출입구", "dept": null, "staff": 0, "x": 1, "y": 1, "w": 6, "h": 15, "doors": [[0, 8], [7, 8]], "seats": []}, {"id": "research", "name": "시장조사팀", "dept": 1, "staff": 1, "x": 8, "y": 1, "w": 6, "h": 5, "doors": [[11, 6]], "seats": [[10, 3]]}, {"id": "plan1", "name": "기획 1팀", "dept": 2, "staff": 1, "x": 15, "y": 1, "w": 6, "h": 5, "doors": [[18, 6]], "seats": [[17, 3]]}, {"id": "qa", "name": "브랜드 검수팀", "dept": 3, "staff": 1, "x": 22, "y": 1, "w": 6, "h": 5, "doors": [[25, 6]], "seats": [[24, 3]]}, {"id": "ceo", "name": "대표실", "dept": null, "staff": 1, "x": 29, "y": 1, "w": 6, "h": 5, "doors": [[32, 6]], "seats": [[31, 3]]}, {"id": "plan2", "name": "기획 2팀", "dept": 4, "staff": 1, "x": 36, "y": 1, "w": 6, "h": 5, "doors": [[39, 6]], "seats": [[38, 3]]}, {"id": "review", "name": "성과 리뷰실", "dept": 6, "staff": 1, "x": 43, "y": 1, "w": 6, "h": 5, "doors": [[46, 6]], "seats": [[45, 3]]}, {"id": "finance", "name": "정산팀", "dept": 5, "staff": 1, "x": 50, "y": 1, "w": 6, "h": 5, "doors": [[53, 6]], "seats": [[52, 3]]}, {"id": "secretary", "name": "비서실", "dept": 7, "staff": 1, "x": 57, "y": 1, "w": 6, "h": 5, "doors": [[60, 6]], "seats": [[59, 3]]}, {"id": "meeting", "name": "회의실", "dept": null, "staff": 0, "x": 8, "y": 11, "w": 13, "h": 5, "doors": [[11, 10]], "seats": [[12, 12], [12, 14], [13, 12], [13, 14], [14, 12], [14, 14], [15, 12], [15, 14]], "shared_seats": true}, {"id": "lounge", "name": "라운지", "dept": null, "staff": 0, "x": 22, "y": 11, "w": 6, "h": 5, "doors": [[25, 10]], "seats": [], "shared_seats": false}, {"id": "spare1", "name": "예비실 1", "dept": null, "staff": 0, "x": 29, "y": 11, "w": 6, "h": 5, "doors": [[32, 10]], "seats": [], "shared_seats": false}, {"id": "spare2", "name": "예비실 2", "dept": null, "staff": 0, "x": 36, "y": 11, "w": 6, "h": 5, "doors": [[39, 10]], "seats": [], "shared_seats": false}, {"id": "spare3", "name": "예비실 3", "dept": null, "staff": 0, "x": 43, "y": 11, "w": 6, "h": 5, "doors": [[46, 10]], "seats": [], "shared_seats": false}, {"id": "spare4", "name": "예비실 4", "dept": null, "staff": 0, "x": 50, "y": 11, "w": 6, "h": 5, "doors": [[53, 10]], "seats": [], "shared_seats": false}, {"id": "spare5", "name": "예비실 5", "dept": null, "staff": 0, "x": 57, "y": 11, "w": 6, "h": 5, "doors": [[60, 10]], "seats": [], "shared_seats": false}]}</script>
+<script>// A* 경로 탐색 (4방향 격자, 맨해튼 거리). 브라우저에서는 window.OfficePath, Node에서는 require로 쓴다.
+(function (root) {
+  // 최소 힙: f가 작은 칸부터 꺼낸다. 동점이면 h가 작은 칸(목적지에 가까운 칸) 먼저.
+  function Heap() { this.a = []; }
+  Heap.prototype.less = function (i, j) {
+    const a = this.a[i], b = this.a[j];
+    return a.f < b.f || (a.f === b.f && a.h < b.h);
+  };
+  Heap.prototype.push = function (n) {
+    const a = this.a; a.push(n);
+    let i = a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (!this.less(i, p)) break;
+      [a[i], a[p]] = [a[p], a[i]]; i = p;
+    }
+  };
+  Heap.prototype.pop = function () {
+    const a = this.a, top = a[0], last = a.pop();
+    if (a.length) {
+      a[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1;
+        let m = i;
+        if (l < a.length && this.less(l, m)) m = l;
+        if (r < a.length && this.less(r, m)) m = r;
+        if (m === i) break;
+        [a[i], a[m]] = [a[m], a[i]]; i = m;
+      }
+    }
+    return top;
+  };
+  Heap.prototype.size = function () { return this.a.length; };
+
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  /**
+   * start, goal: [x, y]
+   * walkable(x, y): 벽·가구가 아니면 true
+   * blocked: Set of "x,y" — 다른 직원이 서 있는 칸. 이 칸은 지나가지 않는다.
+   * 반환: start 다음 칸부터 goal까지의 [x, y] 배열. 길이 없으면 null.
+   */
+  function findPath(start, goal, walkable, blocked) {
+    const key = (x, y) => x + ',' + y;
+    const sk = key(start[0], start[1]), gk = key(goal[0], goal[1]);
+    if (sk === gk) return [];
+    if (!walkable(goal[0], goal[1]) || (blocked && blocked.has(gk))) return null;
+    const h = (x, y) => Math.abs(x - goal[0]) + Math.abs(y - goal[1]);
+    const g = new Map([[sk, 0]]), from = new Map(), closed = new Set();
+    const open = new Heap();
+    open.push({ x: start[0], y: start[1], f: h(start[0], start[1]), h: h(start[0], start[1]) });
+    while (open.size()) {
+      const cur = open.pop(), ck = key(cur.x, cur.y);
+      if (closed.has(ck)) continue;
+      if (ck === gk) {
+        const path = [];
+        let k = gk;
+        while (k !== sk) { const [x, y] = k.split(',').map(Number); path.push([x, y]); k = from.get(k); }
+        return path.reverse();
+      }
+      closed.add(ck);
+      const cg = g.get(ck);
+      for (const [dx, dy] of DIRS) {
+        const nx = cur.x + dx, ny = cur.y + dy, nk = key(nx, ny);
+        if (closed.has(nk) || !walkable(nx, ny) || (blocked && blocked.has(nk))) continue;
+        const ng = cg + 1;
+        if (ng < (g.has(nk) ? g.get(nk) : Infinity)) {
+          g.set(nk, ng); from.set(nk, ck);
+          const hh = h(nx, ny);
+          open.push({ x: nx, y: ny, f: ng + hh, h: hh });
+        }
+      }
+    }
+    return null;
+  }
+
+  /** target에서 가장 가까운(걸음 수 기준) 비어 있는 칸. target 자신이 비어 있으면 target. */
+  function nearestFree(target, walkable, blocked, from) {
+    const key = (x, y) => x + ',' + y;
+    const seen = new Set([key(target[0], target[1])]), q = [target];
+    // target이 벽·가구면 주변으로 퍼져 나가며 찾는다. 가구 너머로도 퍼지되 결과는 걸을 수 있는 칸만.
+    for (let i = 0; i < q.length && i < 4000; i++) {
+      const [x, y] = q[i];
+      const k = key(x, y);
+      if (walkable(x, y) && !(blocked && blocked.has(k)) && (!from || findPath(from, [x, y], walkable, blocked))) return [x, y];
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx, ny = y + dy, nk = key(nx, ny);
+        if (!seen.has(nk) && nx >= 0 && ny >= 0 && nx < 999 && ny < 999) { seen.add(nk); q.push([nx, ny]); }
+      }
+    }
+    return null;
+  }
+
+  const api = { findPath, nearestFree };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OfficePath = api;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>// 직원 이동 시뮬레이션. 화면 그리기와 분리되어 있어서 Node에서도 돌릴 수 있다.
+// 상태 5종: walk(걷기) / type(타이핑) / talk(대화) / sit(앉기) / idle(대기)
+(function (root) {
+  const STATES = { walk: '걷기', type: '타이핑', talk: '대화', sit: '앉기', idle: '대기' };
+  const STAFF = [
+    { id: 'research', name: '시장조사팀', short: '조사' },
+    { id: 'plan1', name: '기획 1팀', short: '기획1' },
+    { id: 'qa', name: '브랜드 검수팀', short: '검수' },
+    { id: 'ceo', name: '대표', short: '대표' },
+    { id: 'plan2', name: '기획 2팀', short: '기획2' },
+    { id: 'review', name: '성과 리뷰실', short: '성과' },
+    { id: 'finance', name: '정산팀', short: '정산' },
+    { id: 'secretary', name: '비서실', short: '비서' },
+  ];
+  // 하루 파이프라인: [보내는 사람, 받는 사람, 전달 내용]
+  const PIPELINE = [
+    ['research', 'plan1', '조사 자료 전달'],
+    ['plan1', 'qa', '아이디어 TOP 3 전달'],
+    ['qa', 'ceo', '검수 통과안 보고'],
+    ['ceo', 'plan2', '1차 승인안 전달'],
+    ['plan2', 'ceo', '대본 최종 확인 요청'],
+    ['review', 'secretary', '성과 기록 공유'],
+    ['finance', 'secretary', '주간 정산 공유 (일요일)'],
+    ['secretary', 'ceo', '오늘 브리핑'],
+  ];
+  const SPEED = 4;        // 초당 칸 수
+  const TALK_SEC = 2.4;   // 대화 시간
+  const SIDESTEP_SEC = 1.0; // 이만큼 막혀 있으면 옆으로 비켜선다
+  const RETARGET_SEC = 2.5; // 목적지가 계속 막혀 있으면 가까운 빈 칸으로 목적지를 바꾼다
+
+  function createSim(MAP, PF, rand) {
+    rand = rand || Math.random;
+    const W = MAP.width, H = MAP.height;
+    const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP.legend[MAP.tiles[y][x]].walkable;
+    const key = (x, y) => x + ',' + y;
+    const room = id => MAP.rooms.find(r => r.id === id);
+    const meetingSeats = room('meeting').seats;
+
+    const agents = STAFF.map(s => {
+      const seat = room(s.id).seats[0];
+      return {
+        ...s, seat, x: seat[0], y: seat[1], next: null, progress: 0,
+        path: [], goal: null, state: 'type', wait: 0, goalWait: 0,
+        onArrive: null, talkUntil: 0, afterTalk: null, talkWith: null, dir: 1,
+      };
+    });
+    const byId = Object.fromEntries(agents.map(a => [a.id, a]));
+    let time = 0;
+    const pipeline = { step: -1, label: '', running: false };
+
+    // 다른 직원이 서 있거나 들어가려는 칸
+    function blockedFor(me) {
+      const s = new Set();
+      for (const a of agents) {
+        if (a === me) continue;
+        s.add(key(a.x, a.y));
+        if (a.next) s.add(key(a.next[0], a.next[1]));
+      }
+      return s;
+    }
+    function restState(a) {
+      if (a.x === a.seat[0] && a.y === a.seat[1]) return 'type';
+      return MAP.tiles[a.y][a.x] === 'c' ? 'sit' : 'idle';
+    }
+
+    function send(id, target, onArrive) {
+      const a = byId[id];
+      // 걷는 중이면 지금 들어가고 있는 칸에서부터 길을 찾는다
+      const from = a.next ? [a.next[0], a.next[1]] : [a.x, a.y];
+      const goal = PF.nearestFree(target, walkable, blockedFor(a), from) || target;
+      a.goal = goal; a.path = PF.findPath(from, goal, walkable, blockedFor(a)) || [];
+      a.onArrive = onArrive || null; a.wait = 0; a.goalWait = 0; a.afterTalk = null; a.talkWith = null;
+      if (a.x === goal[0] && a.y === goal[1] && !a.next) arrive(a);
+      else if (a.state !== 'walk') a.state = 'idle';
+    }
+    function goHome(id, then) { send(id, byId[id].seat, then); }
+
+    function arrive(a) {
+      a.goal = null; a.path = [];
+      const cb = a.onArrive; a.onArrive = null;
+      a.state = restState(a);
+      if (cb) cb(a);
+    }
+    function talk(a, b, then) {
+      a.state = b.state = 'talk';
+      a.talkWith = b.id; b.talkWith = a.id;
+      a.talkUntil = b.talkUntil = time + TALK_SEC;
+      a.dir = b.x >= a.x ? 1 : -1; b.dir = -a.dir;
+      a.afterTalk = () => { a.talkWith = null; if (then) then(); };
+      b.afterTalk = () => { b.talkWith = null; if (!b.goal) b.state = restState(b); };
+    }
+
+    function stepAgent(a, dt) {
+      if (a.state === 'talk') {
+        if (time >= a.talkUntil) { const f = a.afterTalk; a.afterTalk = null; a.state = restState(a); if (f) f(); }
+        return;
+      }
+      if (a.next) {
+        a.progress += dt * SPEED;
+        if (a.progress < 1) return;
+        a.x = a.next[0]; a.y = a.next[1]; a.next = null; a.progress = 0;
+      }
+      if (!a.goal) return;
+      if (a.x === a.goal[0] && a.y === a.goal[1]) { arrive(a); return; }
+
+      const blocked = blockedFor(a);
+      let cand = a.path[0];
+      // 걸어오는 직원과 마주쳤을 때: 둘 다 동시에 피하면 같은 쪽으로 계속 비켜서는 '거울 춤'이 생긴다.
+      // 우선순위(목록 순서)가 낮은 쪽이 잠깐 멈춰 서고, 높은 쪽이 멈춘 직원을 돌아간다.
+      const blocker = cand && agents.find(o => o !== a && ((o.x === cand[0] && o.y === cand[1]) || (o.next && o.next[0] === cand[0] && o.next[1] === cand[1])));
+      if (blocker && blocker.goal && agents.indexOf(blocker) < agents.indexOf(a) && a.wait < SIDESTEP_SEC) {
+        a.state = 'idle'; a.wait += dt;
+        return;
+      }
+      if (!cand || blocked.has(key(cand[0], cand[1]))) {
+        // 앞 칸에 다른 직원이 있다 → 그 칸들을 막힌 칸으로 두고 A*로 다시 찾는다
+        a.path = PF.findPath([a.x, a.y], a.goal, walkable, blocked) || [];
+        cand = a.path[0];
+      }
+      if (cand && !blocked.has(key(cand[0], cand[1]))) {
+        a.path.shift();
+        a.next = cand; a.progress = 0; a.wait = 0; a.goalWait = 0; a.state = 'walk';
+        if (cand[0] !== a.x) a.dir = cand[0] > a.x ? 1 : -1;
+        return;
+      }
+      // 길이 없다 (문이나 목적지를 누가 막고 있음) → 기다린다
+      a.state = 'idle'; a.wait += dt; a.goalWait += dt;
+      if (a.goalWait > RETARGET_SEC && blocked.has(key(a.goal[0], a.goal[1]))) {
+        const g = PF.nearestFree(a.goal, walkable, blocked, [a.x, a.y]);
+        if (g) { a.goal = g; a.path = []; a.goalWait = 0; }
+      }
+      if (a.wait > SIDESTEP_SEC) {
+        // 서로 마주 보고 막힌 경우를 풀기 위해 빈 옆 칸으로 한 칸 비켜선다
+        const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+          .map(([dx, dy]) => [a.x + dx, a.y + dy])
+          .filter(([x, y]) => walkable(x, y) && !blocked.has(key(x, y)));
+        if (opts.length) {
+          const c = opts[Math.floor(rand() * opts.length)];
+          a.next = c; a.progress = 0; a.path = []; a.state = 'walk';
+          if (c[0] !== a.x) a.dir = c[0] > a.x ? 1 : -1;
+        }
+        a.wait = 0;
+      }
+    }
+
+    function tick(dt) {
+      time += dt;
+      for (const a of agents) stepAgent(a, dt);
+    }
+
+    // 명령
+    function meeting() {
+      pipeline.running = false; pipeline.label = '';
+      agents.forEach((a, i) => send(a.id, meetingSeats[i]));
+    }
+    function returnAll() {
+      pipeline.running = false; pipeline.label = '';
+      agents.forEach(a => goHome(a.id));
+    }
+    function runPipeline() {
+      pipeline.running = true; pipeline.step = -1;
+      nextStep();
+    }
+    function nextStep() {
+      if (!pipeline.running) return;
+      pipeline.step++;
+      if (pipeline.step >= PIPELINE.length) { pipeline.running = false; pipeline.label = '오늘 흐름 완료'; return; }
+      const [from, to, what] = PIPELINE[pipeline.step];
+      const a = byId[from], b = byId[to];
+      pipeline.label = `${a.name} → ${b.name}: ${what}`;
+      const target = [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y];
+      send(from, target, () => {
+        // 도착했는데 상대가 옆에 없으면(움직였으면) 다시 따라간다
+        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) > 1) { pipeline.step--; nextStep(); return; }
+        talk(a, b, () => { goHome(from); nextStep(); });
+      });
+    }
+
+    return {
+      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, pipeline,
+      walkable, STATES, get time() { return time; },
+    };
+  }
+
+  const api = { createSim, STATES, STAFF, PIPELINE };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OfficeSim = api;
+})(typeof window !== 'undefined' ? window : this);
+</script>
 <script>
 (function () {
   const MAP = JSON.parse(document.getElementById('mapdata').textContent);
   const W = MAP.width, H = MAP.height, T = MAP.tiles;
+  const sim = OfficeSim.createSim(MAP, OfficePath);
+  const STATES = OfficeSim.STATES;
   const JOBS = {
     entrance: '정문과 안내 데스크', research: '레진 소품 트렌드·플랫폼 행사 조사',
     plan1: '아이디어 10개 → TOP 3', qa: 'TOP 3 브랜드 기준 검사',
@@ -149,21 +477,29 @@ code { font-family: var(--font-mono); font-size: 13px; }
     review: '게시 후 반응 기록', finance: '주간 정산 (일요일 17시)',
     secretary: '부서 보고 요약', meeting: '8석 테이블', lounge: '커피 머신 · 소파'
   };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
   const roomAt = new Map();
   MAP.rooms.forEach(r => {
     for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) roomAt.set(x + ',' + y, r);
     r.doors.forEach(([x, y]) => { if (!roomAt.has(x + ',' + y)) roomAt.set(x + ',' + y, r); });
   });
-  const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP.legend[T[y][x]].walkable;
+  const placeName = (x, y) => {
+    const r = roomAt.get(x + ',' + y);
+    if (T[y][x] === 'D') return (r ? r.name + ' ' : '') + '문';
+    return r ? r.name : '복도';
+  };
 
   const cv = document.getElementById('map');
   const ctx = cv.getContext('2d');
-  let S = 16, colors = {}, player = { x: MAP.spawn[0], y: MAP.spawn[1] }, selected = null, bumped = false;
+  let S = 16, colors = {}, selected = sim.byId.ceo, base = null;
 
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
-    ['wall','corridor','floor-dept','floor-ceo','floor-meet','floor-lounge','floor-spare','floor-lobby','wood','chair','sofa','plant','metal','door','player','label','accent','sheet','line']
+    ['wall','corridor','floor-dept','floor-ceo','floor-meet','floor-lounge','floor-spare','floor-lobby','wood','chair','sofa','plant','metal','door','label','accent','sheet','line','skin','bubble','bubble-ink','fg',
+     'st-walk','st-type','st-talk','st-sit','st-idle']
       .forEach(k => colors[k] = cs.getPropertyValue('--' + k).trim());
+    sim.agents.forEach(a => a.color = cs.getPropertyValue('--a-' + a.id).trim());
   }
   function floorOf(r) {
     if (!r) return colors.corridor;
@@ -183,75 +519,209 @@ code { font-family: var(--font-mono); font-size: 13px; }
     if (ch === '#') { c.fillStyle = colors.wall; c.fillRect(px, py, s, s); return; }
     c.fillStyle = ch === ',' ? colors.corridor : floor; c.fillRect(px, py, s, s);
     switch (ch) {
-      case 'D': case 'E':
-        rr(c, px + p, py + p, s - 2 * p, s - 2 * p, s * .15, colors.door); break;
-      case 'T': case 'M': case 'R':
-        rr(c, px, py + p, s, s - 2 * p, 0, colors.wood); break;
-      case 'c':
-        c.fillStyle = colors.chair; c.beginPath(); c.arc(px + s / 2, py + s / 2, s * .28, 0, 7); c.fill(); break;
-      case 'S':
-        rr(c, px + p * .5, py + p, s - p, s - 2 * p, s * .25, colors.sofa); break;
-      case 'P':
-        c.fillStyle = colors.plant; c.beginPath(); c.arc(px + s / 2, py + s / 2, s * .36, 0, 7); c.fill(); break;
-      case 'K': case 'B':
-        rr(c, px + p, py + p, s - 2 * p, s - 2 * p, s * .1, colors.metal); break;
+      case 'D': case 'E': rr(c, px + p, py + p, s - 2 * p, s - 2 * p, s * .15, colors.door); break;
+      case 'T': case 'M': case 'R': rr(c, px, py + p, s, s - 2 * p, 0, colors.wood); break;
+      case 'c': rr(c, px + s * .22, py + s * .22, s * .56, s * .56, s * .16, colors.chair); break;
+      case 'S': rr(c, px + p * .5, py + p, s - p, s - 2 * p, s * .25, colors.sofa); break;
+      case 'P': c.fillStyle = colors.plant; c.beginPath(); c.arc(px + s / 2, py + s / 2, s * .36, 0, 7); c.fill(); break;
+      case 'K': case 'B': rr(c, px + p, py + p, s - 2 * p, s - 2 * p, s * .1, colors.metal); break;
     }
-  }
-  function draw() {
-    const dpr = window.devicePixelRatio || 1;
-    cv.width = W * S * dpr; cv.height = H * S * dpr;
-    cv.style.width = W * S + 'px'; cv.style.height = H * S + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const r = roomAt.get(x + ',' + y);
-      drawTile(ctx, T[y][x], x * S, y * S, S, floorOf(T[y][x] === 'D' ? null : r));
-    }
-    if (selected) {
-      ctx.strokeStyle = colors.accent; ctx.lineWidth = 3;
-      ctx.strokeRect(selected.x * S - 1.5, selected.y * S - 1.5, selected.w * S + 3, selected.h * S + 3);
-    }
-    // 방 이름
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const fs = Math.max(9, Math.min(13, S * .72));
-    ctx.font = '500 ' + fs + 'px "IBM Plex Sans KR", sans-serif';
-    MAP.rooms.forEach(r => {
-      const cx = (r.x + r.w / 2) * S;
-      const ly = r.id === 'entrance' ? (r.y + 1.5) * S : r.y < 7 ? (r.y + r.h - .9) * S : (r.y + .55) * S;
-      const text = r.name, tw = ctx.measureText(text).width + 8;
-      ctx.fillStyle = colors.sheet; ctx.globalAlpha = .85;
-      ctx.fillRect(cx - tw / 2, ly - fs * .7, tw, fs * 1.4); ctx.globalAlpha = 1;
-      ctx.fillStyle = colors.label; ctx.fillText(text, cx, ly);
-    });
-    // 대표
-    const px = player.x * S + S / 2, py = player.y * S + S / 2;
-    ctx.fillStyle = colors.player; ctx.beginPath(); ctx.arc(px, py, S * .38, 0, 7); ctx.fill();
-    ctx.strokeStyle = colors.sheet; ctx.lineWidth = Math.max(1.5, S * .1); ctx.stroke();
-    if (bumped) { ctx.strokeStyle = colors.player; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, S * .62, 0, 7); ctx.stroke(); }
-  }
-  function status(blockedBy) {
-    const r = roomAt.get(player.x + ',' + player.y);
-    const ch = T[player.y][player.x];
-    document.getElementById('where').textContent = ch === 'D' ? (r ? r.name + ' 문' : '문') : r ? r.name : '복도';
-    document.getElementById('xy').textContent = 'x ' + player.x + ' · y ' + player.y;
-    const tile = document.getElementById('tile');
-    if (blockedBy) { tile.textContent = blockedBy + '에 막힘'; tile.className = 'pill block'; }
-    else { tile.textContent = MAP.legend[ch].name; tile.className = 'pill'; }
-  }
-  function move(dx, dy) {
-    const nx = player.x + dx, ny = player.y + dy;
-    if (walkable(nx, ny)) { player.x = nx; player.y = ny; bumped = false; status(); }
-    else { bumped = true; status(nx >= 0 && ny >= 0 && nx < W && ny < H ? MAP.legend[T[ny][nx]].name : '바깥'); }
-    draw();
-  }
-  function fit() {
-    const box = cv.parentElement.clientWidth;
-    S = Math.max(12, Math.min(22, Math.floor(box / W)));
-    draw();
   }
 
+  // 바닥·가구·방 이름은 한 번만 그려 두고 매 프레임 복사한다
+  function buildBase() {
+    const dpr = window.devicePixelRatio || 1;
+    base = document.createElement('canvas');
+    base.width = W * S * dpr; base.height = H * S * dpr;
+    const c = base.getContext('2d'); c.scale(dpr, dpr);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+      drawTile(c, T[y][x], x * S, y * S, S, floorOf(T[y][x] === 'D' ? null : roomAt.get(x + ',' + y)));
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const fs = Math.max(9, Math.min(12, S * .66));
+    c.font = '500 ' + fs + 'px "IBM Plex Sans KR", sans-serif';
+    MAP.rooms.forEach(r => {
+      const cx = (r.x + r.w / 2) * S;
+      const ly = r.id === 'entrance' ? (r.y + 1.5) * S : r.y < 7 ? (r.y + r.h - .5) * S : (r.y + r.h - .5) * S;
+      const tw = c.measureText(r.name).width + 8;
+      c.globalAlpha = .85; c.fillStyle = colors.sheet; c.fillRect(cx - tw / 2, ly - fs * .7, tw, fs * 1.4); c.globalAlpha = 1;
+      c.fillStyle = colors.label; c.fillText(r.name, cx, ly);
+    });
+    cv.width = base.width; cv.height = base.height;
+    cv.style.width = W * S + 'px'; cv.style.height = H * S + 'px';
+  }
+
+  function pos(a) {
+    if (!a.next) return [a.x, a.y];
+    const p = Math.min(1, a.progress);
+    return [a.x + (a.next[0] - a.x) * p, a.y + (a.next[1] - a.y) * p];
+  }
+
+  function drawAgent(c, a, t) {
+    const [fx, fy] = pos(a);
+    const m = reduce.matches ? 0 : 1;
+    const cx = fx * S + S / 2, cy = fy * S + S / 2;
+    const st = a.state;
+    const seated = st === 'type' || st === 'sit';
+    let bob = 0, scale = 1;
+    if (st === 'walk') bob = -Math.abs(Math.sin(t * 12 + a.x)) * S * .12 * m;
+    if (st === 'sit' || st === 'idle') scale = 1 + Math.sin(t * 2.2 + cx) * .035 * m;
+    const bodyW = S * .62 * scale, bodyH = (seated ? S * .42 : S * .56) * scale;
+    const bodyY = cy + (seated ? S * .02 : -S * .06) + bob;
+
+    // 그림자
+    c.globalAlpha = .18; c.fillStyle = colors.fg;
+    c.beginPath(); c.ellipse(cx, cy + S * .36, S * .3, S * .09, 0, 0, 7); c.fill(); c.globalAlpha = 1;
+
+    // 걷기: 발 두 개가 번갈아
+    if (st === 'walk') {
+      const ph = Math.sin(t * 12 + a.x) * S * .1 * m;
+      c.fillStyle = colors.fg;
+      c.beginPath(); c.arc(cx - S * .13, cy + S * .3 + ph, S * .07, 0, 7); c.fill();
+      c.beginPath(); c.arc(cx + S * .13, cy + S * .3 - ph, S * .07, 0, 7); c.fill();
+    }
+    // 몸
+    rr(c, cx - bodyW / 2, bodyY - bodyH / 2 + S * .1, bodyW, bodyH, S * .2, a.color);
+    // 머리
+    const headY = bodyY - bodyH / 2 - S * .02;
+    c.fillStyle = colors.skin; c.beginPath(); c.arc(cx, headY, S * .21, 0, 7); c.fill();
+    c.fillStyle = a.color; c.beginPath(); c.arc(cx, headY - S * .05, S * .21, Math.PI * 1.05, Math.PI * 1.95); c.fill();
+    // 눈: 바라보는 방향
+    c.fillStyle = colors['bubble-ink'];
+    c.beginPath(); c.arc(cx + a.dir * S * .07, headY + S * .02, S * .03, 0, 7); c.fill();
+
+    // 타이핑: 책상(위쪽) 앞에서 두 손이 번갈아
+    if (st === 'type') {
+      const k = Math.sin(t * 18 + cx) * m;
+      c.fillStyle = colors.skin;
+      c.beginPath(); c.arc(cx - S * .16, cy - S * .5 + (k > 0 ? -S * .07 : 0), S * .07, 0, 7); c.fill();
+      c.beginPath(); c.arc(cx + S * .16, cy - S * .5 + (k <= 0 ? -S * .07 : 0), S * .07, 0, 7); c.fill();
+      // 모니터 빛 깜빡임
+      c.globalAlpha = .5 + .3 * Math.sin(t * 5 + cx) * m; c.fillStyle = colors['st-type'];
+      c.fillRect(cx - S * .22, cy - S * .86, S * .44, S * .08); c.globalAlpha = 1;
+    }
+    // 대화: 말풍선 + 점 세 개
+    if (st === 'talk') {
+      const bx = cx + a.dir * S * .35, by = headY - S * .62;
+      rr(c, bx - S * .42, by - S * .24, S * .84, S * .44, S * .16, colors.bubble);
+      c.strokeStyle = colors[`st-talk`]; c.lineWidth = 1; c.stroke();
+      c.fillStyle = colors.bubble; c.beginPath(); c.moveTo(bx - a.dir * S * .12, by + S * .18); c.lineTo(bx - a.dir * S * .3, by + S * .36); c.lineTo(bx - a.dir * S * .0, by + S * .18); c.fill();
+      for (let i = 0; i < 3; i++) {
+        const up = Math.max(0, Math.sin(t * 7 - i * .9)) * S * .07 * m;
+        c.fillStyle = colors['st-talk']; c.beginPath(); c.arc(bx + (i - 1) * S * .22, by - up, S * .06, 0, 7); c.fill();
+      }
+    }
+    // 앉기: 의자 등받이
+    if (st === 'sit') {
+      c.globalAlpha = .7; rr(c, cx - S * .3, cy + S * .22, S * .6, S * .1, S * .05, colors.chair); c.globalAlpha = 1;
+    }
+    // 대기: 길 막힘이면 '…'
+    if (st === 'idle' && a.goal) {
+      c.fillStyle = colors['st-idle']; c.font = '600 ' + Math.max(9, S * .6) + 'px sans-serif'; c.textAlign = 'center';
+      c.fillText('…', cx, headY - S * .35);
+    }
+    // 이름표
+    if (S >= 13) {
+      c.font = '600 ' + Math.max(8, S * .5) + 'px "IBM Plex Sans KR", sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      const tw = c.measureText(a.short).width + 6, ty = cy + S * .62;
+      rr(c, cx - tw / 2, ty - S * .28, tw, S * .56, S * .2, a.color);
+      c.fillStyle = '#fff'; c.fillText(a.short, cx, ty + 1);
+    }
+  }
+
+  function drawPath(c, a) {
+    if (!a.goal) return;
+    const pts = [pos(a)];
+    if (a.next) pts.push(a.next);
+    a.path.forEach(p => pts.push(p));
+    c.save(); c.strokeStyle = a.color; c.lineWidth = 2; c.setLineDash([3, 4]); c.beginPath();
+    pts.forEach(([x, y], i) => { const px = x * S + S / 2, py = y * S + S / 2; i ? c.lineTo(px, py) : c.moveTo(px, py); });
+    c.stroke(); c.setLineDash([]);
+    c.strokeRect(a.goal[0] * S + 3, a.goal[1] * S + 3, S - 6, S - 6);
+    c.restore();
+  }
+
+  function frame(t) {
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(base, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (selected) {
+      drawPath(ctx, selected);
+      const [sx, sy] = pos(selected);
+      ctx.strokeStyle = selected.color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx * S + S / 2, sy * S + S / 2, S * .62, 0, 7); ctx.stroke();
+    }
+    [...sim.agents].sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
+  }
+
+  // 직원 표
+  const staffBody = document.getElementById('staff');
+  const rows = new Map();
+  sim.agents.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="dot"></span><span></span></td><td><span class="chip"></span></td><td></td><td></td>';
+    tr.querySelector('td span:last-child').textContent = a.name;
+    tr.addEventListener('click', () => { selected = a; renderUI(); cv.focus({ preventScroll: true }); });
+    staffBody.appendChild(tr); rows.set(a.id, tr);
+  });
+  let lastUI = '';
+  function renderUI() {
+    const sig = sim.agents.map(a => a.state + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.pipeline.label;
+    if (sig === lastUI) return; lastUI = sig;
+    sim.agents.forEach(a => {
+      const tr = rows.get(a.id);
+      tr.querySelector('.dot').style.background = a.color;
+      const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state; chip.textContent = STATES[a.state];
+      tr.children[2].textContent = placeName(a.x, a.y);
+      tr.children[3].textContent = a.goal ? placeName(a.goal[0], a.goal[1]) : '—';
+      tr.classList.toggle('on', a === selected);
+    });
+    const sel = document.getElementById('sel');
+    if (selected) {
+      sel.innerHTML = '<span><span class="dot"></span><b></b> 선택됨</span><span class="chip"></span><span class="where"></span>';
+      sel.querySelector('.dot').style.background = selected.color;
+      sel.querySelector('b').textContent = selected.name;
+      const chip = sel.querySelector('.chip'); chip.className = 'chip ' + selected.state; chip.textContent = STATES[selected.state];
+      sel.querySelector('.where').textContent = selected.goal
+        ? placeName(selected.x, selected.y) + ' → ' + placeName(selected.goal[0], selected.goal[1]) + ` (${selected.path.length + (selected.next ? 1 : 0)}칸 남음)`
+        : placeName(selected.x, selected.y);
+    }
+    const flow = document.getElementById('flow');
+    if (sim.pipeline.label) {
+      const n = Math.min(sim.pipeline.step + 1, OfficeSim.PIPELINE.length);
+      flow.innerHTML = '';
+      const b = document.createElement('b'); b.textContent = sim.pipeline.running ? `${n}/${OfficeSim.PIPELINE.length}` : '완료';
+      flow.append(b, ' ' + sim.pipeline.label);
+    }
+  }
+
+  // 입력
+  function tileAt(e) {
+    const r = cv.getBoundingClientRect();
+    return [Math.floor((e.clientX - r.left) / S), Math.floor((e.clientY - r.top) / S)];
+  }
+  cv.addEventListener('click', e => {
+    const [tx, ty] = tileAt(e);
+    const hit = sim.agents.find(a => { const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
+    if (hit) { selected = hit; renderUI(); return; }
+    if (selected && tx >= 0 && ty >= 0 && tx < W && ty < H) {
+      sim.send(selected.id, [tx, ty]);
+      document.getElementById('flow').textContent = `${selected.name} → ${placeName(tx, ty)} 이동 지시`;
+    }
+  });
   const KEYS = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0], w: [0,-1], s: [0,1], a: [-1,0], d: [1,0] };
-  cv.addEventListener('keydown', e => { const k = KEYS[e.key] || KEYS[e.key.toLowerCase()]; if (k) { e.preventDefault(); move(k[0], k[1]); } });
-  document.querySelectorAll('.pad button').forEach(b => b.addEventListener('click', () => { const [dx, dy] = b.dataset.d.split(',').map(Number); move(dx, dy); }));
+  cv.addEventListener('keydown', e => {
+    const k = KEYS[e.key] || KEYS[e.key.toLowerCase()];
+    if (!k || !selected) return;
+    e.preventDefault();
+    const from = selected.goal || [selected.x, selected.y];
+    const nx = from[0] + k[0], ny = from[1] + k[1];
+    if (sim.walkable(nx, ny)) sim.send(selected.id, [nx, ny]);
+  });
+  document.getElementById('btn-flow').addEventListener('click', () => sim.runPipeline());
+  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 8명이 회의실로 이동'; });
+  document.getElementById('btn-home').addEventListener('click', () => { sim.returnAll(); document.getElementById('flow').textContent = '모두 자기 자리로 복귀'; });
 
   // 방 목록
   const tbody = document.getElementById('rooms');
@@ -259,17 +729,14 @@ code { font-family: var(--font-mono); font-size: 13px; }
     const tr = document.createElement('tr');
     const seats = r.shared_seats ? r.seats.length + '석 (공용)' : String(r.seats.length);
     const staff = r.id === 'ceo' ? '대표 1' : r.staff ? 'AI ' + r.staff : '—';
-    const label = (r.dept ? r.dept + '. ' : '') + r.name;
     tr.innerHTML = '<td></td><td></td><td class="num"></td><td class="num"></td>';
-    tr.children[0].textContent = label;
+    tr.children[0].textContent = (r.dept ? r.dept + '. ' : '') + r.name;
     tr.children[1].textContent = JOBS[r.id] || (r.id.startsWith('spare') ? '비어 있음 (새 부서용)' : '');
     tr.children[2].textContent = staff;
     tr.children[3].textContent = seats;
     tr.addEventListener('click', () => {
-      selected = selected === r ? null : r;
-      tbody.querySelectorAll('tr').forEach(t => t.classList.toggle('on', t === tr && selected));
-      draw();
       const m = cv.parentElement; m.scrollLeft = Math.max(0, r.x * S - m.clientWidth / 2 + r.w * S / 2);
+      if (selected) sim.send(selected.id, [r.doors[0][0], r.doors[0][1] + (r.y < 7 ? -1 : 1)]);
     });
     tbody.appendChild(tr);
   });
@@ -290,11 +757,27 @@ code { font-family: var(--font-mono); font-size: 13px; }
     });
   }
 
-  function repaint() { readColors(); buildLegend(); fit(); }
+  function fit() {
+    const box = cv.parentElement.clientWidth;
+    S = Math.max(14, Math.min(22, Math.floor(box / W)));
+    buildBase();
+  }
+  function repaint() { readColors(); buildLegend(); fit(); lastUI = ''; renderUI(); }
   new MutationObserver(repaint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', repaint);
   addEventListener('resize', fit);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
-  repaint(); status();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => buildBase());
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now;
+    sim.tick(dt);
+    frame(now / 1000);
+    renderUI();
+    requestAnimationFrame(loop);
+  }
+  repaint();
+  frame(0);
+  requestAnimationFrame(loop);
 })();
 </script>
