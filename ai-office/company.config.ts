@@ -1,0 +1,265 @@
+// ============================================================
+//  나의 AI 회사 설정 — 여기 한 파일만 고치면 됩니다
+// ============================================================
+//  회사 이름, 부서 이름, 직원 이름·성격·머리색까지 전부 여기 있어요.
+//  다른 파일은 건드리지 않아도 됩니다.
+//
+//  ⚠️ 딱 2가지 규칙
+//   1. 부서 id(research, brand, ...)는 절대 바꾸지 마세요. 시뮬레이션 엔진이
+//      이 id로 움직입니다. 바꾸면 캐릭터가 길을 잃어요.
+//      → 바꿔도 되는 건 name(부서 이름) · icon · short 입니다.
+//   2. 부서는 12개를 유지하세요. 사무실 배치가 4열 3행 = 12칸 고정입니다.
+//      안 쓰는 부서는 지우지 말고 이름만 바꿔서 쓰세요.
+//
+//  직원 수는 자유롭게 늘리고 줄여도 됩니다. 한 팀에 팀장(lead) 1명은 두세요.
+// ============================================================
+
+/** 회사 기본 정보 */
+export const COMPANY = {
+  /** 좌측 상단 헤더에 뜨는 회사 이름 */
+  name: "THING THAT HIT",
+  /** 헤더 로고 배지에 들어갈 글자 1개 (이모지도 됩니다) */
+  logoLetter: "T",
+  /** 화면 상단 큰 제목 (앞부분) */
+  titlePrefix: "THING THAT HIT",
+  /** 화면 상단 큰 제목 (강조되는 뒷부분) */
+  titleAccent: "AI Office",
+  /** 브라우저 탭 제목 */
+  pageTitle: "THING THAT HIT — AI 사무실",
+  /** 검색·공유될 때 뜨는 설명 */
+  description: "직접 만든 레진 소품을 소개하는 THING THAT HIT의 AI 오피스 — 조사·기획·검수·제작·정산까지 한 흐름으로",
+  /** 창 하단 파일명 느낌의 라벨 */
+  windowLabel: "thing_that_hit.exe — 대표실",
+  /** 일일 브리핑 제목에 들어갈 이름 */
+  reportName: "THING THAT HIT",
+} as const;
+
+/** 대표(나) — 사무실 대표실에 앉아 있는 캐릭터 */
+export const CEO_PROFILE = {
+  name: "이선홍",
+  callsign: "대표님",
+  role: "대표 · 촬영·게시·최종 결정",
+  hair: "#42283a",
+  shirt: "#b8f0dd",
+  accent: "#fff3b0",
+  skin: "#ffdcc4",
+  thoughts: [
+    "치원님, 보고는? 다 정리했나요?",
+    "곽범님, 이거 좋다! 이걸로 가요~",
+    "명철님, 대본 어디 봐봐요~ 오 괜찮은데?",
+  ],
+};
+
+/**
+ * 부서 12개.
+ * id = 고정(엔진용) / name·short·icon = 자유롭게 변경
+ * task = 오늘 하는 일 / report = 팀장 한줄보고
+ *
+ * THING THAT HIT 부서(AI_COMPANY.md §3)를 12칸에 이렇게 배치했어요.
+ *  - 제작팀은 릴스(reels)·캐러셀(carousel) 두 칸을 씁니다.
+ *  - brand · partner · ops 세 칸은 아직 담당자가 없는 빈 칸입니다(미정).
+ */
+export const DEPARTMENTS = [
+  {
+    id: "research",
+    name: "시장조사팀",
+    short: "trend.lab",
+    icon: "🔎",
+    task: "레진 소품 트렌드·플랫폼 행사 조사",
+    report: "공식 페이지에서 확인 못 한 건 미확인으로 적어요.",
+  },
+  {
+    id: "brand",
+    name: "브랜드 분석실 (미정)",
+    short: "brand.room",
+    icon: "🧬",
+    task: "지난 게시물 성과로 브랜드 분석",
+    report: "förc 성과 데이터가 연결되면 분석합니다. 추정으로 채우지 않아요.",
+  },
+  {
+    id: "strategy1",
+    name: "기획 1팀",
+    short: "idea.studio",
+    icon: "💡",
+    task: "아이디어 10개 → TOP 3",
+    report: "검수 통과한 안 중에서만 TOP 3를 골라요.",
+  },
+  {
+    id: "qa",
+    name: "브랜드 검수팀",
+    short: "qa.check",
+    icon: "🛡️",
+    task: "표기·가격·중복·금칙어 검사",
+    report: "확정 안 된 가격·할인·배송 표기는 반려해요.",
+  },
+  {
+    id: "strategy2",
+    name: "기획 2팀",
+    short: "script.team",
+    icon: "✍️",
+    task: "승인된 안 대본·게시물 문구",
+    report: "대표님이 승인한 안만 대본으로 씁니다.",
+  },
+  {
+    id: "reels",
+    name: "제작팀 · 릴스",
+    short: "reels.edit",
+    icon: "🎬",
+    task: "확정 대본으로 릴스 편집본",
+    report: "원본은 그대로 두고 복제본으로만 편집해요.",
+  },
+  {
+    id: "carousel",
+    name: "제작팀 · 캐러셀",
+    short: "carousel.studio",
+    icon: "🖼️",
+    task: "확정 대본으로 캐러셀 이미지",
+    report: "대본에 없는 가격·할인 문구는 넣지 않아요.",
+  },
+  {
+    id: "partner",
+    name: "제휴 창구 (미정)",
+    short: "partner.mail",
+    icon: "💌",
+    task: "담당자 미정",
+    report: "아직 담당자가 없는 빈 칸이에요. 대표님이 정해주시면 채워요.",
+  },
+  {
+    id: "finance",
+    name: "정산팀",
+    short: "finance.xls",
+    icon: "🧾",
+    task: "광고비·입금·재료비 주간 정산 (일요일 17:00)",
+    report: "finance/input/ 에 넣어주신 기록만 씁니다.",
+  },
+  {
+    id: "review",
+    name: "성과 리뷰실",
+    short: "review.data",
+    icon: "📈",
+    task: "도달·저장·댓글·공유 기록",
+    report: "수치 없는 건 만들지 않고 미확인으로 적어요.",
+  },
+  {
+    id: "ops",
+    name: "자료 보관실 (미정)",
+    short: "archive.ops",
+    icon: "📦",
+    task: "결과물 저장 (media/ · scripts/)",
+    report: "새 파일로만 저장하고, 원본은 건드리지 않아요.",
+  },
+  {
+    id: "secretary",
+    name: "비서실",
+    short: "secretary.hq",
+    icon: "📋",
+    task: "부서별 한 줄 보고 → 대표 브리핑",
+    report: "승인할 것과 단순 공유를 나눠서 올려드려요.",
+  },
+] as const;
+
+/**
+ * 직원 명단.
+ * dept = 위 부서 id / rank: "lead"(팀장) 또는 "member"(팀원)
+ * colors = [머리색, 옷색, 포인트색]
+ * thoughts = 자리를 비웠을 때 머리 위에 뜨는 혼잣말
+ */
+export type StaffEntry = {
+  dept: string;
+  rank: "lead" | "member";
+  name: string;
+  role: string;
+  colors: [string, string, string];
+  thoughts: string[];
+  callsign?: string;
+};
+
+export const STAFF_LIST: StaffEntry[] = [
+  // ① 시장조사팀
+  { dept: "research", rank: "lead", name: "이희승", role: "시장조사 팀장", callsign: "희승님",
+    colors: ["#6b3d34", "#fff3b0", "#ff8fc0"],
+    thoughts: ["출처 없는 건 미확인으로 적습니다.", "공식 페이지부터 확인하겠습니다."] },
+
+  // ② 브랜드 분석실 — 담당자 미정 (지금은 시장조사팀이 같이 맡음)
+  { dept: "brand", rank: "lead", name: "빈자리 A", role: "브랜드 분석 담당 (미정)",
+    colors: ["#372b4a", "#c9b8ff", "#c9b8ff"],
+    thoughts: ["아직 담당자가 정해지지 않았어요.", "förc 데이터가 연결되면 분석합니다."] },
+
+  // ③ 기획 1팀
+  { dept: "strategy1", rank: "lead", name: "이곽범", role: "기획 1팀장", callsign: "곽범님",
+    colors: ["#c26e4b", "#ff8fc0", "#fff3b0"],
+    thoughts: ["촬영 못 하는 아이디어는 안 해요.", "TOP 3부터 추려볼게요."] },
+
+  // ④ 브랜드 검수팀
+  { dept: "qa", rank: "lead", name: "홍선", role: "브랜드 검수 팀장", callsign: "선님",
+    colors: ["#2d4b46", "#b8f0dd", "#b8f0dd"],
+    thoughts: ["근거 없는 가격 표기는 통과 안 해요.", "금칙어부터 확인할게요."] },
+
+  // ⑤ 기획 2팀
+  { dept: "strategy2", rank: "lead", name: "정명철", role: "기획 2팀장 (대본)", callsign: "명철님",
+    colors: ["#8b534a", "#fff3b0", "#ff8fc0"],
+    thoughts: ["아~승인 안 난 건 안써요.", "아~ 촬영 순서부터 확인요."] },
+
+  // ⑥ 제작팀 · 릴스
+  { dept: "reels", rank: "lead", name: "하민", role: "제작팀 · 릴스 담당", callsign: "하민님",
+    colors: ["#2c2638", "#ff8fc0", "#ff8fc0"],
+    thoughts: ["장면 순서 한 번만 확인 부탁드립니다.", "원본 영상 전달 부탁드립니다."] },
+
+  // ⑦ 제작팀 · 캐러셀
+  { dept: "carousel", rank: "lead", name: "김석진", role: "제작팀 · 캐러셀 담당", callsign: "석진님",
+    colors: ["#d88d68", "#c9b8ff", "#c9b8ff"],
+    thoughts: ["확정된 가격만 알려주시길 부탁드립니다.", "사진 순서 한 번 봐주시길 부탁드립니다."] },
+
+  // ⑧ 제휴 창구 — 담당자 미정
+  { dept: "partner", rank: "lead", name: "빈자리 B", role: "제휴 담당 (미정)",
+    colors: ["#563a32", "#b8f0dd", "#b8f0dd"],
+    thoughts: ["아직 담당자가 정해지지 않았어요.", "메일은 초안까지만, 발송은 대표님이."] },
+
+  // ⑨ 정산팀
+  { dept: "finance", rank: "lead", name: "현진", role: "정산 팀장", callsign: "현진님",
+    colors: ["#313b56", "#fff3b0", "#fff3b0"],
+    thoughts: ["판매금액은 플랫폼별로 나눠 적어요.", "입금 대기 건부터 확인하겠습니다."] },
+
+  // ⑩ 성과 리뷰실
+  { dept: "review", rank: "lead", name: "김희선", role: "성과 리뷰실장", callsign: "희선님",
+    colors: ["#9c5c72", "#ff8fc0", "#ff8fc0"],
+    thoughts: ["수치 없는 건 추정 안합니다.", "저장 수부터 확인해볼게요."] },
+
+  // ⑪ 자료 보관실 — 담당자 미정
+  { dept: "ops", rank: "lead", name: "빈자리 C", role: "자료 보관 담당 (미정)",
+    colors: ["#3b3b49", "#b8f0dd", "#b8f0dd"],
+    thoughts: ["아직 담당자가 정해지지 않았어요.", "원본은 절대 덮어쓰지 않아요."] },
+
+  // ⑫ 비서실
+  { dept: "secretary", rank: "lead", name: "박치원", role: "비서실장", callsign: "치원님",
+    colors: ["#7a453c", "#c9b8ff", "#c9b8ff"],
+    thoughts: ["보고 드리겠습니다 대표님.", "대표님 괜찮으신가요?."] },
+];
+
+/**
+ * 외부 연동을 아직 안 붙인 팀 → 화면에 "연동 대기"로 표시됩니다.
+ * 연동을 다 붙였거나, 그냥 전부 초록불로 보고 싶으면 빈 객체 {}로 두세요.
+ */
+export const PENDING_INTEGRATIONS: Record<string, string> = {
+  brand: "förc 성과 데이터 연동",
+  partner: "담당자 미정",
+  finance: "finance/input/ 정산 자료",
+};
+
+/**
+ * 대표 승인 창에 뜨는 TOP 1 예시 안건 (화면 연출용 샘플).
+ * 실제 기획 결과가 아니라 "이런 식으로 올라온다"를 보여주는 자리예요.
+ * 가격·할인·배송처럼 확인 안 된 정보는 넣지 마세요.
+ */
+export const SAMPLE_PROPOSAL = {
+  score: "예시",
+  title: "쉐이커 그립톡이 완성되기까지",
+  summary: "레진을 붓고 굳혀 흔들리는 쉐이커가 되기까지, 직접 만드는 과정을 보여주는 릴스 예시 안이에요.",
+  points: ["레진 붓는 장면", "쉐이커가 흔들리는 클로즈업", "선물 포장하는 순간"],
+};
+
+/**
+ * 결과 보관함 링크 (Notion 등). 비워두면 화면에서 링크 버튼이 숨겨집니다.
+ * 예: "https://www.notion.so/내페이지주소"
+ */
+export const STORAGE_LINK = "";
