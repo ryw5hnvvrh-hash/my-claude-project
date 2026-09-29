@@ -32,6 +32,8 @@ export const COMPANY = {
   windowLabel: "thing_that_hit.exe — 대표실",
   /** 일일 브리핑 제목에 들어갈 이름 */
   reportName: "THING THAT HIT",
+  /** 화면 하단 크레딧에 걸 인스타그램 아이디 (@ 빼고). 비우면 링크가 숨겨집니다 */
+  instagram: "thth_lll",
 } as const;
 
 /** 대표(나) — 사무실 대표실에 앉아 있는 캐릭터 */

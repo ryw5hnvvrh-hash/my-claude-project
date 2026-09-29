@@ -251,12 +251,16 @@ export default function Home() {
         )}
 
         <footer>
-          이 툴은 갓생맘 🎀이 만들었어요
-          <br />
-          <a href="https://www.instagram.com/godseng.mom/" target="_blank" rel="noreferrer">
-            📷 @godseng.mom — 더 많은 크리에이터 툴 보러가기 →
-          </a>
-          <br />© godseng.mom · 자유롭게 쓰되 무단 재판매 금지
+          {COMPANY.name} · 대표 {CEO.name}
+          {COMPANY.instagram ? (
+            <>
+              <br />
+              <a href={`https://www.instagram.com/${COMPANY.instagram}/`} target="_blank" rel="noreferrer">
+                📷 @{COMPANY.instagram}
+              </a>
+            </>
+          ) : null}
+          <br />© {CEO.name}
         </footer>
       </div>
 

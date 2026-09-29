@@ -7,6 +7,8 @@
  *   DISCORD_WEBHOOK_URL   보고를 받을 채널의 웹훅 URL
  */
 
+import { COMPANY } from "../company.config";
+
 export type DayReport = {
   title: string;
   clock: string;
@@ -136,7 +138,7 @@ async function sendDiscord(report: DayReport, env: PublishEnv, notionUrl?: strin
       { name: "문제·위험", value: joinLines(report.risks).slice(0, 1000) },
       { name: "다음 우선순위", value: joinLines(report.next).slice(0, 1000) },
     ],
-    footer: { text: notionUrl ? "Notion에도 저장됨 · 갓생맘 AI Office" : "갓생맘 AI Office" },
+    footer: { text: notionUrl ? `Notion에도 저장됨 · ${COMPANY.reportName}` : COMPANY.reportName },
     timestamp: new Date().toISOString(),
   };
 
