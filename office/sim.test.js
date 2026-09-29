@@ -48,14 +48,35 @@ for (let seed = 1; seed <= 20; seed++) {
   const t2 = run(sim, 60, () => allHome(sim), `복귀 seed=${seed}`);
   assert.ok(sim.agents.every(a => a.state === 'type'));
 
-  // 3. 하루 흐름 → 8번 전달, 매번 대화, 끝나면 모두 자리
-  const talks = new Set();
+  // 3. 하루 흐름 → 승인 지점 2곳에서 멈추고, 누르면 이어진다. 외부 자료가 없는 단계는 연동 대기.
+  const linked = seed % 2 === 0;           // 짝수 시드: 성과·정산 자료 연결됨
+  sim.links.review = sim.links.finance = linked;
+  const talks = new Set(), approvals = [];
   sim.runPipeline();
-  run(sim, 180, () => {
+  assert.ok(sim.agents.every(a => a.work === 'doing' || a.work === 'idle'), '시작 시 대기');
+  run(sim, 240, () => {
     sim.agents.forEach(a => a.state === 'talk' && talks.add(sim.pipeline.step));
+    const w = sim.pipeline.awaiting;
+    if (w) {
+      assert.strictEqual(sim.byId[w.from].work, 'approve', '보낸 직원은 승인 대기');
+      if (!approvals.includes(w.step)) {
+        approvals.push(w.step);
+        // 승인 전에는 3초가 지나도 다음 단계로 가지 않는다
+        const step = sim.pipeline.step;
+        for (let i = 0; i < 90; i++) sim.tick(1 / 30);
+        assert.strictEqual(sim.pipeline.step, step, '승인 전 멈춤');
+        sim.approve();
+      }
+    }
     return !sim.pipeline.running && allHome(sim);
   }, `하루 흐름 seed=${seed}`);
-  assert.strictEqual(talks.size, PIPELINE.length, '단계마다 대화');
+  assert.deepStrictEqual(approvals, [2, 4], '승인 지점 2곳');
+  assert.strictEqual(talks.size, linked ? PIPELINE.length : PIPELINE.length - 2, '대화 횟수');
+  const want = linked ? 'done' : 'link';
+  for (const a of sim.agents) {
+    const exp = (a.id === 'review' || a.id === 'finance') ? want : 'done';
+    assert.strictEqual(a.work, exp, `${a.name} 업무 상태 ${a.work}, 기대 ${exp}`);
+  }
 
   // 4. 회의 가는 도중(1.5초 뒤)에 복귀 명령 → 방향이 엇갈려도 모두 자리로
   sim.meeting();
@@ -64,4 +85,4 @@ for (let seed = 1; seed <= 20; seed++) {
   sim.returnAll();
   run(sim, 60, () => allHome(sim), `중간 취소 후 복귀 seed=${seed}`);
 }
-console.log('통과: 20개 시드 × (회의 소집 · 자리 복귀 · 하루 흐름 · 이동 중 취소) — 겹침 0, 벽 통과 0, 교착 0');
+console.log('통과: 20개 시드 × (회의 소집 · 자리 복귀 · 하루 흐름(승인 2회, 연동 있음/없음) · 이동 중 취소) — 겹침 0, 벽 통과 0, 교착 0');

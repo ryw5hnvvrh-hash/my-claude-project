@@ -35,6 +35,9 @@
   --st-talk: #c0612b;
   --st-sit: #7d5bb0;
   --st-idle: #6b7773;
+  /* 업무 상태 5색: 말풍선 바탕. 두 테마 공통 */
+  --ws-done: #7fdcc0; --ws-doing: #f6d54a; --ws-approve: #d63a7a; --ws-link: #b9a6ee; --ws-idle: #ffffff;
+  --ws-ink: #1d2926; --ws-ink-on-pink: #ffffff; --ws-edge: #c9d3d0;
   /* 직원 8명 색: 두 테마에서 모두 보이는 중간 채도 */
   --a-research: #3a86c8; --a-plan1: #e0823a; --a-qa: #8a5cc2; --a-ceo: #d4485a;
   --a-plan2: #d1a21c; --a-review: #2aa198; --a-finance: #5b8c3a; --a-secretary: #c2569b;
@@ -49,7 +52,7 @@
     --floor-dept: #1d2a2e; --floor-ceo: #2e2619; --floor-meet: #22243a; --floor-lounge: #2f2029;
     --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #4d6660;
     --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --label: #d5e0dc;
-    --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816;
+    --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816; --ws-edge: #0e1413;
     --st-walk: #6aa8e8; --st-type: #5cc48c; --st-talk: #ec9460; --st-sit: #ae8ee0; --st-idle: #98a5a1;
     color-scheme: dark;
   }
@@ -60,7 +63,7 @@
   --floor-dept: #1d2a2e; --floor-ceo: #2e2619; --floor-meet: #22243a; --floor-lounge: #2f2029;
   --floor-spare: #242927; --floor-lobby: #222a21; --wood: #9c7651; --chair: #4d6660;
   --sofa: #b77ea0; --plant: #5fb271; --metal: #8d9b97; --door: #e8ae4c; --label: #d5e0dc;
-  --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816;
+  --skin: #e8bf9a; --bubble: #e3ebe8; --bubble-ink: #121816; --ws-edge: #0e1413;
   --st-walk: #6aa8e8; --st-type: #5cc48c; --st-talk: #ec9460; --st-sit: #ae8ee0; --st-idle: #98a5a1;
   color-scheme: dark;
 }
@@ -88,6 +91,17 @@ canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .chip.walk { color: var(--st-walk); } .chip.type { color: var(--st-type); } .chip.talk { color: var(--st-talk); }
 .chip.sit { color: var(--st-sit); } .chip.idle { color: var(--st-idle); }
+.ws { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 10px 10px 10px 3px; white-space: nowrap; color: var(--ws-ink); border: 1px solid var(--ws-edge); }
+.ws.done { background: var(--ws-done); } .ws.doing { background: var(--ws-doing); } .ws.link { background: var(--ws-link); }
+.ws.approve { background: var(--ws-approve); color: var(--ws-ink-on-pink); border-color: var(--ws-approve); } .ws.idle { background: var(--ws-idle); }
+.summary { display: flex; flex-wrap: wrap; gap: 6px; }
+.summary .ws b { font-family: var(--font-mono); margin-left: 6px; font-variant-numeric: tabular-nums; }
+.approve-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--ws-approve); background: color-mix(in srgb, var(--ws-approve) 10%, var(--sheet)); font-size: 14px; }
+.approve-box[hidden] { display: none; }
+.btn.approve { background: var(--ws-approve); border-color: var(--ws-approve); color: var(--ws-ink-on-pink); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.links label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.links input { accent-color: var(--accent); }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
 .cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
 @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
@@ -115,7 +129,7 @@ section.block { display: grid; gap: 4px; }
   <header>
     <span class="eyebrow">@thth_lll · 레진 소품 스튜디오</span>
     <h1>THING THAT HIT 사무실</h1>
-    <p class="sub">직원 7명과 대표가 A* 경로 탐색으로 목적지까지 걸어갑니다. 다른 직원이 서 있는 칸은 돌아가고, 벽과 가구는 지나가지 않습니다.</p>
+    <p class="sub">직원 머리 위 말풍선이 지금 하는 일을 보여줍니다. 하루 흐름을 재생하면 단계마다 상태가 바뀌고, 승인 지점에서는 대표가 승인을 눌러야 이어집니다.</p>
   </header>
 
   <section class="sheet" aria-label="사무실 지도">
@@ -125,11 +139,21 @@ section.block { display: grid; gap: 4px; }
         <button type="button" class="btn" id="btn-meet">회의 소집</button>
         <button type="button" class="btn" id="btn-home">모두 자리로</button>
       </div>
-      <div class="flow" id="flow" aria-live="polite">모두 자기 자리에서 일하는 중</div>
+      <div class="flow" id="flow" aria-live="polite">하루 흐름을 재생하면 단계마다 업무 상태가 바뀝니다</div>
+    </div>
+    <div class="summary" id="summary" aria-label="업무 상태별 인원"></div>
+    <div class="approve-box" id="approve" hidden>
+      <span id="approve-text"></span>
+      <button type="button" class="btn approve" id="btn-approve">승인</button>
     </div>
     <div class="mapbox"><canvas id="map" tabindex="0" aria-label="사무실 지도. 직원을 누른 뒤 목적지를 누르면 걸어갑니다"></canvas></div>
     <div class="bar">
       <div class="sel" id="sel" aria-live="polite"></div>
+    </div>
+    <div class="links">
+      <label><input type="checkbox" id="link-review"> 성과 자료 연결됨 (förc)</label>
+      <label><input type="checkbox" id="link-finance"> 정산 자료 들어옴 (finance/input)</label>
+      <span>지금은 둘 다 꺼져 있습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
     </div>
     <p class="hint">직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
   </section>
@@ -139,19 +163,27 @@ section.block { display: grid; gap: 4px; }
       <h2>직원</h2>
       <div class="tablebox">
         <table>
-          <thead><tr><th>직원</th><th>상태</th><th>지금 위치</th><th>목적지</th></tr></thead>
+          <thead><tr><th>직원</th><th>업무 상태</th><th>동작</th><th>지금 위치</th></tr></thead>
           <tbody id="staff"></tbody>
         </table>
       </div>
     </section>
     <section class="block">
-      <h2>상태 5종</h2>
+      <h2>업무 상태 5종</h2>
+      <ul class="states">
+        <li><span><span class="ws done">완료했어요!</span></span><span class="d">완료 · 이번 단계 끝 (민트)</span></li>
+        <li><span><span class="ws doing">일하는 중…</span></span><span class="d">진행 중 · 지금 작업 중 (노랑)</span></li>
+        <li><span><span class="ws approve">확인해주세요</span></span><span class="d">승인 대기 · 대표 결정을 기다림 (진한 핑크). 승인을 눌러야 다음 단계로 갑니다.</span></li>
+        <li><span><span class="ws link">연결 기다려요</span></span><span class="d">연동 대기 · 외부 자료가 없어 멈춤 (라벤더)</span></li>
+        <li><span><span class="ws idle">업무 대기중</span></span><span class="d">대기 · 앞 단계를 기다림 (흰색)</span></li>
+      </ul>
+      <h2 style="margin-top:14px">동작 5종</h2>
       <ul class="states">
         <li><span class="chip walk">걷기</span><span class="d">몸이 위아래로 흔들리고 발이 번갈아 움직입니다.</span></li>
         <li><span class="chip type">타이핑</span><span class="d">자기 책상에 앉아 두 손이 번갈아 키보드를 칩니다.</span></li>
         <li><span class="chip talk">대화</span><span class="d">말풍선의 점 세 개가 차례로 떠오릅니다.</span></li>
         <li><span class="chip sit">앉기</span><span class="d">회의실·남의 의자에 앉아 천천히 숨 쉽니다.</span></li>
-        <li><span class="chip idle">대기</span><span class="d">서서 기다립니다. 길이 막혀 비켜주길 기다릴 때도 이 상태입니다.</span></li>
+        <li><span class="chip idle">서 있기</span><span class="d">서서 숨 쉽니다. 길이 막혀 비켜주길 기다릴 때도 이 동작입니다.</span></li>
       </ul>
     </section>
   </div>
@@ -211,7 +243,7 @@ section.block { display: grid; gap: 4px; }
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     ['wall','corridor','floor-dept','floor-ceo','floor-meet','floor-lounge','floor-spare','floor-lobby','wood','chair','sofa','plant','metal','door','label','accent','sheet','line','skin','bubble','bubble-ink','fg',
-     'st-walk','st-type','st-talk','st-sit','st-idle']
+     'st-walk','st-type','st-talk','st-sit','st-idle','ws-done','ws-doing','ws-approve','ws-link','ws-idle','ws-ink','ws-ink-on-pink','ws-edge']
       .forEach(k => colors[k] = cs.getPropertyValue('--' + k).trim());
     sim.agents.forEach(a => a.color = cs.getPropertyValue('--a-' + a.id).trim());
   }
@@ -313,6 +345,8 @@ section.block { display: grid; gap: 4px; }
       c.globalAlpha = .5 + .3 * Math.sin(t * 5 + cx) * m; c.fillStyle = colors['st-type'];
       c.fillRect(cx - S * .22, cy - S * .86, S * .44, S * .08); c.globalAlpha = 1;
     }
+    // 업무 상태 말풍선 (대화 중에는 점 세 개 말풍선)
+    if (st !== 'talk') drawWorkBubble(c, a, cx, headY);
     // 대화: 말풍선 + 점 세 개
     if (st === 'talk') {
       const bx = cx + a.dir * S * .35, by = headY - S * .62;
@@ -328,11 +362,6 @@ section.block { display: grid; gap: 4px; }
     if (st === 'sit') {
       c.globalAlpha = .7; rr(c, cx - S * .3, cy + S * .22, S * .6, S * .1, S * .05, colors.chair); c.globalAlpha = 1;
     }
-    // 대기: 길 막힘이면 '…'
-    if (st === 'idle' && a.goal) {
-      c.fillStyle = colors['st-idle']; c.font = '600 ' + Math.max(9, S * .6) + 'px sans-serif'; c.textAlign = 'center';
-      c.fillText('…', cx, headY - S * .35);
-    }
     // 이름표
     if (S >= 13) {
       c.font = '600 ' + Math.max(8, S * .5) + 'px "IBM Plex Sans KR", sans-serif';
@@ -341,6 +370,22 @@ section.block { display: grid; gap: 4px; }
       rr(c, cx - tw / 2, ty - S * .28, tw, S * .56, S * .2, a.color);
       c.fillStyle = '#fff'; c.fillText(a.short, cx, ty + 1);
     }
+  }
+
+  function drawWorkBubble(c, a, cx, headY) {
+    const text = OfficeSim.WORK[a.work].say;
+    const fs = Math.max(9, Math.min(12, S * .56));
+    c.font = '600 ' + fs + 'px "IBM Plex Sans KR", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const w = c.measureText(text).width + fs * .9, h = fs * 1.55;
+    const bx = cx, by = headY - S * .42 - h / 2;
+    const fill = colors['ws-' + a.work];
+    rr(c, bx - w / 2, by - h / 2, w, h, h * .45, fill);
+    c.strokeStyle = a.work === 'approve' ? fill : colors['ws-edge']; c.lineWidth = 1; c.stroke();
+    c.fillStyle = fill; c.beginPath();
+    c.moveTo(bx - fs * .3, by + h / 2 - .5); c.lineTo(bx, by + h / 2 + fs * .45); c.lineTo(bx + fs * .3, by + h / 2 - .5); c.fill();
+    c.fillStyle = a.work === 'approve' ? colors['ws-ink-on-pink'] : colors['ws-ink'];
+    c.fillText(text, bx, by + .5);
   }
 
   function drawPath(c, a) {
@@ -374,21 +419,21 @@ section.block { display: grid; gap: 4px; }
   const rows = new Map();
   sim.agents.forEach(a => {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td><span class="dot"></span><span></span></td><td><span class="chip"></span></td><td></td><td></td>';
+    tr.innerHTML = '<td><span class="dot"></span><span></span></td><td><span class="ws"></span></td><td><span class="chip"></span></td><td></td>';
     tr.querySelector('td span:last-child').textContent = a.name;
     tr.addEventListener('click', () => { selected = a; renderUI(); cv.focus({ preventScroll: true }); });
     staffBody.appendChild(tr); rows.set(a.id, tr);
   });
   let lastUI = '';
   function renderUI() {
-    const sig = sim.agents.map(a => a.state + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.pipeline.label;
+    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.pipeline.label + !!sim.pipeline.awaiting;
     if (sig === lastUI) return; lastUI = sig;
     sim.agents.forEach(a => {
       const tr = rows.get(a.id);
       tr.querySelector('.dot').style.background = a.color;
+      const ws = tr.querySelector('.ws'); ws.className = 'ws ' + a.work; ws.textContent = OfficeSim.WORK[a.work].label;
       const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state; chip.textContent = STATES[a.state];
-      tr.children[2].textContent = placeName(a.x, a.y);
-      tr.children[3].textContent = a.goal ? placeName(a.goal[0], a.goal[1]) : '—';
+      tr.children[3].textContent = placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
       tr.classList.toggle('on', a === selected);
     });
     const sel = document.getElementById('sel');
@@ -401,6 +446,17 @@ section.block { display: grid; gap: 4px; }
         ? placeName(selected.x, selected.y) + ' → ' + placeName(selected.goal[0], selected.goal[1]) + ` (${selected.path.length + (selected.next ? 1 : 0)}칸 남음)`
         : placeName(selected.x, selected.y);
     }
+    const sum = document.getElementById('summary');
+    sum.innerHTML = '';
+    Object.entries(OfficeSim.WORK).forEach(([k, w]) => {
+      const n = sim.agents.filter(a => a.work === k).length;
+      const el = document.createElement('span'); el.className = 'ws ' + k; el.textContent = w.label;
+      const b = document.createElement('b'); b.textContent = n; el.append(b); sum.append(el);
+    });
+    const ap = document.getElementById('approve');
+    const w = sim.pipeline.awaiting;
+    ap.hidden = !w;
+    if (w) document.getElementById('approve-text').textContent = `${sim.byId[w.from].name}이(가) 확인을 기다립니다: ${w.what}`;
     const flow = document.getElementById('flow');
     if (sim.pipeline.label) {
       const n = Math.min(sim.pipeline.step + 1, OfficeSim.PIPELINE.length);
@@ -434,6 +490,12 @@ section.block { display: grid; gap: 4px; }
     if (sim.walkable(nx, ny)) sim.send(selected.id, [nx, ny]);
   });
   document.getElementById('btn-flow').addEventListener('click', () => sim.runPipeline());
+  document.getElementById('btn-approve').addEventListener('click', () => { sim.approve(); lastUI = ''; renderUI(); });
+  ['review', 'finance'].forEach(k => {
+    const box = document.getElementById('link-' + k);
+    box.checked = sim.links[k];
+    box.addEventListener('change', () => { sim.links[k] = box.checked; });
+  });
   document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 8명이 회의실로 이동'; });
   document.getElementById('btn-home').addEventListener('click', () => { sim.returnAll(); document.getElementById('flow').textContent = '모두 자기 자리로 복귀'; });
 

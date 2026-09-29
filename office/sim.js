@@ -1,7 +1,15 @@
 // 직원 이동 시뮬레이션. 화면 그리기와 분리되어 있어서 Node에서도 돌릴 수 있다.
-// 상태 5종: walk(걷기) / type(타이핑) / talk(대화) / sit(앉기) / idle(대기)
+// 동작 5종(애니메이션): walk(걷기) / type(타이핑) / talk(대화) / sit(앉기) / idle(서 있기)
+// 업무 상태 5종(말풍선): done(완료) / doing(진행 중) / approve(승인 대기) / link(연동 대기) / idle(대기)
 (function (root) {
-  const STATES = { walk: '걷기', type: '타이핑', talk: '대화', sit: '앉기', idle: '대기' };
+  const STATES = { walk: '걷기', type: '타이핑', talk: '대화', sit: '앉기', idle: '서 있기' };
+  const WORK = {
+    done: { label: '완료', meaning: '이번 단계 끝', say: '완료했어요!' },
+    doing: { label: '진행 중', meaning: '지금 작업 중', say: '일하는 중…' },
+    approve: { label: '승인 대기', meaning: '대표 결정을 기다림', say: '확인해주세요' },
+    link: { label: '연동 대기', meaning: '외부 자료가 없어 멈춤', say: '연결 기다려요' },
+    idle: { label: '대기', meaning: '앞 단계를 기다림', say: '업무 대기중' },
+  };
   const STAFF = [
     { id: 'research', name: '시장조사팀', short: '조사' },
     { id: 'plan1', name: '기획 1팀', short: '기획1' },
@@ -12,17 +20,18 @@
     { id: 'finance', name: '정산팀', short: '정산' },
     { id: 'secretary', name: '비서실', short: '비서' },
   ];
-  // 하루 파이프라인: [보내는 사람, 받는 사람, 전달 내용]
+  // 하루 파이프라인. approval: 대표가 눌러야 넘어가는 단계. link: 외부 자료가 있어야 하는 단계.
   const PIPELINE = [
-    ['research', 'plan1', '조사 자료 전달'],
-    ['plan1', 'qa', '아이디어 TOP 3 전달'],
-    ['qa', 'ceo', '검수 통과안 보고'],
-    ['ceo', 'plan2', '1차 승인안 전달'],
-    ['plan2', 'ceo', '대본 최종 확인 요청'],
-    ['review', 'secretary', '성과 기록 공유'],
-    ['finance', 'secretary', '주간 정산 공유 (일요일)'],
-    ['secretary', 'ceo', '오늘 브리핑'],
+    { from: 'research', to: 'plan1', what: '조사 자료 전달' },
+    { from: 'plan1', to: 'qa', what: '아이디어 TOP 3 전달' },
+    { from: 'qa', to: 'ceo', what: '검수 통과안 보고', approval: 'TOP 3 중 1개 승인' },
+    { from: 'ceo', to: 'plan2', what: '1차 승인안 전달' },
+    { from: 'plan2', to: 'ceo', what: '대본 최종 확인 요청', approval: '대본 최종 확인' },
+    { from: 'review', to: 'secretary', what: '성과 기록 공유', link: 'review' },
+    { from: 'finance', to: 'secretary', what: '주간 정산 공유 (일요일)', link: 'finance' },
+    { from: 'secretary', to: 'ceo', what: '오늘 브리핑' },
   ];
+  const SKIP_SEC = 1.2;   // 연동 대기로 건너뛸 때 다음 단계까지 쉬는 시간
   const SPEED = 4;        // 초당 칸 수
   const TALK_SEC = 2.4;   // 대화 시간
   const SIDESTEP_SEC = 1.0; // 이만큼 막혀 있으면 옆으로 비켜선다
@@ -40,13 +49,17 @@
       const seat = room(s.id).seats[0];
       return {
         ...s, seat, x: seat[0], y: seat[1], next: null, progress: 0,
-        path: [], goal: null, state: 'type', wait: 0, goalWait: 0,
+        path: [], goal: null, state: 'type', work: 'idle', wait: 0, goalWait: 0,
         onArrive: null, talkUntil: 0, afterTalk: null, talkWith: null, dir: 1,
       };
     });
     const byId = Object.fromEntries(agents.map(a => [a.id, a]));
     let time = 0;
-    const pipeline = { step: -1, label: '', running: false };
+    const pipeline = { step: -1, label: '', running: false, awaiting: null };
+    // 외부 자료 연결 여부: 성과 리뷰실(förc), 정산팀(finance/input)
+    const links = { review: false, finance: false };
+    let timers = [];
+    const later = (sec, fn) => timers.push({ at: time + sec, fn });
 
     // 다른 직원이 서 있거나 들어가려는 칸
     function blockedFor(me) {
@@ -145,19 +158,25 @@
 
     function tick(dt) {
       time += dt;
+      const due = timers.filter(t => t.at <= time);
+      timers = timers.filter(t => t.at > time);
+      due.forEach(t => t.fn());
       for (const a of agents) stepAgent(a, dt);
     }
 
     // 명령
+    function stopPipeline() { pipeline.running = false; pipeline.label = ''; pipeline.awaiting = null; timers = []; }
     function meeting() {
-      pipeline.running = false; pipeline.label = '';
+      stopPipeline();
       agents.forEach((a, i) => send(a.id, meetingSeats[i]));
     }
     function returnAll() {
-      pipeline.running = false; pipeline.label = '';
+      stopPipeline();
       agents.forEach(a => goHome(a.id));
     }
     function runPipeline() {
+      stopPipeline();
+      agents.forEach(a => a.work = 'idle');
       pipeline.running = true; pipeline.step = -1;
       nextStep();
     }
@@ -165,24 +184,55 @@
       if (!pipeline.running) return;
       pipeline.step++;
       if (pipeline.step >= PIPELINE.length) { pipeline.running = false; pipeline.label = '오늘 흐름 완료'; return; }
-      const [from, to, what] = PIPELINE[pipeline.step];
-      const a = byId[from], b = byId[to];
-      pipeline.label = `${a.name} → ${b.name}: ${what}`;
+      const st = PIPELINE[pipeline.step];
+      const a = byId[st.from], b = byId[st.to];
+      const last = pipeline.step === PIPELINE.length - 1;
+      if (st.link && !links[st.link]) {
+        // 외부 자료가 없으면 이 단계는 멈춰 두고 다음 단계로 넘어간다
+        a.work = 'link';
+        pipeline.label = `${a.name}: 외부 자료가 없어 멈춤 — 다음 단계로`;
+        later(SKIP_SEC, nextStep);
+        return;
+      }
+      a.work = 'doing';
+      pipeline.label = `${a.name} → ${b.name}: ${st.what}`;
       const target = [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y];
-      send(from, target, () => {
+      send(st.from, target, () => {
         // 도착했는데 상대가 옆에 없으면(움직였으면) 다시 따라간다
         if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) > 1) { pipeline.step--; nextStep(); return; }
-        talk(a, b, () => { goHome(from); nextStep(); });
+        talk(a, b, () => {
+          goHome(st.from);
+          if (st.approval) {
+            // 대표 결정을 기다린다. approve()가 불릴 때까지 흐름이 멈춘다.
+            a.work = 'approve'; b.work = 'doing';
+            pipeline.awaiting = { step: pipeline.step, from: a.id, what: st.approval };
+            pipeline.label = `${a.name}: ${st.approval} 대기 중`;
+            return;
+          }
+          a.work = a.id === 'ceo' ? 'idle' : 'done';
+          b.work = last ? 'done' : 'doing';
+          if (last) a.work = 'done';
+          nextStep();
+        });
       });
+    }
+    function approve() {
+      const w = pipeline.awaiting;
+      if (!w) return false;
+      pipeline.awaiting = null;
+      byId[w.from].work = 'done';
+      byId.ceo.work = 'idle';
+      nextStep();
+      return true;
     }
 
     return {
-      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, pipeline,
+      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, approve, pipeline, links,
       walkable, STATES, get time() { return time; },
     };
   }
 
-  const api = { createSim, STATES, STAFF, PIPELINE };
+  const api = { createSim, STATES, WORK, STAFF, PIPELINE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.OfficeSim = api;
 })(typeof window !== 'undefined' ? window : this);
