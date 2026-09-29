@@ -29,6 +29,8 @@
     const doneCount = () => !started() ? 0 : (day.running ? day.step - 1 : 12);
     const mins = sec => Math.max(1, Math.round(sim.minutesOf(sec)));
     const name = a => a.id === 'ceo' ? '대표' : a.person;
+    // 받침 있으면 '을', 없으면 '를'
+    const eul = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c <= 11171 && c % 28 ? '을' : '를'); };
 
     // 한 사람이 지금 뭘 하는지 한 문장으로
     // 지금 자리를 비운 이유 (커피·잡담). 업무 상황과 따로 말한다.
@@ -81,38 +83,27 @@
       return [reply('secretary', text)];
     }
 
-    // ── "왜 늦어져?" → 비서실장: 진짜 병목 1개 + 원인
+    // ── "왜 늦어져?" → 비서실장. 아래 순서대로 처음 맞는 것 하나만 답한다.
+    //   ① 대표 결정을 기다리는 중 → 그것만 말한다 (다른 얘기 금지)
+    //   ② 누가 작업 중 → 부서명 + 진행률 + "정상 속도예요"
+    //   ③ 외부 연동 때문에 못 한 일 → 무엇이 없어서 무엇을 못 하는지 정확히
+    //   ④ 아무 문제 없음 → "지연 없습니다" 한 줄
     function bottleneck() {
-      if (!started()) return [reply('secretary', '아직 하루가 시작되지 않아서 늦어지는 곳이 없습니다 대표님.')];
-      sim.announce('secretary', '병목부터 말씀드리겠습니다.', 3);
-      // 1) 지금 대표 결정을 기다리고 있으면 그게 병목
       if (day.awaiting) {
         const m = mins(sim.time - day.awaiting.since);
-        return [reply('secretary', `진짜 병목은 ${CIRCLED[day.awaiting.step]} ${day.awaiting.what}입니다. 원인: 대표님 결정을 ${m}분째 기다리고 있습니다. 누르시는 즉시 다음 단계로 넘어갑니다.`)];
+        return [reply('secretary', `대표님 결정을 기다리고 있습니다 — ${CIRCLED[day.awaiting.step]} ${day.awaiting.what}, ${m}분째입니다.`)];
       }
-      // 2) 지금 길이 막혀 서 있는 사람
-      const stuck = sim.agents.filter(a => a.present && a.hold && a.goal && a.state === 'idle' && a.wait > 0.5);
-      if (stuck.length) {
-        const a = stuck[0];
-        return [reply('secretary', `진짜 병목은 지금 ${place(a)}입니다. 원인: ${a.person}님이 길이 막혀 멈춰 있습니다. 곧 비켜서 돌아갈 겁니다.`)];
+      const working = sim.agents.filter(a => a.present && a.work === 'doing' && sim.progress(a) !== null);
+      if (working.length) {
+        const parts = working.map(a => `${a.name} ${a.task} ${Math.round(sim.progress(a) * 100)}%`);
+        return [reply('secretary', `${parts.join(' / ')} — 정상 속도예요.`)];
       }
-      // 3) 지금까지 가장 오래 걸린 단계와 그 안에서 시간을 가장 많이 쓴 이유
-      const entries = Object.entries(day.stats).map(([n, s]) => [Number(n), s]).filter(([, s]) => s.total > 0);
-      if (!entries.length) return [reply('secretary', '아직 기록이 쌓이지 않았습니다 대표님. 조금 뒤에 다시 물어봐 주세요.')];
-      const [n, s] = entries.sort((p, q) => q[1].total - p[1].total)[0];
-      const top = obj => Object.entries(obj).sort((p, q) => q[1] - p[1])[0];
-      const blockedSum = Object.values(s.blocked).reduce((x, y) => x + y, 0);
-      const parts = [['approval', s.approval], ['walk', s.walk], ['work', s.work], ['talk', s.talk], ['blocked', blockedSum]];
-      const [kind, t] = parts.sort((p, q) => q[1] - p[1])[0];
-      let cause;
-      if (t <= 0) cause = n === 1 ? `전원 출근 이동에 ${mins(s.total)}분이 걸렸습니다` : `이 단계에 ${mins(s.total)}분이 걸렸습니다`;
-      else if (kind === 'approval') cause = `대표님 승인을 ${mins(t)}분 기다렸습니다`;
-      else if (kind === 'walk') { const w = top(s.walkers); cause = `이동 시간이 ${mins(t)}분입니다${w ? ` — ${byId[w[0]].person}님이 방 사이를 오가느라 가장 오래 걸었습니다` : ''}`; }
-      else if (kind === 'work') { const w = top(s.workers); cause = `작업 자체에 ${mins(t)}분이 걸렸습니다${w ? ` (${byId[w[0]].person}님)` : ''}`; }
-      else if (kind === 'talk') cause = `인수인계 대화에 ${mins(t)}분이 걸렸습니다`;
-      else { const w = top(s.blocked); cause = `${w ? byId[w[0]].person + '님이 ' : ''}복도에서 길이 막혀 ${mins(t)}분 기다렸습니다`; }
-      const total = mins(s.total);
-      return [reply('secretary', `진짜 병목은 ${CIRCLED[n]} ${DAY[n - 1].title}입니다(${total}분). 원인: ${cause}.`)];
+      const linked = sim.agents.filter(a => a.work === 'link');
+      if (linked.length) {
+        return [reply('secretary', linked.map(a =>
+          `${a.name} ${eul(a.linkTask || '업무')} 못 하고 있습니다 — ${a.linkReason || '외부 자료'}가 연결되지 않았습니다.`).join(' '))];
+      }
+      return [reply('secretary', '지연 없습니다.')];
     }
 
     // ── "OO팀 뭐해?" → 그 팀 팀장

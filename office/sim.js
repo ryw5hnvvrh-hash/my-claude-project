@@ -413,6 +413,7 @@
       if (!atSeat(a) || a.goal || a.next) goHome(id);
       yield () => atSeat(a) && settled(a);
       a.work = 'doing'; a.task = task || '';
+      a.workStart = scriptTime(); a.workSec = sec;
       yield* wait(sec);
       release([id]);
     }
@@ -426,7 +427,12 @@
       yield () => !day.awaiting;
       byId.ceo.work = 'idle';
     }
-    function markLink(id, reason) { const a = byId[id]; a.work = 'link'; a.linkReason = reason; }
+    function markLink(id, reason, task) { const a = byId[id]; a.work = 'link'; a.linkReason = reason; a.linkTask = task; }
+    // 지금 하는 일의 진행률 0~1 (일하는 중일 때만)
+    function progress(a) {
+      if (a.work !== 'doing' || !a.workSec) return null;
+      return Math.max(0, Math.min(1, (scriptTime() - a.workStart) / a.workSec));
+    }
 
     function* dayScript() {
       // ① 07:00 전원 출근: 모두 밖에서 시작해 정문으로 한 명씩 들어와 자기 자리로
@@ -456,7 +462,7 @@
       // ③ 브랜드 분석 (시장조사팀이 같이 맡음)
       if (!links.data) {
         setStep(3, '브랜드 분석: 데이터 미연동 — 만들지 않고 연동 대기로 기록');
-        markLink('research', 'förc 성과 데이터');
+        markLink('research', 'förc 성과 데이터', '브랜드 분석');
         day.results.brand = '연동 대기';
         yield* wait(1.5);
       } else {
@@ -530,7 +536,7 @@
       // ⑩ 결과물 저장
       setStep(10, '결과물 저장 — media/·scripts/ 에 복제본으로');
       hold(['reels', 'carousel']);
-      byId.reels.task = byId.carousel.task = '결과물 저장';
+      for (const a of [byId.reels, byId.carousel]) Object.assign(a, { task: '결과물 저장', workStart: scriptTime(), workSec: 1.5 });
       yield* wait(1.5);
       byId.reels.work = byId.carousel.work = 'done';
       release(['reels', 'carousel']);
@@ -538,7 +544,7 @@
       // ⑪ 성과 기록 (+ 일요일이면 정산)
       if (!links.data) {
         setStep(11, '성과 기록: förc 데이터 미연동 — 연동 대기로 기록');
-        markLink('review', 'förc 성과 데이터');
+        markLink('review', 'förc 성과 데이터', '성과 기록');
         day.results.review = '연동 대기';
         yield* wait(1.5);
       } else {
@@ -550,7 +556,7 @@
       if (options.sunday) {
         if (!links.finance) {
           setStep(11, '주간 정산: 입력 자료 없음 — 연동 대기로 기록');
-          markLink('finance', '정산 입력 파일(finance/input)');
+          markLink('finance', '정산 입력 파일(finance/input)', '주간 정산');
           day.results.finance = '연동 대기';
           yield* wait(1.5);
         } else {
@@ -637,7 +643,7 @@
     return {
       agents, byId, tick, send, goHome, meeting, returnAll, startDay, stopDay, approve, day, links, options,
       speech, say, who, clock, walkable, STATES, TALK_SEC, focus, breaks, setFocus, callMeeting, announce, minutesOf,
-      get interrupted() { return !!interrupt; }, get time() { return time; }, LEADS,
+      progress, get interrupted() { return !!interrupt; }, get time() { return time; }, LEADS,
     };
   }
 
