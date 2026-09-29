@@ -86,6 +86,8 @@ canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .flow { font-size: 14px; color: var(--muted); min-height: 1.5em; }
 .flow b { color: var(--fg); font-weight: 600; }
 .sel { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 14px; }
+.role { color: var(--muted); font-size: 12px; }
+.sel .lines { color: var(--muted); font-size: 13px; }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -115,6 +117,7 @@ tbody tr:hover td, tbody tr.on td { background: var(--accent-soft); }
 .tablebox { overflow-x: auto; }
 .states { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
 .states li { display: grid; gap: 2px; }
+.states li > .chip, .states li > span:first-child { justify-self: start; }
 .states span.d { color: var(--muted); font-size: 13px; }
 .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; font-size: 14px; margin: 0; padding: 0; list-style: none; }
 .legend li { display: flex; align-items: center; gap: 8px; }
@@ -155,7 +158,7 @@ section.block { display: grid; gap: 4px; }
       <label><input type="checkbox" id="link-finance"> 정산 자료 들어옴 (finance/input)</label>
       <span>지금은 둘 다 꺼져 있습니다: förc 접속이 막혀 있고 정산 입력 파일이 아직 없습니다.</span>
     </div>
-    <p class="hint">직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
+    <p class="hint">직원을 누르면 말버릇을 한마디 합니다. 직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
   </section>
 
   <div class="cols">
@@ -163,7 +166,7 @@ section.block { display: grid; gap: 4px; }
       <h2>직원</h2>
       <div class="tablebox">
         <table>
-          <thead><tr><th>직원</th><th>업무 상태</th><th>동작</th><th>지금 위치</th></tr></thead>
+          <thead><tr><th>이름</th><th>업무 상태</th><th>동작</th><th>지금 위치</th></tr></thead>
           <tbody id="staff"></tbody>
         </table>
       </div>
@@ -181,7 +184,7 @@ section.block { display: grid; gap: 4px; }
       <ul class="states">
         <li><span class="chip walk">걷기</span><span class="d">몸이 위아래로 흔들리고 발이 번갈아 움직입니다.</span></li>
         <li><span class="chip type">타이핑</span><span class="d">자기 책상에 앉아 두 손이 번갈아 키보드를 칩니다.</span></li>
-        <li><span class="chip talk">대화</span><span class="d">말풍선의 점 세 개가 차례로 떠오릅니다.</span></li>
+        <li><span class="chip talk">대화</span><span class="d">찾아간 직원이 먼저, 받는 직원이 이어서 자기 말버릇을 말합니다. 듣는 쪽은 점 세 개가 차례로 떠오릅니다.</span></li>
         <li><span class="chip sit">앉기</span><span class="d">회의실·남의 의자에 앉아 천천히 숨 쉽니다.</span></li>
         <li><span class="chip idle">서 있기</span><span class="d">서서 숨 쉽니다. 길이 막혀 비켜주길 기다릴 때도 이 동작입니다.</span></li>
       </ul>
@@ -345,10 +348,12 @@ section.block { display: grid; gap: 4px; }
       c.globalAlpha = .5 + .3 * Math.sin(t * 5 + cx) * m; c.fillStyle = colors['st-type'];
       c.fillRect(cx - S * .22, cy - S * .86, S * .44, S * .08); c.globalAlpha = 1;
     }
-    // 업무 상태 말풍선 (대화 중에는 점 세 개 말풍선)
-    if (st !== 'talk') drawWorkBubble(c, a, cx, headY);
-    // 대화: 말풍선 + 점 세 개
-    if (st === 'talk') {
+    // 말풍선: 말하는 중이면 말버릇(맨 위에 따로 그림), 대화 중 듣는 쪽은 점 세 개, 그 밖에는 업무 상태
+    const line = sim.speech(a);
+    if (line) speakers.push([a, cx, headY, line]);
+    else if (st !== 'talk') drawWorkBubble(c, a, cx, headY);
+    // 대화(듣는 쪽): 말풍선 + 점 세 개
+    if (st === 'talk' && !line) {
       const bx = cx + a.dir * S * .35, by = headY - S * .62;
       rr(c, bx - S * .42, by - S * .24, S * .84, S * .44, S * .16, colors.bubble);
       c.strokeStyle = colors[`st-talk`]; c.lineWidth = 1; c.stroke();
@@ -366,9 +371,9 @@ section.block { display: grid; gap: 4px; }
     if (S >= 13) {
       c.font = '600 ' + Math.max(8, S * .5) + 'px "IBM Plex Sans KR", sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      const tw = c.measureText(a.short).width + 6, ty = cy + S * .62;
+      const tw = c.measureText(a.person).width + 6, ty = cy + S * .62;
       rr(c, cx - tw / 2, ty - S * .28, tw, S * .56, S * .2, a.color);
-      c.fillStyle = '#fff'; c.fillText(a.short, cx, ty + 1);
+      c.fillStyle = '#fff'; c.fillText(a.person, cx, ty + 1);
     }
   }
 
@@ -386,6 +391,26 @@ section.block { display: grid; gap: 4px; }
     c.moveTo(bx - fs * .3, by + h / 2 - .5); c.lineTo(bx, by + h / 2 + fs * .45); c.lineTo(bx + fs * .3, by + h / 2 - .5); c.fill();
     c.fillStyle = a.work === 'approve' ? colors['ws-ink-on-pink'] : colors['ws-ink'];
     c.fillText(text, bx, by + .5);
+  }
+
+  // 말버릇 말풍선: 다른 직원·말풍선보다 위에 그린다
+  let speakers = [];
+  function drawSpeech(c, a, cx, headY, text) {
+    const fs = Math.max(10, Math.min(13, S * .62));
+    c.font = '600 ' + fs + 'px "IBM Plex Sans KR", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const w = c.measureText(text).width + fs * 1.2, h = fs * 1.8;
+    const maxX = W * S - 4;
+    const bx = Math.min(Math.max(cx, w / 2 + 4), maxX - w / 2), by = Math.max(h / 2 + 4, headY - S * .5 - h / 2);
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,.18)'; c.shadowBlur = 6; c.shadowOffsetY = 2;
+    rr(c, bx - w / 2, by - h / 2, w, h, h * .4, colors.bubble);
+    c.restore();
+    c.strokeStyle = a.color; c.lineWidth = 2; c.beginPath();
+    c.roundRect ? c.roundRect(bx - w / 2, by - h / 2, w, h, h * .4) : c.rect(bx - w / 2, by - h / 2, w, h); c.stroke();
+    c.fillStyle = colors.bubble; c.beginPath();
+    c.moveTo(cx - fs * .35, by + h / 2 - 1); c.lineTo(cx, by + h / 2 + fs * .5); c.lineTo(cx + fs * .35, by + h / 2 - 1); c.fill();
+    c.fillStyle = colors['bubble-ink']; c.fillText(text, bx, by + .5);
   }
 
   function drawPath(c, a) {
@@ -411,7 +436,9 @@ section.block { display: grid; gap: 4px; }
       ctx.strokeStyle = selected.color; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(sx * S + S / 2, sy * S + S / 2, S * .62, 0, 7); ctx.stroke();
     }
+    speakers = [];
     [...sim.agents].sort((a, b) => pos(a)[1] - pos(b)[1]).forEach(a => drawAgent(ctx, a, t));
+    speakers.forEach(([a, cx, hy, line]) => drawSpeech(ctx, a, cx, hy, line));
   }
 
   // 직원 표
@@ -420,8 +447,11 @@ section.block { display: grid; gap: 4px; }
   sim.agents.forEach(a => {
     const tr = document.createElement('tr');
     tr.innerHTML = '<td><span class="dot"></span><span></span></td><td><span class="ws"></span></td><td><span class="chip"></span></td><td></td>';
-    tr.querySelector('td span:last-child').textContent = a.name;
-    tr.addEventListener('click', () => { selected = a; renderUI(); cv.focus({ preventScroll: true }); });
+    const nm = tr.querySelector('td span:last-child');
+    nm.innerHTML = '<b></b><br><span class="role"></span>';
+    nm.querySelector('b').textContent = a.person;
+    nm.querySelector('.role').textContent = a.id === 'ceo' ? '대표' : `${a.name} ${a.role}`;
+    tr.addEventListener('click', () => { selected = a; sim.say(a.id); lastUI = ''; renderUI(); cv.focus({ preventScroll: true }); });
     staffBody.appendChild(tr); rows.set(a.id, tr);
   });
   let lastUI = '';
@@ -438,9 +468,11 @@ section.block { display: grid; gap: 4px; }
     });
     const sel = document.getElementById('sel');
     if (selected) {
-      sel.innerHTML = '<span><span class="dot"></span><b></b> 선택됨</span><span class="chip"></span><span class="where"></span>';
+      sel.innerHTML = '<span><span class="dot"></span><b></b> <span class="role"></span></span><span class="chip"></span><span class="where"></span><span class="lines"></span>';
       sel.querySelector('.dot').style.background = selected.color;
-      sel.querySelector('b').textContent = selected.name;
+      sel.querySelector('b').textContent = selected.person;
+      sel.querySelector('.role').textContent = selected.id === 'ceo' ? '대표' : `${selected.name} ${selected.role}`;
+      sel.querySelector('.lines').textContent = selected.lines.map(l => `“${l}”`).join(' / ');
       const chip = sel.querySelector('.chip'); chip.className = 'chip ' + selected.state; chip.textContent = STATES[selected.state];
       sel.querySelector('.where').textContent = selected.goal
         ? placeName(selected.x, selected.y) + ' → ' + placeName(selected.goal[0], selected.goal[1]) + ` (${selected.path.length + (selected.next ? 1 : 0)}칸 남음)`
@@ -456,7 +488,7 @@ section.block { display: grid; gap: 4px; }
     const ap = document.getElementById('approve');
     const w = sim.pipeline.awaiting;
     ap.hidden = !w;
-    if (w) document.getElementById('approve-text').textContent = `${sim.byId[w.from].name}이(가) 확인을 기다립니다: ${w.what}`;
+    if (w) document.getElementById('approve-text').textContent = `${sim.who(sim.byId[w.from])}이 확인을 기다립니다: ${w.what}`;
     const flow = document.getElementById('flow');
     if (sim.pipeline.label) {
       const n = Math.min(sim.pipeline.step + 1, OfficeSim.PIPELINE.length);
@@ -474,10 +506,10 @@ section.block { display: grid; gap: 4px; }
   cv.addEventListener('click', e => {
     const [tx, ty] = tileAt(e);
     const hit = sim.agents.find(a => { const [x, y] = pos(a); return Math.round(x) === tx && Math.round(y) === ty; });
-    if (hit) { selected = hit; renderUI(); return; }
+    if (hit) { selected = hit; sim.say(hit.id); lastUI = ''; renderUI(); return; }
     if (selected && tx >= 0 && ty >= 0 && tx < W && ty < H) {
       sim.send(selected.id, [tx, ty]);
-      document.getElementById('flow').textContent = `${selected.name} → ${placeName(tx, ty)} 이동 지시`;
+      document.getElementById('flow').textContent = `${selected.person} → ${placeName(tx, ty)} 이동 지시`;
     }
   });
   const KEYS = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0], w: [0,-1], s: [0,1], a: [-1,0], d: [1,0] };

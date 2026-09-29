@@ -10,15 +10,23 @@
     link: { label: '연동 대기', meaning: '외부 자료가 없어 멈춤', say: '연결 기다려요' },
     idle: { label: '대기', meaning: '앞 단계를 기다림', say: '업무 대기중' },
   };
+  // name: 부서 이름, person: 직원 이름, lines: 말버릇 (대화할 때 하나씩 말한다)
   const STAFF = [
-    { id: 'research', name: '시장조사팀', short: '조사' },
-    { id: 'plan1', name: '기획 1팀', short: '기획1' },
-    { id: 'qa', name: '브랜드 검수팀', short: '검수' },
-    { id: 'ceo', name: '대표', short: '대표' },
-    { id: 'plan2', name: '기획 2팀', short: '기획2' },
-    { id: 'review', name: '성과 리뷰실', short: '성과' },
-    { id: 'finance', name: '정산팀', short: '정산' },
-    { id: 'secretary', name: '비서실', short: '비서' },
+    { id: 'research', name: '시장조사팀', short: '조사', person: '이희승', role: '팀장',
+      lines: ['결제는 자동으로 안합니다.', '입금 대기 건부터 확인하겠습니다.'] },
+    { id: 'plan1', name: '기획 1팀', short: '기획1', person: '이곽범', role: '팀장',
+      lines: ['결제는 자동으로 안 해요.', '입금 대기 건부터 확인할게요.'] },
+    { id: 'qa', name: '브랜드 검수팀', short: '검수', person: '홍선', role: '팀장',
+      lines: ['결제는 자동으로 안 해요.', '입금 대기 건부터 확인할게요.'] },
+    { id: 'ceo', name: '대표실', short: '대표', person: '이선홍', role: '대표', lines: [] },
+    { id: 'plan2', name: '기획 2팀', short: '기획2', person: '정명철', role: '팀장',
+      lines: ['아~결제는 자동으로 안해요.', '아~ 입금 대기 건부터 확인요.'] },
+    { id: 'review', name: '성과 리뷰실', short: '성과', person: '김희선', role: '팀장',
+      lines: ['결제는 자동으로 안합니다.', '입금 대기 건부터 확인해볼게요.'] },
+    { id: 'finance', name: '정산팀', short: '정산', person: '현진', role: '팀장',
+      lines: ['판매금액 정리했습니다.', '입금 대기 건부터 확인하겠습니다.'] },
+    { id: 'secretary', name: '비서실', short: '비서', person: '박치원', role: '비서실장',
+      lines: ['보고 드리겠습니다 대표님.', '대표님 괜찮으신가요?.'] },
   ];
   // 하루 파이프라인. approval: 대표가 눌러야 넘어가는 단계. link: 외부 자료가 있어야 하는 단계.
   const PIPELINE = [
@@ -33,7 +41,8 @@
   ];
   const SKIP_SEC = 1.2;   // 연동 대기로 건너뛸 때 다음 단계까지 쉬는 시간
   const SPEED = 4;        // 초당 칸 수
-  const TALK_SEC = 2.4;   // 대화 시간
+  const TALK_SEC = 3.2;   // 대화 시간: 앞 절반은 찾아간 직원, 뒤 절반은 받는 직원이 말한다
+  const SAY_SEC = 3;      // 직원을 눌렀을 때 말버릇 말풍선이 떠 있는 시간
   const SIDESTEP_SEC = 1.0; // 이만큼 막혀 있으면 옆으로 비켜선다
   const RETARGET_SEC = 2.5; // 목적지가 계속 막혀 있으면 가까운 빈 칸으로 목적지를 바꾼다
 
@@ -50,7 +59,8 @@
       return {
         ...s, seat, x: seat[0], y: seat[1], next: null, progress: 0,
         path: [], goal: null, state: 'type', work: 'idle', wait: 0, goalWait: 0,
-        onArrive: null, talkUntil: 0, afterTalk: null, talkWith: null, dir: 1,
+        onArrive: null, talkUntil: 0, talkStart: 0, talkFirst: false, afterTalk: null, talkWith: null, dir: 1,
+        line: '', sayUntil: 0,
       };
     });
     const byId = Object.fromEntries(agents.map(a => [a.id, a]));
@@ -98,9 +108,31 @@
       a.state = b.state = 'talk';
       a.talkWith = b.id; b.talkWith = a.id;
       a.talkUntil = b.talkUntil = time + TALK_SEC;
+      a.talkStart = b.talkStart = time;
+      a.talkFirst = true; b.talkFirst = false;
+      a.line = pick(a); b.line = pick(b);
       a.dir = b.x >= a.x ? 1 : -1; b.dir = -a.dir;
       a.afterTalk = () => { a.talkWith = null; if (then) then(); };
       b.afterTalk = () => { b.talkWith = null; if (!b.goal) b.state = restState(b); };
+    }
+
+    const who = a => a.id === 'ceo' ? `${a.person} 대표` : `${a.person}(${a.name})`;
+    const pick = a => a.lines.length ? a.lines[Math.floor(rand() * a.lines.length)] : '';
+    // 지금 말하고 있는 문장. 대화 중이면 자기 차례일 때, 아니면 눌렀을 때 SAY_SEC 동안.
+    function speech(a) {
+      if (a.state === 'talk') {
+        const mine = (time - a.talkStart < TALK_SEC / 2) === a.talkFirst;
+        return mine ? a.line : '';
+      }
+      return time < a.sayUntil ? a.line : '';
+    }
+    function say(id) {
+      const a = byId[id];
+      if (!a.lines.length) return '';
+      const rest = a.lines.filter(l => l !== a.line);
+      a.line = rest.length ? rest[Math.floor(rand() * rest.length)] : a.lines[0];
+      a.sayUntil = time + SAY_SEC;
+      return a.line;
     }
 
     function stepAgent(a, dt) {
@@ -190,12 +222,12 @@
       if (st.link && !links[st.link]) {
         // 외부 자료가 없으면 이 단계는 멈춰 두고 다음 단계로 넘어간다
         a.work = 'link';
-        pipeline.label = `${a.name}: 외부 자료가 없어 멈춤 — 다음 단계로`;
+        pipeline.label = `${who(a)}: 외부 자료가 없어 멈춤 — 다음 단계로`;
         later(SKIP_SEC, nextStep);
         return;
       }
       a.work = 'doing';
-      pipeline.label = `${a.name} → ${b.name}: ${st.what}`;
+      pipeline.label = `${who(a)} → ${who(b)}: ${st.what}`;
       const target = [b.next ? b.next[0] : b.x, b.next ? b.next[1] : b.y];
       send(st.from, target, () => {
         // 도착했는데 상대가 옆에 없으면(움직였으면) 다시 따라간다
@@ -206,7 +238,7 @@
             // 대표 결정을 기다린다. approve()가 불릴 때까지 흐름이 멈춘다.
             a.work = 'approve'; b.work = 'doing';
             pipeline.awaiting = { step: pipeline.step, from: a.id, what: st.approval };
-            pipeline.label = `${a.name}: ${st.approval} 대기 중`;
+            pipeline.label = `${who(a)}: ${st.approval} 대기 중`;
             return;
           }
           a.work = a.id === 'ceo' ? 'idle' : 'done';
@@ -227,7 +259,7 @@
     }
 
     return {
-      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, approve, pipeline, links,
+      agents, byId, tick, send, goHome, meeting, returnAll, runPipeline, approve, pipeline, links, speech, say, who, TALK_SEC,
       walkable, STATES, get time() { return time; },
     };
   }

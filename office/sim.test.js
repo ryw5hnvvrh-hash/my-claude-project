@@ -51,11 +51,14 @@ for (let seed = 1; seed <= 20; seed++) {
   // 3. 하루 흐름 → 승인 지점 2곳에서 멈추고, 누르면 이어진다. 외부 자료가 없는 단계는 연동 대기.
   const linked = seed % 2 === 0;           // 짝수 시드: 성과·정산 자료 연결됨
   sim.links.review = sim.links.finance = linked;
-  const talks = new Set(), approvals = [];
+  const talks = new Set(), approvals = [], spoken = new Map();
   sim.runPipeline();
   assert.ok(sim.agents.every(a => a.work === 'doing' || a.work === 'idle'), '시작 시 대기');
   run(sim, 240, () => {
     sim.agents.forEach(a => a.state === 'talk' && talks.add(sim.pipeline.step));
+    const speaking = sim.agents.filter(a => a.state === 'talk' && sim.speech(a));
+    assert.ok(speaking.length <= 1, '대화에서는 한 번에 한 명만 말한다');
+    speaking.forEach(a => spoken.set(a.id + '|' + sim.speech(a), sim.speech(a)));
     const w = sim.pipeline.awaiting;
     if (w) {
       assert.strictEqual(sim.byId[w.from].work, 'approve', '보낸 직원은 승인 대기');
@@ -71,6 +74,8 @@ for (let seed = 1; seed <= 20; seed++) {
     return !sim.pipeline.running && allHome(sim);
   }, `하루 흐름 seed=${seed}`);
   assert.deepStrictEqual(approvals, [2, 4], '승인 지점 2곳');
+  assert.ok(spoken.size >= 4, '대화 중 말버릇이 나온다');
+  for (const [id, line] of spoken) assert.ok(sim.byId[id.split('|')[0]].lines.includes(line), `${id}: 자기 말버릇만 말한다`);
   assert.strictEqual(talks.size, linked ? PIPELINE.length : PIPELINE.length - 2, '대화 횟수');
   const want = linked ? 'done' : 'link';
   for (const a of sim.agents) {
