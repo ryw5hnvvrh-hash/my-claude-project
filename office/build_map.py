@@ -208,7 +208,8 @@ def main():
         html = (template.read_text(encoding="utf-8")
                 .replace("/*MAP_JSON*/", json.dumps(out, ensure_ascii=False))
                 .replace("/*PATHFINDING_JS*/", (here / "pathfinding.js").read_text(encoding="utf-8"))
-                .replace("/*SIM_JS*/", (here / "sim.js").read_text(encoding="utf-8")))
+                .replace("/*SIM_JS*/", (here / "sim.js").read_text(encoding="utf-8"))
+                .replace("/*COMMANDS_JS*/", (here / "commands.js").read_text(encoding="utf-8")))
         Path(__file__).with_name("index.html").write_text(html, encoding="utf-8")
     print("\n".join(tiles))
     staffed = [r for r in rooms if r["staff"]]

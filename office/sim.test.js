@@ -9,7 +9,7 @@ function rng(seed) { return () => ((seed = (seed * 1103515245 + 12345) % 2147483
 const room = id => MAP.rooms.find(r => r.id === id);
 const inRoom = (a, r) => a.present && a.x >= r.x && a.x < r.x + r.w && a.y >= r.y && a.y < r.y + r.h;
 
-function run(sim, maxSec, done, label, each) {
+function run(sim, maxSec, done, label, each, okToExpire) {
   const dt = 1 / 30;
   for (let t = 0; t < maxSec; t += dt) {
     sim.tick(dt);
@@ -28,6 +28,7 @@ function run(sim, maxSec, done, label, each) {
     if (each) each();
     if (done()) return t;
   }
+  if (okToExpire) return maxSec;
   throw new Error(`${label}: ${maxSec}초 안에 끝나지 않음 (교착 의심) — 단계 ${sim.day.step} ${sim.day.label} — ` +
     sim.agents.map(a => `${a.short}@${a.x},${a.y}:${a.state}/${a.work}`).join(' '));
 }
@@ -36,6 +37,7 @@ const allSettled = s => s.agents.every(a => !a.goal && !a.next && a.state !== 't
 
 for (let seed = 1; seed <= 20; seed++) {
   const sim = createSim(MAP, PF, rng(seed));
+  sim.breaks.enabled = false;   // 이동만 보는 시나리오에서는 쉬는 시간을 끈다
   assert.strictEqual(sim.agents.length, 10, '직원 9명 + 대표');
   assert.ok(sim.agents.every(a => a.state === 'sit' && a.work === 'idle'), '처음엔 모두 자리에 앉아 대기');
 
@@ -56,10 +58,15 @@ for (let seed = 1; seed <= 20; seed++) {
   sim.links.data = sim.links.finance = linked;
   sim.options.sunday = sunday;
   const seenSteps = new Set(), approvals = [], spoken = [];
+  sim.breaks.enabled = true;    // 하루 동안은 할 일 없는 직원이 커피·잡담을 하러 다닌다
+  const acts = new Set();
   let entered = 0, handover = false, bothMaking = false, briefingInCeoRoom = false, maxStep = 0;
   sim.startDay();
-  run(sim, 400, () => !sim.day.running && allSettled(sim), `하루 seed=${seed}`, () => {
+  run(sim, 400, () => !sim.day.running, `하루 seed=${seed}`, () => {
     const d = sim.day;
+    sim.agents.forEach(a => a.activity && acts.add(a.activity));
+    // 일하는 중·승인 대기인 직원은 쉬러 가지 않는다
+    for (const a of sim.agents) if (a.activity) assert.ok(!['doing', 'approve'].includes(a.work), `${a.person} ${a.work} 중에 ${a.activity}`);
     assert.ok(d.step >= maxStep, '단계는 거꾸로 가지 않는다'); maxStep = d.step;
     seenSteps.add(d.step);
     // ① 출근: 새로 나타난 직원은 정문 칸에서 시작한다
@@ -70,7 +77,8 @@ for (let seed = 1; seed <= 20; seed++) {
       entered = present;
     }
     // ② 인수인계: 조사·기획1·검수 3명이 회의실에서 대화
-    if (d.step === 2 && sim.agents.some(a => a.state === 'talk')) {
+    const r = sim.byId.research;
+    if (d.step === 2 && r.state === 'talk' && ['plan1', 'qa'].includes(r.talkWith)) {
       for (const id of ['research', 'plan1', 'qa']) assert.ok(inRoom(sim.byId[id], room('meeting')), `② ${id} 회의실`);
       handover = true;
     }
@@ -94,7 +102,7 @@ for (let seed = 1; seed <= 20; seed++) {
     if (d.step === 12 && sim.byId.secretary.state === 'talk' && inRoom(sim.byId.secretary, room('ceo'))) briefingInCeoRoom = true;
     // 말하는 사람은 한 번에 한 명, 자기 대사만. ⑫에서는 대표가 먼저 치원님에게 묻는다.
     const speaking = sim.agents.filter(a => a.state === 'talk' && sim.speech(a));
-    assert.ok(speaking.length <= 1, '대화에서는 한 번에 한 명만 말한다');
+    for (const a of speaking) assert.ok(!speaking.includes(sim.byId[a.talkWith]), '한 대화에서는 한 번에 한 명만 말한다');
     for (const a of speaking) {
       const all = [...a.lines, ...Object.values(a.linesTo || {}).flat()];
       assert.ok(all.includes(sim.speech(a)), `${a.person}: 자기 대사만 말한다`);
@@ -107,7 +115,7 @@ for (let seed = 1; seed <= 20; seed++) {
   assert.deepStrictEqual(approvals, ['TOP 3 중 1개 승인', '대본 최종 확인'], '승인 2번');
   assert.ok(bothMaking, '⑨ 동시 제작');
   assert.ok(briefingInCeoRoom, '⑫ 대표실에서 보고');
-  const brief = spoken.filter(([n]) => n === 12);
+  const brief = spoken.filter(([n, id]) => n === 12 && (id === 'ceo' || id === 'secretary'));
   assert.strictEqual(brief[0][1], 'ceo', '⑫ 대표가 먼저 말한다');
   assert.ok(sim.byId.ceo.linesTo['to:secretary'].includes(brief[0][2]), '⑫ 대표가 치원님에게 보고를 묻는다');
   assert.ok(brief.some(([, id]) => id === 'secretary'), '⑫ 비서실장이 대답한다');
@@ -120,6 +128,16 @@ for (let seed = 1; seed <= 20; seed++) {
     secretary: 'done', reels: 'done', carousel: 'done',
   };
   for (const a of sim.agents) assert.strictEqual(a.work, expect[a.id], `${a.person} 업무 상태 ${a.work}, 기대 ${expect[a.id]}`);
+  assert.ok(acts.size > 0, '쉬는 시간(커피·잡담)이 실제로 일어난다');
+
+  // 집중 모드: 커피·잡담 중단하고 전원 자리 복귀, 켜져 있는 동안은 다시 쉬러 가지 않는다
+  sim.setFocus(true);
+  run(sim, 60, () => allHome(sim) && sim.agents.every(a => !a.activity), `집중 모드 seed=${seed}`);
+  run(sim, 20, () => false, `집중 모드 유지 seed=${seed}`, () => {
+    for (const a of sim.agents) assert.ok(!a.activity && !a.goal, `${a.person} 집중 모드인데 자리 비움`);
+  }, true);
+  sim.setFocus(false);
+  sim.breaks.enabled = false;
 
   // 4. 회의 가는 도중(1.5초 뒤)에 복귀 명령 → 방향이 엇갈려도 모두 자리로
   sim.meeting();
@@ -137,4 +155,4 @@ for (let seed = 1; seed <= 20; seed++) {
   assert.ok(sim.agents.every(a => a.present), '멈추면 모두 사무실 안');
   run(sim, 60, () => allHome(sim), `출근 중 복귀 seed=${seed}`);
 }
-console.log('통과: 20개 시드 × (회의 소집 · 자리 복귀 · 하루 12단계(승인 2번, 연동 있음/없음, 일요일 정산) · 이동 중 취소 · 출근 중 취소) — 겹침 0, 벽 통과 0, 교착 0');
+console.log('통과: 20개 시드 × (회의 소집 · 자리 복귀 · 하루 12단계(승인 2번, 연동 있음/없음, 일요일 정산) · 커피·잡담 · 집중 모드 · 이동 중 취소 · 출근 중 취소) — 겹침 0, 벽 통과 0, 교착 0');

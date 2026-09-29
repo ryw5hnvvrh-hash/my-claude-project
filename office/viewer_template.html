@@ -68,7 +68,7 @@
   color-scheme: dark;
 }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 22px; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 22px; }
 header { display: grid; gap: 4px; }
 .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; margin: 0; text-wrap: balance; }
@@ -102,6 +102,33 @@ canvas#map:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .days li.now .n { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
 .days li.star.now { border-color: var(--ws-approve); background: color-mix(in srgb, var(--ws-approve) 10%, var(--sheet)); }
 .days li.star.now .n { background: var(--ws-approve); border-color: var(--ws-approve); }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sheet { align-content: start; }
+.console { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; height: 520px; }
+@media (min-width: 1180px) {
+  .stage { grid-template-columns: minmax(0, 1fr) 340px; }
+  .console { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); height: min(720px, calc(100vh - 24px)); }
+}
+.console-head { display: grid; gap: 2px; }
+.console-head h2 { margin: 0; }
+.console-sub { color: var(--muted); font-size: 13px; }
+.log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px; }
+.msg { display: grid; gap: 3px; max-width: 92%; font-size: 14px; line-height: 1.5; }
+.msg .who { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.msg .who b { color: var(--fg); font-weight: 600; }
+.msg .text { padding: 8px 11px; border-radius: 12px 12px 12px 4px; background: var(--bg); border: 1px solid var(--line); overflow-wrap: anywhere; }
+.msg.me { justify-self: end; align-self: flex-end; }
+.msg.me .text { background: color-mix(in srgb, var(--a-ceo) 14%, var(--sheet)); border-color: color-mix(in srgb, var(--a-ceo) 40%, var(--line)); border-radius: 12px 12px 4px 12px; }
+.msg.me .who { justify-content: flex-end; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.qchip { font: inherit; font-size: 13px; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+.qchip:hover { border-color: var(--accent); }
+.qchip.on { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.qchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ask { display: flex; gap: 8px; }
+.ask input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+.ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -149,6 +176,7 @@ section.block { display: grid; gap: 4px; }
     <p class="sub">07:00 출근부터 비서실 브리핑까지 하루 12단계를 직원들이 직접 걸어 다니며 진행합니다. 머리 위 말풍선이 지금 하는 일이고, 승인 지점에서는 대표가 눌러야 이어집니다.</p>
   </header>
 
+  <div class="stage">
   <section class="sheet" aria-label="사무실 지도">
     <div class="bar">
       <div class="actions">
@@ -178,6 +206,27 @@ section.block { display: grid; gap: 4px; }
     </div>
     <p class="hint">직원을 누르면 말버릇을 한마디 합니다. 직원을 누르고 지도에서 가고 싶은 칸을 누르면 그곳으로 걸어갑니다. 선택한 직원은 방향키로도 한 칸씩 움직입니다. 점선은 A*가 찾은 남은 경로입니다.</p>
   </section>
+
+  <aside class="console" aria-label="대표 지시창">
+    <div class="console-head">
+      <h2>대표 지시창</h2>
+      <span class="console-sub">물어보면 담당자가 지금 상태로 답합니다</span>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="quick" id="quick">
+      <button type="button" class="qchip" data-q="현황 보고">현황 보고</button>
+      <button type="button" class="qchip" data-q="왜 늦어져?">왜 늦어져?</button>
+      <button type="button" class="qchip" data-q="재무팀 뭐해?">재무팀 뭐해?</button>
+      <button type="button" class="qchip" data-q="회의 소집">회의 소집</button>
+      <button type="button" class="qchip" data-q="집중 모드" id="q-focus">집중 모드</button>
+    </div>
+    <form class="ask" id="ask" autocomplete="off">
+      <label for="ask-input" class="sr">지시 입력</label>
+      <input id="ask-input" type="text" placeholder="예: 제작팀 뭐해?" maxlength="80">
+      <button type="submit" class="btn primary">보내기</button>
+    </form>
+  </aside>
+  </div>
 
   <section class="block">
     <h2>하루 12단계</h2>
@@ -236,6 +285,7 @@ section.block { display: grid; gap: 4px; }
 <script type="application/json" id="mapdata">/*MAP_JSON*/</script>
 <script>/*PATHFINDING_JS*/</script>
 <script>/*SIM_JS*/</script>
+<script>/*COMMANDS_JS*/</script>
 <script>
 (function () {
   const MAP = JSON.parse(document.getElementById('mapdata').textContent);
@@ -323,6 +373,8 @@ section.block { display: grid; gap: 4px; }
     cv.style.width = W * S + 'px'; cv.style.height = H * S + 'px';
   }
 
+  const meetingRoom = MAP.rooms.find(r => r.id === 'meeting');
+  const inMeeting = a => a.x >= meetingRoom.x && a.x < meetingRoom.x + meetingRoom.w && a.y >= meetingRoom.y && a.y < meetingRoom.y + meetingRoom.h;
   function pos(a) {
     if (!a.next) return [a.x, a.y];
     const p = Math.min(1, a.progress);
@@ -375,7 +427,8 @@ section.block { display: grid; gap: 4px; }
     // 말풍선: 말하는 중이면 말버릇(맨 위에 따로 그림), 대화 중 듣는 쪽은 점 세 개, 그 밖에는 업무 상태
     const line = sim.speech(a);
     if (line) speakers.push([a, cx, headY, line]);
-    else if (st !== 'talk') drawWorkBubble(c, a, cx, headY);
+    // 대표 지시로 연 회의 중에는 말하는 사람 말풍선만 보이게, 나머지 업무 말풍선은 숨긴다
+    else if (st !== 'talk' && !(sim.interrupted && inMeeting(a))) drawWorkBubble(c, a, cx, headY);
     // 대화(듣는 쪽): 말풍선 + 점 세 개
     if (st === 'talk' && !line) {
       const bx = cx + a.dir * S * .35, by = headY - S * .62;
@@ -386,6 +439,13 @@ section.block { display: grid; gap: 4px; }
         const up = Math.max(0, Math.sin(t * 7 - i * .9)) * S * .07 * m;
         c.fillStyle = colors['st-talk']; c.beginPath(); c.arc(bx + (i - 1) * S * .22, by - up, S * .06, 0, 7); c.fill();
       }
+    }
+    // 쉬는 중: 커피잔
+    if (a.activity === 'coffee') {
+      const kx = cx + a.dir * S * .34, ky = cy - S * .02;
+      rr(c, kx - S * .1, ky - S * .1, S * .2, S * .22, S * .04, colors.bubble);
+      c.strokeStyle = colors.wood; c.lineWidth = Math.max(1, S * .05); c.strokeRect(kx - S * .1, ky - S * .1, S * .2, S * .22);
+      c.beginPath(); c.arc(kx + a.dir * S * .13, ky, S * .06, 0, 7); c.stroke();
     }
     // 앉기: 의자 등받이
     if (st === 'sit') {
@@ -509,13 +569,14 @@ section.block { display: grid; gap: 4px; }
   }
 
   function renderUI() {
-    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '')).join('|') + (selected && selected.id) + sim.day.label + !!sim.day.awaiting + sim.agents.map(a => a.present).join();
+    const sig = sim.agents.map(a => a.state + a.work + a.x + a.y + (a.goal || '') + (a.activity || '')).join('|') + (selected && selected.id) + sim.day.label + !!sim.day.awaiting + sim.agents.map(a => a.present).join();
     if (sig === lastUI) return; lastUI = sig;
     sim.agents.forEach(a => {
       const tr = rows.get(a.id);
       tr.querySelector('.dot').style.background = a.color;
       const ws = tr.querySelector('.ws'); ws.className = 'ws ' + a.work; ws.textContent = OfficeSim.WORK[a.work].label;
-      const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state; chip.textContent = STATES[a.state];
+      const chip = tr.querySelector('.chip'); chip.className = 'chip ' + a.state;
+      chip.textContent = STATES[a.state] + (a.activity === 'coffee' ? ' · 커피' : a.activity === 'chat' ? ' · 잡담' : '');
       tr.children[3].textContent = !a.present ? '출근 전' : placeName(a.x, a.y) + (a.goal ? ' → ' + placeName(a.goal[0], a.goal[1]) : '');
       tr.classList.toggle('on', a === selected);
     });
@@ -587,8 +648,43 @@ section.block { display: grid; gap: 4px; }
   let speed = 2;
   const sp = document.getElementById('speed');
   sp.addEventListener('change', () => { speed = Number(sp.value) || 1; });
-  document.getElementById('btn-meet').addEventListener('click', () => { sim.meeting(); document.getElementById('flow').textContent = '회의 소집: 10명이 회의실로 이동'; });
+  document.getElementById('btn-meet').addEventListener('click', () => ask('회의 소집'));
   document.getElementById('btn-home').addEventListener('click', () => { sim.returnAll(); document.getElementById('flow').textContent = '모두 자기 자리로 복귀'; });
+
+  // 대표 지시창
+  const commands = OfficeCommands.createCommands(sim, OfficeSim, MAP);
+  const logEl = document.getElementById('log');
+  function addMsg(m) {
+    const div = document.createElement('div');
+    const me = m.id === 'me';
+    div.className = 'msg' + (me ? ' me' : '');
+    div.innerHTML = '<span class="who"></span><span class="text"></span>';
+    const who = div.querySelector('.who');
+    if (me) who.textContent = '나 (대표)';
+    else {
+      const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = sim.byId[m.id].color; dot.style.marginRight = '0';
+      const b = document.createElement('b'); b.textContent = m.name;
+      who.append(dot, b, ' ' + m.role);
+    }
+    div.querySelector('.text').textContent = m.text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function ask(q) {
+    addMsg({ id: 'me', text: q });
+    const out = commands.handle(q, m => addMsg(m));
+    out.forEach(addMsg);
+    document.getElementById('q-focus').classList.toggle('on', sim.focus.on);
+    document.getElementById('q-focus').textContent = sim.focus.on ? '집중 모드 해제' : '집중 모드';
+    document.getElementById('q-focus').dataset.q = sim.focus.on ? '집중 모드 해제' : '집중 모드';
+    lastUI = '';
+  }
+  document.querySelectorAll('.qchip').forEach(b => b.addEventListener('click', () => ask(b.dataset.q)));
+  document.getElementById('ask').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = document.getElementById('ask-input');
+    if (inp.value.trim()) { ask(inp.value.trim()); inp.value = ''; }
+  });
 
   // 방 목록
   const tbody = document.getElementById('rooms');
@@ -647,6 +743,7 @@ section.block { display: grid; gap: 4px; }
   }
   repaint();
   frame(0);
+  addMsg({ id: 'secretary', name: '박치원', role: '비서실 비서실장', text: '대표님, 궁금한 건 여기서 물어보세요. 아래 버튼을 누르거나 "제작팀 뭐해?"처럼 직접 쓰셔도 됩니다.' });
   requestAnimationFrame(loop);
 })();
 </script>

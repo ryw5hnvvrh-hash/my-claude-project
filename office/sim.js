@@ -82,11 +82,12 @@
         path: [], goal: null, state: 'sit', work: 'idle', wait: 0, goalWait: 0,
         onArrive: null, talkUntil: 0, talkStart: 0, talkFirst: false, afterTalk: null, talkWith: null, dir: 1,
         line: '', sayUntil: 0,
+        hold: 0, task: '', linkReason: '', activity: null, breakGen: null, breakCond: null, breakPartner: null, nextBreak: 12,
       };
     });
     const byId = Object.fromEntries(agents.map(a => [a.id, a]));
     let time = 0;
-    const day = { running: false, step: 0, label: '', awaiting: null, startedAt: null, endedAt: null, results: {} };
+    const day = { running: false, step: 0, label: '', awaiting: null, startedAt: null, endedAt: null, results: {}, stats: {} };
     // 외부 자료: data = förc 성과 데이터(브랜드 분석·성과 기록), finance = 정산 입력 파일
     const links = { data: false, finance: false };
     const options = { sunday: false };
@@ -112,18 +113,20 @@
       return MAP.tiles[a.y][a.x] === 'c' ? 'sit' : 'idle';
     }
 
-    function send(id, target, onArrive) {
+    function send(id, target, onArrive, exact) {
       const a = byId[id];
       if (!a.present) return;
       // 걷는 중이면 지금 들어가고 있는 칸에서부터 길을 찾는다
       const from = a.next ? [a.next[0], a.next[1]] : [a.x, a.y];
-      const goal = PF.nearestFree(target, walkable, blockedFor(a), from) || target;
+      // exact: 그 칸 그대로(자기 자리로 갈 때). 누가 잠깐 서 있으면 비킬 때까지 기다린다.
+      a.exactGoal = !!exact;
+      const goal = exact ? target : (PF.nearestFree(target, walkable, blockedFor(a), from) || target);
       a.goal = goal; a.path = PF.findPath(from, goal, walkable, blockedFor(a)) || [];
       a.onArrive = onArrive || null; a.wait = 0; a.goalWait = 0; a.afterTalk = null; a.talkWith = null;
       if (a.x === goal[0] && a.y === goal[1] && !a.next) arrive(a);
       else if (a.state !== 'walk') a.state = 'idle';
     }
-    function goHome(id, then) { send(id, byId[id].seat, then); }
+    function goHome(id, then) { send(id, byId[id].seat, then, true); }
 
     function arrive(a) {
       a.goal = null; a.path = [];
@@ -203,7 +206,7 @@
       }
       // 길이 없다 (문이나 목적지를 누가 막고 있음) → 기다린다
       a.state = 'idle'; a.wait += dt; a.goalWait += dt;
-      if (a.goalWait > RETARGET_SEC && blocked.has(key(a.goal[0], a.goal[1]))) {
+      if (!a.exactGoal && a.goalWait > RETARGET_SEC && blocked.has(key(a.goal[0], a.goal[1]))) {
         const g = PF.nearestFree(a.goal, walkable, blocked, [a.x, a.y]);
         if (g) { a.goal = g; a.path = []; a.goalWait = 0; }
       }
@@ -221,9 +224,136 @@
       }
     }
 
+    // ── 쉬는 시간: 할 일이 없는 직원은 가끔 라운지에서 커피를 마시거나 옆 팀에 잡담하러 간다.
+    //    집중 모드이거나, 하루 스크립트가 잡고 있는(hold) 직원은 쉬지 않는다.
+    const loungeRoom = room('lounge');
+    const coffeeSpot = (() => {
+      for (let y = loungeRoom.y; y < loungeRoom.y + loungeRoom.h; y++)
+        for (let x = loungeRoom.x; x < loungeRoom.x + loungeRoom.w; x++) if (MAP.tiles[y][x] === 'K') return [x, y];
+      return [loungeRoom.x + 1, loungeRoom.y + 1];
+    })();
+    const focus = { on: false };
+    const breaks = { enabled: true };
+    const nextBreakIn = () => 10 + rand() * 16;
+    function canBreak(a) {
+      return breaks.enabled && !focus.on && !interrupt && a.present && a.id !== 'ceo' && !a.hold && !a.breakGen &&
+        !a.goal && !a.next && a.state !== 'talk' && atSeat(a) && ['idle', 'done', 'link'].includes(a.work);
+    }
+    function cancelBreak(a, sendHome) {
+      if (!a.breakGen && !a.activity) return false;
+      const p = a.breakPartner && byId[a.breakPartner];
+      a.breakGen = null; a.breakCond = null; a.activity = null; a.breakPartner = null;
+      if (p && p.breakPartner === a.id) { p.activity = null; p.breakPartner = null; }
+      // 자리를 막 떠나려던 참(좌표는 자리지만 이미 걷는 중)이어도 목적지를 자리로 되돌린다
+      if (sendHome !== false && a.present && (!atSeat(a) || a.goal || a.next)) goHome(a.id);
+      a.nextBreak = time + nextBreakIn();
+      return true;
+    }
+    function* coffeeBreak(a) {
+      a.activity = 'coffee';
+      send(a.id, coffeeSpot);
+      yield () => settled(a);
+      const until = time + 3 + rand() * 3;
+      yield () => time >= until;
+      a.activity = null;
+      goHome(a.id);
+      yield () => settled(a);
+    }
+    function* chatBreak(a, b) {
+      a.activity = b.activity = 'chat';
+      a.breakPartner = b.id; b.breakPartner = a.id;
+      send(a.id, [b.x, b.y]);
+      yield () => settled(a);
+      if (b.activity === 'chat' && !b.hold && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= 1) {
+        talk(a, b);
+        yield () => a.state !== 'talk' && b.state !== 'talk';
+      }
+      if (b.breakPartner === a.id) { b.activity = null; b.breakPartner = null; b.nextBreak = time + nextBreakIn(); }
+      a.activity = null; a.breakPartner = null;
+      goHome(a.id);
+      yield () => settled(a);
+    }
+    function stepBreak(a) {
+      if (a.breakGen) {
+        for (let g = 0; a.breakGen && g < 10; g++) {
+          if (a.breakCond && !a.breakCond()) break;
+          const r = a.breakGen.next();
+          if (r.done) { a.breakGen = null; a.breakCond = null; a.nextBreak = time + nextBreakIn(); break; }
+          a.breakCond = r.value;
+        }
+        return;
+      }
+      if (time < a.nextBreak || !canBreak(a)) return;
+      const mates = agents.filter(b => b !== a && canBreak(b) && !b.activity);
+      if (mates.length && rand() < 0.4) {
+        a.breakGen = chatBreak(a, mates[Math.floor(rand() * mates.length)]);
+      } else {
+        a.breakGen = coffeeBreak(a);
+      }
+      a.breakCond = null;
+    }
+    function setFocus(on) {
+      focus.on = !!on;
+      const back = [];
+      if (!focus.on) return back;
+      // 잡담 상대 쪽 기록이 먼저 지워지지 않게, 누가 뭘 하고 있었는지 먼저 적어 둔다
+      const was = agents.map(a => [a, a.activity]);
+      for (const [a, act] of was) {
+        const atDesk = atSeat(a) && !a.goal && !a.next;
+        if (cancelBreak(a) || act) back.push({ id: a.id, activity: act, atDesk });
+        else if (a.present && !a.hold && !atSeat(a) && !a.goal && a.id !== 'ceo') { goHome(a.id); back.push({ id: a.id, activity: null, atDesk: false }); }
+      }
+      return back;
+    }
+
+    // ── 붙잡기: 하루 스크립트가 쓰는 직원은 쉬는 시간을 끊고 다른 데로 새지 않게 잡아 둔다
+    function hold(ids) { ids.forEach(id => { const a = byId[id]; a.hold++; cancelBreak(a); }); }
+    function release(ids) { ids.forEach(id => { const a = byId[id]; a.hold = Math.max(0, a.hold - 1); }); }
+
+    // ── 끼어들기(대표 지시로 하는 회의 등): 도는 동안 하루 스크립트는 멈추고, 스크립트 시계도 멈춘다
+    let interrupt = null, icond = null, pausedAt = null, pausedTotal = 0;
+    const scriptTime = () => time - pausedTotal - (pausedAt !== null ? time - pausedAt : 0);
+    function runInterrupt(gen) {
+      if (interrupt) return false;
+      interrupt = gen; icond = null;
+      if (script) pausedAt = time;
+      agents.forEach(a => cancelBreak(a));
+      return true;
+    }
+
+    // ── 단계별 시간 기록 ("왜 늦어져?"에 답하려고): 승인 대기 / 이동 / 작업 / 대화 / 길 막힘
+    function recordStats(dt) {
+      if (!day.running || interrupt) return;
+      const s = day.stats[day.step] || (day.stats[day.step] = { total: 0, approval: 0, walk: 0, work: 0, talk: 0, walkers: {}, workers: {}, blocked: {} });
+      s.total += dt;
+      const held = agents.filter(a => a.present && a.hold);
+      if (day.awaiting) { s.approval += dt; return; }
+      held.filter(a => a.goal && a.state === 'idle').forEach(a => s.blocked[a.id] = (s.blocked[a.id] || 0) + dt);
+      const walkers = held.filter(a => a.state === 'walk');
+      const workers = agents.filter(a => a.present && a.state === 'type');
+      if (walkers.length) { s.walk += dt; walkers.forEach(a => s.walkers[a.id] = (s.walkers[a.id] || 0) + dt); }
+      else if (workers.length) { s.work += dt; workers.forEach(a => s.workers[a.id] = (s.workers[a.id] || 0) + dt); }
+      else if (agents.some(a => a.state === 'talk')) s.talk += dt;
+    }
+
     function tick(dt) {
       time += dt;
       for (const a of agents) stepAgent(a, dt);
+      for (const a of agents) stepBreak(a);
+      recordStats(dt);
+      if (interrupt) {
+        for (let guard = 0; interrupt && guard < 50; guard++) {
+          if (icond && !icond()) break;
+          const r = interrupt.next();
+          if (r.done) {
+            interrupt = null; icond = null;
+            if (pausedAt !== null) { pausedTotal += time - pausedAt; pausedAt = null; }
+            break;
+          }
+          icond = r.value;
+        }
+        return;
+      }
       // 하루 스크립트: 지금 기다리는 조건이 채워지면 다음 줄로 넘어간다
       for (let guard = 0; script && guard < 50; guard++) {
         if (cond && !cond()) break;
@@ -234,12 +364,9 @@
     }
 
     // ── 하루 스크립트에서 쓰는 동작들 (yield로 조건을 넘기면 그 조건이 참이 될 때까지 멈춘다)
-    function* wait(sec) { const t = time + sec; yield () => time >= t; }
-    function* walkAll(ids, targetOf) {
-      ids.forEach(id => send(id, targetOf(byId[id])));
-      yield () => ids.every(id => settled(byId[id]));
-    }
-    function* gather(ids) {
+    function* wait(sec) { const t = scriptTime() + sec; yield () => scriptTime() >= t; }
+    function* waitReal(sec) { const t = time + sec; yield () => time >= t; }
+    function meetingSeatsFor(ids) {
       // 회의실 빈 의자에 한 명씩 배정. 말풍선이 겹치지 않게 한 칸씩 띄워 앉힌다:
       // 위쪽 줄 1·3·5번째 → 아래쪽 줄 2·4번째 → 나머지 순서
       const taken = new Set(agents.filter(a => a.present && !ids.includes(a.id)).map(a => key(a.x, a.y)));
@@ -248,7 +375,12 @@
       const top = row(ys[0]), bottom = row(ys[ys.length - 1]);
       const spread = [...top.filter((_, i) => i % 2 === 0), ...bottom.filter((_, i) => i % 2 === 1)];
       const order = [...spread, ...meetingRoom.seats.filter(s => !spread.includes(s))];
-      const free = order.filter(s => !taken.has(key(s[0], s[1])));
+      return order.filter(s => !taken.has(key(s[0], s[1])));
+    }
+    function* gather(ids) {
+      // 모인 사람은 home()으로 돌려보낼 때까지 붙잡아 둔다
+      hold(ids);
+      const free = meetingSeatsFor(ids);
       ids.forEach((id, i) => send(id, free[i] || meetingRoom.seats[0]));
       yield () => ids.every(id => settled(byId[id]));
     }
@@ -259,8 +391,10 @@
     }
     function* visit(aId, bId) {
       // a가 b 옆 칸까지 걸어가서, a가 먼저 말을 건다
+      hold([aId, bId]);
       yield* approach(aId, bId);
       yield* converse(aId, bId);
+      release([aId, bId]);
     }
     function* approach(aId, bId) {
       // a가 b 옆 칸까지 걸어간다. b가 그사이 움직였으면 다시 따라간다.
@@ -272,40 +406,46 @@
       }
       yield () => settled(b) || b.state === 'sit' || b.state === 'type';
     }
-    function* work(id, sec) {
+    function* work(id, sec, task) {
       // 자기 자리에 앉아서 sec초 동안 일한다
       const a = byId[id];
-      if (!atSeat(a) && !a.goal) goHome(id);
+      hold([id]);
+      if (!atSeat(a) || a.goal || a.next) goHome(id);
       yield () => atSeat(a) && settled(a);
-      a.work = 'doing';
+      a.work = 'doing'; a.task = task || '';
       yield* wait(sec);
+      release([id]);
     }
-    const home = ids => ids.forEach(id => goHome(id));
+    // 붙잡아 둔 사람을 풀어서 자리로 보낸다
+    const home = ids => { release(ids); ids.forEach(id => goHome(id)); };
     const setStep = (n, label) => { day.step = n; day.label = label; };
     function* awaitApproval(fromId, what, waiting) {
       waiting.forEach(id => { if (byId[id].work !== 'link') byId[id].work = 'approve'; });
       byId.ceo.work = 'doing';
-      day.awaiting = { from: fromId, what, step: day.step };
+      day.awaiting = { from: fromId, what, step: day.step, since: time };
       yield () => !day.awaiting;
       byId.ceo.work = 'idle';
     }
+    function markLink(id, reason) { const a = byId[id]; a.work = 'link'; a.linkReason = reason; }
 
     function* dayScript() {
       // ① 07:00 전원 출근: 모두 밖에서 시작해 정문으로 한 명씩 들어와 자기 자리로
       setStep(1, '07:00 전원 출근 — 정문에서 각자 자리로');
-      day.results = {};
-      for (const a of agents) Object.assign(a, { present: false, goal: null, next: null, path: [], work: 'idle', state: 'idle', onArrive: null, afterTalk: null, talkWith: null });
+      day.results = {}; day.stats = {};
+      for (const a of agents) Object.assign(a, { present: false, goal: null, next: null, path: [], work: 'idle', state: 'idle', onArrive: null, afterTalk: null, talkWith: null, hold: 0, task: '', linkReason: '', activity: null, breakGen: null, breakCond: null, breakPartner: null, nextBreak: time + nextBreakIn() });
       for (const a of agents) {
         yield () => !blockedFor(a).has(key(entrance[0], entrance[1]));
         Object.assign(a, { present: true, x: entrance[0], y: entrance[1], dir: 1 });
+        hold([a.id]);   // 전원이 자리에 앉을 때까지는 쉬러 가지 않는다
         goHome(a.id);
         yield* wait(ARRIVE_GAP);
       }
       yield () => agents.every(a => atSeat(a) && settled(a));
+      release(agents.map(a => a.id));
 
       // ② 시장조사 → 완료 후 3명이 회의실에 모여 인수인계
       setStep(2, `${who(byId.research)}: 시장조사`);
-      yield* work('research', 3);
+      yield* work('research', 3, '시장조사');
       byId.research.work = 'done';
       setStep(2, '시장조사 완료 — 3명이 회의실에서 인수인계');
       yield* gather(['research', 'plan1', 'qa']);
@@ -316,19 +456,19 @@
       // ③ 브랜드 분석 (시장조사팀이 같이 맡음)
       if (!links.data) {
         setStep(3, '브랜드 분석: 데이터 미연동 — 만들지 않고 연동 대기로 기록');
-        byId.research.work = 'link';
+        markLink('research', 'förc 성과 데이터');
         day.results.brand = '연동 대기';
         yield* wait(1.5);
       } else {
         setStep(3, `${who(byId.research)}: 브랜드 분석`);
-        yield* work('research', 2.5);
+        yield* work('research', 2.5, '브랜드 분석');
         byId.research.work = 'done';
         day.results.brand = '완료';
       }
 
       // ④ 아이디어 10개 → 검수팀에 전달
       setStep(4, `${who(byId.plan1)}: 아이디어 10개`);
-      yield* work('plan1', 3);
+      yield* work('plan1', 3, '아이디어 10개');
       setStep(4, '아이디어 10개 → 브랜드 검수팀에 전달');
       yield* visit('plan1', 'qa');
       byId.plan1.work = 'idle';
@@ -336,7 +476,7 @@
 
       // ⑤ 브랜드 QA → 반려 3 / 통과 7
       setStep(5, `${who(byId.qa)}: 10개 검사`);
-      yield* work('qa', 3);
+      yield* work('qa', 3, '브랜드 QA');
       day.results.qa = { ...QA_RESULT };
       setStep(5, `브랜드 QA 결과: 반려 ${QA_RESULT.reject}건 / 통과 ${QA_RESULT.pass}건 → 기획 1팀에 전달`);
       yield* visit('qa', 'plan1');
@@ -345,7 +485,7 @@
 
       // ⑥ TOP 3 선정
       setStep(6, `${who(byId.plan1)}: 통과 ${QA_RESULT.pass}건 중 TOP 3 선정`);
-      yield* work('plan1', 2);
+      yield* work('plan1', 2, 'TOP 3 선정');
 
       // ⑦ ★ 대표 승인 대기: 3명 + 대표가 회의실에 모이고, 승인을 누를 때까지 멈춘다
       setStep(7, '★ 대표 승인 대기 — 3명과 대표가 회의실로');
@@ -356,18 +496,20 @@
       if (byId.research.work !== 'link') byId.research.work = 'done';
       setStep(7, '승인 완료');
       yield* converse('ceo', 'plan1');
-      home(['research', 'plan1', 'qa']);
+      home(['research', 'plan1', 'qa', 'ceo']);
 
       // ⑧ 대본 작성 → 최종 확인 → 제작팀으로 걸어가 전달
       setStep(8, '대표가 승인안을 기획 2팀에 전달');
       yield* visit('ceo', 'plan2');
       goHome('ceo');
       setStep(8, `${who(byId.plan2)}: 대본 작성`);
-      yield* work('plan2', 3.5);
+      yield* work('plan2', 3.5, '대본 작성');
       setStep(8, '대본 완성 — 대표실로 최종 확인 요청');
       yield* visit('plan2', 'ceo');
       setStep(8, '대본 최종 확인 대기 — 확인을 눌러 주세요');
+      hold(['plan2']);
       yield* awaitApproval('plan2', '대본 최종 확인', ['plan2']);
+      release(['plan2']);
       setStep(8, '최종 확인 완료 — 기획 2팀이 제작팀으로 전달');
       yield* visit('plan2', 'reels');
       yield* visit('plan2', 'carousel');
@@ -376,7 +518,7 @@
 
       // ⑨ 릴스·캐러셀 제작 (동시 진행)
       setStep(9, '릴스·캐러셀 제작 (동시 진행)');
-      const r = work('reels', 4), c = work('carousel', 4);
+      const r = work('reels', 4, '릴스 편집'), c = work('carousel', 4, '캐러셀 제작');
       // 두 사람을 같은 시각에 시작시키기 위해 두 스크립트를 번갈아 진행한다
       let rv = r.next(), cv = c.next();
       yield () => {
@@ -387,30 +529,33 @@
 
       // ⑩ 결과물 저장
       setStep(10, '결과물 저장 — media/·scripts/ 에 복제본으로');
+      hold(['reels', 'carousel']);
+      byId.reels.task = byId.carousel.task = '결과물 저장';
       yield* wait(1.5);
       byId.reels.work = byId.carousel.work = 'done';
+      release(['reels', 'carousel']);
 
       // ⑪ 성과 기록 (+ 일요일이면 정산)
       if (!links.data) {
         setStep(11, '성과 기록: förc 데이터 미연동 — 연동 대기로 기록');
-        byId.review.work = 'link';
+        markLink('review', 'förc 성과 데이터');
         day.results.review = '연동 대기';
         yield* wait(1.5);
       } else {
         setStep(11, `${who(byId.review)}: 성과 기록`);
-        yield* work('review', 3);
+        yield* work('review', 3, '성과 기록');
         byId.review.work = 'done';
         day.results.review = '완료';
       }
       if (options.sunday) {
         if (!links.finance) {
           setStep(11, '주간 정산: 입력 자료 없음 — 연동 대기로 기록');
-          byId.finance.work = 'link';
+          markLink('finance', '정산 입력 파일(finance/input)');
           day.results.finance = '연동 대기';
           yield* wait(1.5);
         } else {
           setStep(11, `${who(byId.finance)}: 주간 정산`);
-          yield* work('finance', 3);
+          yield* work('finance', 3, '주간 정산');
           yield* visit('finance', 'secretary');
           byId.finance.work = 'done';
           goHome('finance');
@@ -420,29 +565,51 @@
 
       // ⑫ 비서실 브리핑 → 비서가 대표실로 걸어와 보고
       setStep(12, `${who(byId.secretary)}: 부서 보고 정리`);
-      yield* work('secretary', 2);
+      yield* work('secretary', 2, '브리핑 정리');
       setStep(12, '비서실 브리핑 — 대표실로 보고');
       // 비서실장이 대표실로 걸어오면 대표가 먼저 묻는다: "치원님, 보고는? 다 정리했나요?"
+      hold(['secretary', 'ceo']);
       yield* approach('secretary', 'ceo');
       yield* converse('ceo', 'secretary');
       byId.secretary.work = 'done';
       byId.ceo.work = 'done';
-      goHome('secretary');
-      yield () => agents.every(settled);
+      home(['secretary', 'ceo']);
+      yield () => settled(byId.secretary);
       day.running = false; day.endedAt = time;
       setStep(12, '오늘 흐름 완료');
     }
 
+    // ── 대표 지시로 여는 팀장 회의: 모여서 한 줄씩 보고하고, 끝나면 자리로 돌아간 뒤 하루가 이어진다
+    const LEADS = ['research', 'plan1', 'qa', 'plan2', 'review', 'finance', 'secretary', 'reels'];
+    function* leadMeeting(reportOf, onReport, onDone) {
+      const ids = [...LEADS, 'ceo'];
+      yield* gather(ids);
+      for (const id of LEADS) {
+        const a = byId[id], rep = reportOf(a);
+        a.line = rep.short; a.sayUntil = time + 2.6;
+        onReport && onReport(a, rep.full);
+        yield* waitReal(2.6);
+      }
+      home(ids);
+      yield () => ids.every(id => settled(byId[id]));
+      onDone && onDone();
+    }
+    function callMeeting(reportOf, onReport, onDone) {
+      return runInterrupt(leadMeeting(reportOf, onReport, onDone));
+    }
+    function announce(id, text, sec) { const a = byId[id]; a.line = text; a.sayUntil = time + (sec || SAY_SEC); }
+
     // ── 명령
     function stopDay() {
-      script = null; cond = null;
+      script = null; cond = null; interrupt = null; icond = null; pausedAt = null;
       day.running = false; day.awaiting = null;
+      for (const a of agents) { a.hold = 0; cancelBreak(a, false); }
       // 출근 도중에 멈추면 아직 안 들어온 직원은 자기 자리에 바로 둔다
       for (const a of agents) if (!a.present) Object.assign(a, { present: true, x: a.seat[0], y: a.seat[1], state: 'sit' });
     }
     function startDay() {
       stopDay();
-      day.running = true; day.startedAt = time; day.endedAt = null;
+      day.running = true; day.startedAt = time; day.endedAt = null; pausedTotal = 0;
       script = dayScript(); cond = null;
     }
     function approve() {
@@ -460,15 +627,17 @@
       agents.forEach(a => goHome(a.id));
     }
     // 회사 시계 (하루를 시작한 뒤에만)
+    const minutesOf = sec => sec * MIN_PER_SEC;
     function clock() {
       if (day.startedAt === null) return null;
-      const m = Math.floor(DAY_START_MIN + ((day.endedAt ?? time) - day.startedAt) * MIN_PER_SEC);
+      const m = Math.floor(DAY_START_MIN + minutesOf((day.endedAt ?? time) - day.startedAt));
       return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
     }
 
     return {
       agents, byId, tick, send, goHome, meeting, returnAll, startDay, stopDay, approve, day, links, options,
-      speech, say, who, clock, walkable, STATES, TALK_SEC, get time() { return time; },
+      speech, say, who, clock, walkable, STATES, TALK_SEC, focus, breaks, setFocus, callMeeting, announce, minutesOf,
+      get interrupted() { return !!interrupt; }, get time() { return time; }, LEADS,
     };
   }
 
