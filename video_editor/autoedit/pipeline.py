@@ -21,6 +21,8 @@ class Options:
     draft_name: str = ""
     out_dir: str = "output"
     preview: bool = False
+    draft: bool = True            # PC 캡컷 초안 만들기 (아이패드 전용 서버에서는 끔)
+    burn_subtitles: bool = True   # 완성 mp4에 자막을 입히기
     retranscribe: bool = False
     max_chars: int = 16
     on_log: object = None         # 진행 메시지를 받을 함수 (웹페이지용)
@@ -138,18 +140,20 @@ def process(video: str, opt: Options) -> dict:
             c.path = lib.pick(c.category)
         log(f"효과음 {len(sfx_cues)}개 (화면 전환 {len(scenes)}곳 감지)")
 
-    # 6) 캡컷 초안
-    draft_dir = opt.draft_dir or default_draft_dir() or os.path.join(os.path.abspath(opt.out_dir), "capcut_drafts")
-    draft_name = opt.draft_name or f"자동편집_{stem}"
-    draft_path = build_draft(draft_dir=draft_dir, name=draft_name, info=info, keeps=keeps,
-                             enhanced_audio=enhanced, cues=cues, sfx_cues=sfx_cues)
-    log(f"캡컷 초안 저장: {draft_path}")
+    # 6) 캡컷 초안 (PC 캡컷용)
+    draft_path = ""
+    if opt.draft:
+        draft_dir = opt.draft_dir or default_draft_dir() or os.path.join(os.path.abspath(opt.out_dir), "capcut_drafts")
+        draft_name = opt.draft_name or f"자동편집_{stem}"
+        draft_path = build_draft(draft_dir=draft_dir, name=draft_name, info=info, keeps=keeps,
+                                 enhanced_audio=enhanced, cues=cues, sfx_cues=sfx_cues)
+        log(f"캡컷 초안 저장: {draft_path}")
 
     preview_path = ""
     if opt.preview:
         log("완성 mp4 만드는 중 (자막·효과음 포함)" + (", HDR 색 보정" if info.hdr else "") + "...")
         preview_path = render.render_preview(video=video, enhanced_audio=enhanced, keeps=keeps,
-                                             sfx_cues=sfx_cues, srt_path=srt_path,
+                                             sfx_cues=sfx_cues, srt_path=srt_path, burn_subtitles=opt.burn_subtitles,
                                              out_path=os.path.join(out_dir, f"{stem}_편집완성.mp4"),
                                              hdr=info.hdr, fps=info.fps)
         log(f"완성 영상: {preview_path}")

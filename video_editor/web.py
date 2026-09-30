@@ -2,6 +2,7 @@
 
     python web.py          # PC를 켜두고, 같은 와이파이의 아이패드 사파리에서 접속
     python web.py --local  # 이 PC 브라우저에서만 열기
+    python app.py          # 클라우드 서버(Hugging Face Spaces)용 — 아이패드만으로 사용
 """
 import argparse
 import hashlib
@@ -17,7 +18,9 @@ import gradio as gr
 from autoedit import Options, process
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT_DIR = os.path.join(HERE, "output")
+# 클라우드 서버에서 돌 때: PC 캡컷 초안은 쓸 수 없으니 만들지 않고, 결과는 임시 폴더에 두었다가 하루 뒤 지운다
+CLOUD = bool(os.environ.get("SPACE_ID") or os.environ.get("AUTOEDIT_CLOUD"))
+OUT_DIR = os.path.join("/tmp", "autoedit") if CLOUD else os.path.join(HERE, "output")
 UPLOAD_DIR = os.path.join(OUT_DIR, "uploads")
 
 MODES = {"자동 판단": "auto", "말하는 영상": "talk", "ASMR (환경음 위주)": "asmr"}
@@ -52,9 +55,30 @@ def lan_ip() -> str:
         return "127.0.0.1"
 
 
-def run(video, mode, model, subtitles, sfx, min_silence, draft_dir):
+def _cleanup_old(max_age_hours: float = 24) -> None:
+    """클라우드 디스크가 차지 않도록 오래된 결과를 지운다."""
+    if not os.path.isdir(OUT_DIR):
+        return
+    limit = time.time() - max_age_hours * 3600
+    for name in os.listdir(OUT_DIR):
+        path = os.path.join(OUT_DIR, name)
+        try:
+            if os.path.getmtime(path) < limit:
+                shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
+        except OSError:
+            pass
+    if os.path.isdir(UPLOAD_DIR):
+        for name in os.listdir(UPLOAD_DIR):
+            path = os.path.join(UPLOAD_DIR, name)
+            if os.path.getmtime(path) < limit:
+                os.remove(path)
+
+
+def run(video, mode, model, subtitles, burn, sfx, min_silence, draft_dir):
     if not video:
         raise gr.Error("먼저 영상을 올려 주세요.")
+    if CLOUD:
+        _cleanup_old()
     logs = []
     q = queue.Queue()
     result = {}
@@ -63,7 +87,7 @@ def run(video, mode, model, subtitles, sfx, min_silence, draft_dir):
         try:
             opt = Options(mode=MODES[mode], model=MODELS[model], subtitles=subtitles, sfx=sfx,
                           min_silence=min_silence, draft_dir=(draft_dir or "").strip(), out_dir=OUT_DIR,
-                          preview=True, on_log=lambda m: q.put(m))
+                          preview=True, draft=not CLOUD, burn_subtitles=burn, on_log=lambda m: q.put(m))
             result["report"] = process(_keep_upload(video), opt)
         except Exception as e:
             result["error"] = str(e)
@@ -120,13 +144,15 @@ def build() -> gr.Blocks:
                 mode = gr.Radio(list(MODES), value="자동 판단", label="영상 종류",
                                 info="자동 판단: 말이 15% 미만이면 ASMR로 처리해요")
                 with gr.Row():
-                    subtitles = gr.Checkbox(value=True, label="자막 넣기")
+                    subtitles = gr.Checkbox(value=True, label="자막 만들기")
                     sfx = gr.Checkbox(value=True, label="효과음 넣기")
+                burn = gr.Checkbox(value=True, label="자막을 영상에 입히기",
+                                   info="끄면 자막 없는 영상과 자막 파일(srt)을 따로 받아요")
                 with gr.Accordion("세부 설정", open=False):
                     min_silence = gr.Slider(0.3, 2.0, value=0.6, step=0.1, label="이 초보다 긴 무음을 자르기",
                                             info="컷이 너무 빡빡하면 늘리세요")
                     model = gr.Radio(list(MODELS), value="보통 (추천)", label="자막 인식 정확도")
-                    draft_dir = gr.Textbox(label="캡컷 초안 폴더 (비워두면 자동으로 찾아요)",
+                    draft_dir = gr.Textbox(label="캡컷 초안 폴더 (비워두면 자동으로 찾아요)", visible=not CLOUD,
                                            placeholder=r"예: C:\Users\이름\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft")
                 go = gr.Button("자동 편집 시작", variant="primary", size="lg")
             with gr.Column(scale=5):
@@ -134,9 +160,21 @@ def build() -> gr.Blocks:
                 preview = gr.Video(label="완성 영상 (자막·효과음 포함)", interactive=False, height=420)
                 files = gr.File(label="내려받기 (완성 영상 · 자막 파일 · 편집 기록)", file_count="multiple")
                 log = gr.Textbox(label="진행 상황", lines=8, max_lines=14, autoscroll=True)
-        go.click(run, [video, mode, model, subtitles, sfx, min_silence, draft_dir],
+        go.click(run, [video, mode, model, subtitles, burn, sfx, min_silence, draft_dir],
                  [log, preview, files, summary], concurrency_limit=1)
     return app
+
+
+def launch_cloud() -> None:
+    """클라우드 서버용 실행. APP_PASSWORD(비밀 설정)가 있으면 비밀번호를 물어본다."""
+    password = os.environ.get("APP_PASSWORD", "")
+    auth = (lambda _user, pw: pw == password) if password else None
+    if not password:
+        print("경고: APP_PASSWORD가 없어서 주소를 아는 누구나 쓸 수 있어요.", flush=True)
+    build().queue(default_concurrency_limit=1).launch(
+        server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)), auth=auth,
+        auth_message="THING THAT HIT 자동 편집기 — 아이디는 아무거나, 비밀번호를 입력하세요",
+        theme=gr.themes.Soft(primary_hue="rose"), css=CSS, allowed_paths=[OUT_DIR])
 
 
 if __name__ == "__main__":

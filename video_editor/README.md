@@ -12,6 +12,43 @@
 | 소리 보정 | 말하는 영상: 잡음 줄이기 + 목소리 또렷하게. 둘 다 SNS 기준 음량에 맞춰요 |
 | 효과음 | 시작할 때 반짝, 화면이 크게 바뀔 때 휙, "완성/짜잔"엔 띵, "선물/예쁘다"엔 반짝 같은 소리를 넣어요 |
 
+## 0. 아이패드만으로 쓰기 (PC 없이)
+
+편집기를 **Hugging Face 무료 서버**에 올려 두고, 아이패드 사파리에서 주소로 접속해 써요.
+결과는 자막·효과음이 입혀진 **완성 mp4**예요. 아이패드 캡컷에서 불러와 마무리하면 돼요.
+(pyCapCut의 캡컷 초안은 PC 캡컷 전용이라, 이 방식에서는 만들지 않아요.)
+
+### 처음 한 번만 설정 (아이패드 사파리로 전부 가능, 약 15분)
+
+1. **Hugging Face 가입**: https://huggingface.co/join
+2. **서버(Space) 만들기**: https://huggingface.co/new-space
+   - Space name: `autoedit` / SDK: **Gradio** / Hardware: **CPU basic (Free)** / **Public** → Create Space
+3. **편집기 비밀번호 정하기**: 만든 Space → Settings → *Variables and secrets* → **New secret**
+   - Name: `APP_PASSWORD` / Value: 원하는 비밀번호
+4. **업로드용 열쇠(토큰) 만들기**: https://huggingface.co/settings/tokens → Create new token
+   - Token type: **Write** → 만든 토큰을 복사 (다른 곳에 붙여넣거나 공유하지 마세요)
+5. **GitHub에 열쇠 넣기**: GitHub 저장소 → Settings → *Secrets and variables* → *Actions*
+   - Secrets 탭 → New repository secret → Name `HF_TOKEN`, 값은 4번 토큰
+   - Variables 탭 → New repository variable → Name `HF_SPACE`, 값은 `내HF아이디/autoedit`
+6. 이 폴더가 바뀌어 GitHub에 올라가면 자동으로 서버에 올라가요 (GitHub → Actions에서 진행 확인).
+   서버 준비에 5~10분 걸려요.
+
+### 매일 쓰기
+
+1. 사파리에서 `https://huggingface.co/spaces/내HF아이디/autoedit` 열기
+   (공유 → **홈 화면에 추가**하면 앱처럼 쓸 수 있어요)
+2. 아이디는 아무거나, 비밀번호는 3번에서 정한 것
+3. 영상 올리기 → **자동 편집 시작** → 끝나면 `…_편집완성.mp4` 받기
+4. '파일' 앱에서 길게 눌러 공유 → **비디오 저장** → 아이패드 캡컷에서 불러오기
+
+### 알아두기
+
+- 무료 서버라 느려요. 1분 영상 기준 몇 분 정도 걸릴 거예요(예상). 4K보다 1080p로 찍은 영상이 훨씬 빨라요.
+- 48시간 동안 안 쓰면 서버가 잠들어요. 다시 열면 깨어나는 데 1~3분 걸려요.
+- 올린 영상과 결과물은 하루 뒤(또는 서버 재시작 때) 자동으로 지워져요. 완성 영상은 바로 받아 두세요.
+- 코드는 공개(Public)지만, 편집기 사용은 비밀번호가 있어야 해요. 올린 영상은 다른 사람에게 보이지 않아요.
+- **자막을 영상에 입히기**를 끄면 자막 없는 영상이 나와요. 캡컷 자동 자막을 쓰고 싶을 때 쓰세요.
+
 ## 1. 처음 한 번만: 설치
 
 PC(윈도우 권장)에서 합니다. 캡컷 초안은 **PC용 캡컷**에서 열려요.
