@@ -126,6 +126,10 @@ export type Snapshot = {
   stats: { done: number; working: number; approval: number; blocked: number };
   log: LogEntry[];
   meetingTitle: string | null;
+  /** 회의 중 대표 의견을 기다리는 중 (지시창 입력 = 의견) */
+  opinionPending: boolean;
+  /** 오늘 대표가 회의에서 낸 의견 */
+  ceoOpinions: { meeting: string; text: string }[];
   chat: ChatEntry[];
   focusMode: boolean;
   spotlight: string | null;
@@ -210,6 +214,8 @@ export class Company {
   approved = false;
   briefingReady = false;
   meetingTitle: string | null = null;
+  private opinionOpen = false;
+  private ceoOpinions: { meeting: string; text: string }[] = [];
   onBriefing: (() => void) | null = null;
   /** 대표 지시창 */
   chat: ChatEntry[] = [];
@@ -247,6 +253,8 @@ export class Company {
     this.approvalPending = false;
     this.approved = false;
     this.briefingReady = false;
+    this.opinionOpen = false;
+    this.ceoOpinions = [];
     this.meetingTitle = null;
     this.main = { gen: null, wait: 0, until: null };
     this.side = { gen: null, wait: 0, until: null };
@@ -453,7 +461,7 @@ export class Company {
 
     // ④ 아이디어 10개
     this.phaseIndex = 4;
-    yield* this.runDept("strategy1", "성과 회의 근거로 아이디어 10개 · 100점 채점", 7, "성과 근거 달아서 10개 넘겼어요.");
+    yield* this.runDept("strategy1", "성과 회의 근거로 아이디어 10개 · 100점 채점", 7, this.ceoOpinions.length ? "대표님 의견까지 반영해서 10개 넘겼어요." : "성과 근거 달아서 10개 넘겼어요.");
 
     // ⑥ 브랜드 QA
     this.phaseIndex = 5;
@@ -686,9 +694,26 @@ export class Company {
       speaker.anim = "sit";
     }
 
+    // ★ 대표 의견 시간 — 지시창에 의견을 쓰거나 "의견 없음"을 누를 때까지 회의가 멈춘다
+    let heardOpinion = false;
+    if (ceoJoins) {
+      const host = this.agentById.get(lines[0]?.[0] ?? DEPT_LEAD.secretary.id)!;
+      host.anim = "talk";
+      this.say(host, "대표님, 의견 있으시면 말씀해주세요!", 4);
+      host.anim = "sit";
+      const before = this.ceoOpinions.length;
+      this.opinionOpen = true;
+      this.turbo = false;
+      this.pushChat("staff", `${host.name} · ${title}`, "대표님 의견 시간입니다. 지시창에 의견을 적어주시면 회의에 바로 반영할게요. 없으시면 ‘의견 없음’을 눌러주세요.");
+      this.pushLog("🎤", `${title}: 대표 의견 시간 — 대표님 답을 기다리는 중`, "yellow");
+      yield () => !this.opinionOpen;
+      heardOpinion = this.ceoOpinions.length > before;
+      yield 1.2;
+    }
+
     if (ceoJoins) {
       ceo.anim = "talk";
-      this.say(ceo, rand(["좋아요, 이대로 가요!", "오케이~ 다들 고생했어요", "좋다! 오늘도 잘 부탁해요~"]), 2.6);
+      this.say(ceo, heardOpinion ? "제 의견까지 넣어서 진행해줘요~" : rand(["좋아요, 이대로 가요!", "오케이~ 다들 고생했어요", "좋다! 오늘도 잘 부탁해요~"]), 2.6);
       yield 1.8;
     }
     yield 0.8;
@@ -781,6 +806,9 @@ export class Company {
     this.pushChat("ceo", CEO.name, text);
     const q = text.toLowerCase();
 
+    // ⓪ 회의 중 대표 의견 시간 — 이때 들어온 말은 지시가 아니라 의견으로 받는다
+    if (this.opinionOpen) return this.takeOpinion(text);
+
     // ⓪ 대표 순찰 — "순찰 돌아", "기획 2팀 둘러봐"
     if (/순찰|돌아보|둘러|한 바퀴|돌아다|체크하러/.test(text)) {
       return this.patrolNow(this.matchDept(text));
@@ -820,6 +848,29 @@ export class Company {
       SECRETARY,
       "이렇게 물어보시면 제일 빨라요 — “현황 보고” / “왜 늦어져?” / “시장조사팀 뭐해?” / “다솜님 반영해줘” / “순찰 돌아” / “회의 소집” / “집중 모드” / “지금 브리핑”.",
     );
+  }
+
+  /** 회의 중 대표 의견 받기 — 해당 부서 팀장(없으면 회의 주재자)이 받아서 반영을 약속한다 */
+  private takeOpinion(text: string) {
+    const meeting = this.meetingTitle ?? "회의";
+    if (/^(의견 ?없음|없어|없어요|패스|넘어가|계속 ?진행|괜찮아)/.test(text.trim())) {
+      this.opinionOpen = false;
+      this.pushChat("staff", SECRETARY, "네, 의견 없이 회의 마무리하겠습니다.");
+      this.pushLog("🎤", `${meeting}: 대표 의견 없음`, "yellow");
+      return;
+    }
+    this.ceoOpinions.push({ meeting, text });
+    const dept = this.matchDept(text);
+    const listener = this.agentById.get(DEPT_LEAD[dept ?? "secretary"].id)!;
+    listener.anim = "talk";
+    this.say(listener, "네 대표님, 반영하겠습니다!", 3);
+    this.pushChat(
+      "staff",
+      `${listener.name} · ${roomOf(listener.deptId).name}`,
+      `대표님 의견 받았습니다: “${text}”\n${dept ? "저희 팀 오늘 작업에" : "회의록과 오늘 아이디어·브리핑에"} 반영하겠습니다.`,
+    );
+    this.pushLog("📝", `${meeting} — 대표 의견: “${text}” → ${listener.name} 반영`, "pink");
+    this.opinionOpen = false;
   }
 
   // ── 보고 ────────────────────────────────────────────────
@@ -1122,7 +1173,7 @@ export class Company {
   tick(rawDt: number) {
     if (this.paused) return;
     // 터보(건너뛰기)는 대표 결정이 필요한 지점이나 업무 종료에서 자동 해제된다
-    if (this.turbo && (this.approvalPending || this.dayComplete || !this.running)) this.turbo = false;
+    if (this.turbo && (this.approvalPending || this.opinionOpen || this.dayComplete || !this.running)) this.turbo = false;
 
     const raw = Math.min(rawDt, 0.05);
     const dt = raw * (this.turbo ? TURBO_SPEED : this.speed);
@@ -1490,6 +1541,8 @@ export class Company {
       },
       log: this.log.slice(0, 24),
       meetingTitle: this.meetingTitle,
+      opinionPending: this.opinionOpen,
+      ceoOpinions: [...this.ceoOpinions],
       chat: this.chat.slice(-24),
       focusMode: this.focusMode,
       spotlight: this.spotlight,

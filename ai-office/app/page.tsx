@@ -370,7 +370,7 @@ function LiveView({
             <button
               className={`skip ${snap.turbo ? "on" : ""}`}
               onClick={() => engine.skipToDecision()}
-              disabled={!snap.running || snap.approvalPending}
+              disabled={!snap.running || snap.approvalPending || snap.opinionPending}
               title="대표님이 결정할 일이 생길 때까지 단숨에 건너뜁니다"
             >
               {snap.turbo ? "건너뛰는 중…" : "⏭ 결정까지"}
@@ -560,6 +560,14 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
           ))}
         </div>
 
+        {snap.opinionPending ? (
+          <div className="opinion-call">
+            <b>🎤 대표 의견 시간 — {snap.meetingTitle}</b>
+            <span>아래 칸에 의견을 적어 ‘의견’을 누르면 회의에 반영돼요.</span>
+            <button onClick={() => send("의견 없음")}>의견 없음 · 계속 진행</button>
+          </div>
+        ) : null}
+
         <div className="console-quick">
           {QUICK_ORDERS.map((item) => (
             <button key={item.label} onClick={() => send(item.command)}>
@@ -578,10 +586,10 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="예: 다솜님 반영해줘 / 기획 2팀 둘러봐"
-            aria-label="대표 지시 입력"
+            placeholder={snap.opinionPending ? "예: 오늘은 키링 위주로 가요 / 포장 장면 더 살려줘" : "예: 다솜님 반영해줘 / 기획 2팀 둘러봐"}
+            aria-label={snap.opinionPending ? "대표 의견 입력" : "대표 지시 입력"}
           />
-          <button type="submit">지시</button>
+          <button type="submit">{snap.opinionPending ? "의견" : "지시"}</button>
         </form>
       </div>
     </section>
