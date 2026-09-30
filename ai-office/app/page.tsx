@@ -597,7 +597,7 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
           {snap.realMode
             ? realChat.map((entry, i) => (
                 <div key={`r${i}`} className={`console-line ${entry.from}`}>
-                  <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
+                  <b>{entry.from === "ceo" ? "대표님" : "총괄비서"}</b>
                   <p>{entry.text}</p>
                   <small>{entry.t}</small>
                 </div>
