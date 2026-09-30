@@ -147,6 +147,7 @@
   - 대표가 수치를 알려주면 그때그때 📈 게시물 성과(노션)와 `company/posts.md` 에 기록한다.
 - **인스타 API (2026-09-30 연결)**: 별도 세션 'THING THAT HIT 인스타 데이터 담당'이 매일 08:50 에 최근 게시물 10개의 조회·도달·저장·공유·좋아요·댓글을 가져와 `performance/instagram_<날짜>.md` 로 올린다. 성과 리뷰실은 ③ 회의 직전에 이 파일을 **먼저** 반영한다.
   - 토큰은 작업 환경 변수 `INSTAGRAM_ACCESS_TOKEN` 에만 있다. 어떤 파일·채팅·커밋에도 토큰 값을 쓰지 않는다.
+  - 인스타 응답 원본(JSON)은 파일로 저장하지 않는다. 응답의 `paging.next` 주소 안에 토큰이 들어 있다(2026-09-30 임시 파일에서 발견·삭제). 필요한 숫자만 뽑아 저장하고, 작업 뒤 `grep -rlF "$INSTAGRAM_ACCESS_TOKEN"` 로 저장소·임시 폴더에 토큰이 없는지 확인한다(값은 출력하지 않는다).
   - 토큰은 약 60일마다 만료된다. 11/19 자동 연장, 11/22 만료 전 확인 알림이 예약돼 있다. 상태는 `performance/instagram_token_status.md`.
 - **드라이브 성과 폴더** (2026-09-29 생성, API 연결 뒤에는 API에 없는 숫자 보충용): [THING THAT HIT 성과](https://drive.google.com/drive/folders/1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3) `1SxywcgcOvs1nLjoA3Gg8VgepO-lWOxM3`
   - 대표가 인스타 인사이트·förc 화면 등을 캡처해 아무 때나 올린다. 폴더 안 '읽어주세요 - 성과 폴더 사용법' 문서는 안내문이라 자료로 세지 않는다.
