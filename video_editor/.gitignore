@@ -1,0 +1,4 @@
+output/
+sfx/_basic/
+__pycache__/
+*.pyc
