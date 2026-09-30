@@ -3,3 +3,4 @@ faster-whisper>=1.0
 numpy
 pymediainfo
 imageio-ffmpeg
+gradio>=5

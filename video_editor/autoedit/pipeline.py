@@ -23,6 +23,7 @@ class Options:
     preview: bool = False
     retranscribe: bool = False
     max_chars: int = 16
+    on_log: object = None         # 진행 메시지를 받을 함수 (웹페이지용)
 
 
 def log(msg: str) -> None:
@@ -49,7 +50,7 @@ def _subtract(ranges: list, holes: list) -> list:
     return out
 
 
-def _load_or_transcribe(video: str, cache: str, opt: Options) -> transcribe.Transcript:
+def _load_or_transcribe(video: str, cache: str, opt: Options, log=log) -> transcribe.Transcript:
     if os.path.exists(cache) and not opt.retranscribe:
         log(f"저장해 둔 음성 인식 결과를 씁니다 ({os.path.basename(cache)})")
         with open(cache, encoding="utf-8") as f:
@@ -66,6 +67,7 @@ def _load_or_transcribe(video: str, cache: str, opt: Options) -> transcribe.Tran
 
 
 def process(video: str, opt: Options) -> dict:
+    log = opt.on_log or globals()["log"]
     video = os.path.abspath(video)
     stem = media.safe_stem(video)
     out_dir = os.path.abspath(os.path.join(opt.out_dir, stem))
@@ -77,7 +79,7 @@ def process(video: str, opt: Options) -> dict:
         raise ValueError("소리가 없는 영상이라 무음 컷/자막을 만들 수 없어요.")
 
     # 1) 음성 인식 → 말이 얼마나 있는지로 모드 결정
-    tr = _load_or_transcribe(video, os.path.join(out_dir, "words.json"), opt)
+    tr = _load_or_transcribe(video, os.path.join(out_dir, "words.json"), opt, log)
     words = tr.words
     mode = opt.mode if opt.mode != "auto" else analyze.decide_mode(words, info.duration)
     ratio = analyze.speech_ratio(words, info.duration)
