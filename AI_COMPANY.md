@@ -173,6 +173,7 @@
   - 매일 아침 업무와 대표가 "촬영본 올렸어"라고 할 때 search_files `parentId = '<폴더 ID>'` 로 새 파일을 찾는다('읽어주세요' 안내 문서 제외). 확인한 파일은 `media/processed.md` 에 날짜와 함께 적어 다음 날 새 파일로 세지 않는다.
   - 받을 때는 download_file_content 로 받아 `media/raw/<날짜>_<원래 파일 이름>` 로 저장한다(드라이브 원본은 그대로 둔다). 편집은 그 복제본으로만.
   - 영상은 크기가 커서 받기에 실패할 수 있다. 실패하면 "촬영본 받기 실패(파일 크기·연결)"로 보고하고, 받은 척하지 않는다.
+  - 10MB가 넘는 영상은 드라이브 도구로 못 받는다. 동영상 폴더는 '링크가 있는 모든 사용자 · 뷰어'로 공유돼 있고 작업 환경에서 drive.usercontent.google.com 접속이 허용돼 있으니(2026-09-30) `curl -sSL "https://drive.usercontent.google.com/download?id=<파일 ID>&export=download&confirm=t"` 로 받는다. 영상 원본은 저장소에 올리지 않는다(.gitignore). 편집은 `pip install imageio-ffmpeg` 의 ffmpeg 로 한다.
   - 주문서·송장 등 주문자 정보가 찍힌 컷은 저장소에 올리지 않는다(정산 캡처와 같은 규칙).
 - **기준**
   1. 최종 확인되지 않은 대본으로 만들면 반려한다.
