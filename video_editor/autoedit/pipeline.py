@@ -147,11 +147,12 @@ def process(video: str, opt: Options) -> dict:
 
     preview_path = ""
     if opt.preview:
-        log("확인용 mp4 만드는 중...")
+        log("완성 mp4 만드는 중 (자막·효과음 포함)" + (", HDR 색 보정" if info.hdr else "") + "...")
         preview_path = render.render_preview(video=video, enhanced_audio=enhanced, keeps=keeps,
                                              sfx_cues=sfx_cues, srt_path=srt_path,
-                                             out_path=os.path.join(out_dir, "preview.mp4"))
-        log(f"확인용 영상: {preview_path}")
+                                             out_path=os.path.join(out_dir, f"{stem}_편집완성.mp4"),
+                                             hdr=info.hdr, fps=info.fps)
+        log(f"완성 영상: {preview_path}")
 
     report = {
         "video": video,

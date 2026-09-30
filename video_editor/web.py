@@ -1,13 +1,14 @@
 """자동 영상 편집기 웹페이지.
 
-    python web.py            # 이 PC 브라우저에서 열기 (http://127.0.0.1:7860)
-    python web.py --share    # 휴대폰에서도 열 수 있는 임시 링크 만들기 (72시간)
+    python web.py          # PC를 켜두고, 같은 와이파이의 아이패드 사파리에서 접속
+    python web.py --local  # 이 PC 브라우저에서만 열기
 """
 import argparse
 import hashlib
 import os
 import queue
 import shutil
+import socket
 import threading
 import time
 
@@ -39,6 +40,16 @@ def _keep_upload(path: str) -> str:
     if not os.path.exists(dest):
         shutil.copy(path, dest)
     return dest
+
+
+def lan_ip() -> str:
+    """같은 와이파이에서 이 PC에 접속할 주소(192.168.x.x 등)."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("10.255.255.255", 1))  # 실제로 보내지는 않음
+            return sock.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
 
 
 def run(video, mode, model, subtitles, sfx, min_silence, draft_dir):
@@ -75,7 +86,7 @@ def run(video, mode, model, subtitles, sfx, min_silence, draft_dir):
 
     r = result["report"]
     out = os.path.dirname(r["preview"])
-    files = [os.path.join(out, f) for f in ("preview.mp4", "subtitles.srt", "audio_enhanced.wav", "report.json")]
+    files = [r["preview"]] + [os.path.join(out, f) for f in ("subtitles.srt", "report.json")]
     removed = r["removed_words"]
     summary = (
         f"### 편집 완료\n"
@@ -84,8 +95,9 @@ def run(video, mode, model, subtitles, sfx, min_silence, draft_dir):
         f"- 잘라낸 추임새·반복: {len(removed)}개"
         + (f" ({', '.join(w['text'].strip(',.…') for w in removed[:8])}{' …' if len(removed) > 8 else ''})" if removed else "")
         + f"\n- 자막 {len(r['subtitles'])}줄, 효과음 {len(r['sfx'])}개\n"
-        f"- 캡컷 초안: `{r['draft']}`\n\n"
-        f"PC 캡컷을 열면 초안 목록에 있어요. 안 보이면 캡컷을 껐다 켜 주세요."
+        f"\n**아이패드에 저장하기:** 아래 목록에서 `{os.path.basename(r['preview'])}`를 눌러 받으면 "
+        f"'파일' 앱 → 다운로드에 저장돼요. 파일을 길게 눌러 공유 → **비디오 저장**을 누르면 사진 앱으로 옮겨져요. "
+        f"아이패드 캡컷에서 이 영상을 불러와 마무리하면 돼요."
     )
     yield "\n".join(logs), r["preview"], [f for f in files if os.path.exists(f)], summary
 
@@ -100,7 +112,7 @@ CSS = """
 def build() -> gr.Blocks:
     with gr.Blocks(title="THING THAT HIT 자동 편집기") as app:
         gr.Markdown("# THING THAT HIT 자동 편집기\n"
-                    "영상을 올리면 무음·버벅임을 자르고, 자막·소리 보정·효과음을 넣어 캡컷 초안으로 만들어요.",
+                    "영상을 올리면 무음·버벅임을 자르고, 자막·소리 보정·효과음을 넣은 완성 영상으로 만들어요.",
                     elem_id="title")
         with gr.Row():
             with gr.Column(scale=5):
@@ -119,8 +131,8 @@ def build() -> gr.Blocks:
                 go = gr.Button("자동 편집 시작", variant="primary", size="lg")
             with gr.Column(scale=5):
                 summary = gr.Markdown()
-                preview = gr.Video(label="편집 결과 미리보기", interactive=False, height=420)
-                files = gr.File(label="내려받기 (mp4 · 자막 · 소리 · 리포트)", file_count="multiple")
+                preview = gr.Video(label="완성 영상 (자막·효과음 포함)", interactive=False, height=420)
+                files = gr.File(label="내려받기 (완성 영상 · 자막 파일 · 편집 기록)", file_count="multiple")
                 log = gr.Textbox(label="진행 상황", lines=8, max_lines=14, autoscroll=True)
         go.click(run, [video, mode, model, subtitles, sfx, min_silence, draft_dir],
                  [log, preview, files, summary], concurrency_limit=1)
@@ -129,9 +141,14 @@ def build() -> gr.Blocks:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--share", action="store_true", help="휴대폰에서도 열 수 있는 임시 공개 링크 만들기")
+    p.add_argument("--local", action="store_true", help="이 PC에서만 열기 (아이패드 접속 막기)")
     p.add_argument("--port", type=int, default=7860)
     args = p.parse_args()
-    build().queue().launch(server_port=args.port, share=args.share, inbrowser=True,
+    if not args.local:
+        line = "=" * 56
+        print(f"\n{line}\n  아이패드 사파리 주소창에 입력하세요:\n\n      http://{lan_ip()}:{args.port}\n\n"
+              f"  (아이패드와 이 PC가 같은 와이파이에 있어야 해요)\n{line}\n", flush=True)
+    build().queue().launch(server_name="127.0.0.1" if args.local else "0.0.0.0", server_port=args.port,
+                           inbrowser=True,
                            theme=gr.themes.Soft(primary_hue="rose"), css=CSS,
                            allowed_paths=[OUT_DIR])

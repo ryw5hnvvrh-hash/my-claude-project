@@ -38,6 +38,7 @@ class VideoInfo:
     fps: float
     duration: float  # 초
     has_audio: bool
+    hdr: str = ""  # "hlg" / "pq" / "" — 아이폰·아이패드 기본 촬영은 HDR(HLG)인 경우가 많다
 
 
 def probe(path: str) -> VideoInfo:
@@ -53,7 +54,9 @@ def probe(path: str) -> VideoInfo:
         width, height = height, width
     fps = float(v.frame_rate or 30)
     duration = float(v.duration or 0) / 1000.0
-    return VideoInfo(path, width, height, fps, duration, bool(info.audio_tracks))
+    transfer = str(v.transfer_characteristics or "").upper()
+    hdr = "hlg" if "HLG" in transfer or "B67" in transfer else "pq" if "PQ" in transfer or "2084" in transfer else ""
+    return VideoInfo(path, width, height, fps, duration, bool(info.audio_tracks), hdr)
 
 
 def load_audio(path: str, sr: int = SAMPLE_RATE) -> np.ndarray:
