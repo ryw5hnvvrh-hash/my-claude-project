@@ -135,9 +135,9 @@
 - 확정되면 후킹 전담 윤다솜이 확정 대본과 고른 후킹을 들고 제작팀으로 걸어가 직접 전달한다.
 
 ### 5. 정산팀 — 매일 확인 · 일요일 주간 종합
-- **할 일**: 광고비·입금·미수금·제품별 재료비를 기록하고 확인한다. 입력 자료는 대표가 **구글 드라이브 'THING THAT HIT 정산' 폴더**(하위: 스마트스토어 / 아이디어스 / 광고비 / 재료비)에 올린 파일만 쓴다. 대표가 채팅에 직접 준 파일은 `finance/input/` 에 저장해 같은 자료로 쓴다.
+- **할 일**: 광고비·입금·미수금·제품별 재료비·배송비를 기록하고 확인한다. 입력 자료는 대표가 **구글 드라이브 'THING THAT HIT 정산' 폴더**(하위: 스마트스토어 / 아이디어스 / 광고비 / 재료비 / 배송비)에 올린 파일만 쓴다. 대표가 채팅에 직접 준 파일은 `finance/input/` 에 저장해 같은 자료로 쓴다.
 - **드라이브 폴더** (2026-09-29 생성): [THING THAT HIT 정산](https://drive.google.com/drive/folders/1iJFQtQt_QuATopi2bMTaW4Llo33fQMaV) `1iJFQtQt_QuATopi2bMTaW4Llo33fQMaV`
-  - 스마트스토어 `1bJqlbWT5oilMlAwjghb1ku3bb1Hyo6gF` / 아이디어스 `1oQSFPQDKWLIBL5u9wu3s_NpjFT0osyb7` / 광고비 `1HykD03y92emSAKUwHCm57Nk4q4T8IJAU` / 재료비 `1kCT_7h89n1PTC9JufBTaupvQgQJ3lM5Z`
+  - 스마트스토어 `1bJqlbWT5oilMlAwjghb1ku3bb1Hyo6gF` / 아이디어스 `1oQSFPQDKWLIBL5u9wu3s_NpjFT0osyb7` / 광고비 `1HykD03y92emSAKUwHCm57Nk4q4T8IJAU` / 재료비 `1kCT_7h89n1PTC9JufBTaupvQgQJ3lM5Z` / 배송비 `1KeXHjALA_B0S01CXwG3aJSmm58CR4_L4` (2026-09-30 추가: 택배비·포장 발송 비용 영수증·캡처)
   - 폴더 안 '읽어주세요 - 정산 폴더 사용법' 문서는 안내문이다. 정산 자료로 세지 않는다.
 - **매일 (⑪ 브리핑 직전)**: 지난 확인 이후 드라이브 폴더에 새로 올라온 파일을 확인한다.
   - 새 파일이 있으면: 플랫폼별 판매·입금·광고비·재료비 새 항목을 정리해 `finance/reports/<날짜>_daily.md` 에 쓰고, 비서실장이 브리핑에 넣는다.
