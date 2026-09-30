@@ -2,57 +2,146 @@
  "snapshots": [
   {
    "date": "2026-09-30",
-   "fetched_at": "2026-09-30T04:57+09:00",
+   "fetched_at": "2026-09-30T08:51+09:00",
    "account": {
     "username": "thth_lll",
     "media_count": 20,
-    "followers_count": null,
-    "follows_count": null
+    "followers_count": 101,
+    "follows_count": 18
    },
    "posts": [
     {
      "id": "18265922872305982",
      "timestamp": "2026-09-30T01:47+09:00",
      "media_type": "CAROUSEL_ALBUM",
-     "caption": "오늘 옷 색에 맞춘 그립톡",
-     "permalink": "",
-     "like_count": 2,
+     "caption": "오늘 옷 색에 맞춘 그립톡\n\n네이비 모자엔 네이비 나비,\n노란 맨투맨엔 핑크 페인트,\n브라운 후드엔 빨간 리",
+     "permalink": "https://www.instagram.com/p/Dd4OVLaElqe/",
+     "like_count": 4,
      "comments_count": 0,
-     "views": 18,
-     "reach": 5,
+     "views": 32,
+     "reach": 12,
      "saved": 0,
      "shares": 0
     },
     {
-     "id": "post-2026-09-28",
+     "id": "18132490753680273",
      "timestamp": "2026-09-28T21:10+09:00",
      "media_type": "VIDEO",
-     "caption": "추석 다들 잘 보내셨나요?",
-     "permalink": "",
+     "caption": "추석 다들 잘 보내셨나요? \n\n저는 추석 때 너무 바빠서 정신이 없었네요 🥹\n\n다시 일상 돌아와서 열심히 일",
+     "permalink": "https://www.instagram.com/reel/Dd1Jd75yUbL/",
      "like_count": 8,
      "comments_count": 1,
-     "views": null,
-     "reach": null,
-     "saved": null,
-     "shares": null
+     "views": 434,
+     "reach": 303,
+     "saved": 0,
+     "shares": 0
     },
     {
-     "id": "post-2026-09-17",
+     "id": "18069281819773456",
      "timestamp": "2026-09-17T21:33+09:00",
      "media_type": "VIDEO",
-     "caption": "고민상담&포장영상 [ASMR]",
-     "permalink": "",
+     "caption": "고민상담&포장영상 [ASMR]\n\n#resin #핸드메이드 #폰꾸미기",
+     "permalink": "https://www.instagram.com/reel/DdY3hpuSYvv/",
      "like_count": 13,
      "comments_count": 0,
-     "views": null,
-     "reach": null,
-     "saved": null,
-     "shares": null
+     "views": 558,
+     "reach": 460,
+     "saved": 2,
+     "shares": 1
+    },
+    {
+     "id": "18028546055683806",
+     "timestamp": "2026-09-17T00:49+09:00",
+     "media_type": "VIDEO",
+     "caption": "포장하기 전 마지막 검수 🍀\n\n#핸드메이드 #resin #키링",
+     "permalink": "https://www.instagram.com/reel/DdWpK8YSHtZ/",
+     "like_count": 50,
+     "comments_count": 0,
+     "views": 1815,
+     "reach": 1384,
+     "saved": 4,
+     "shares": 1
+    },
+    {
+     "id": "18115178204060560",
+     "timestamp": "2026-09-15T17:55+09:00",
+     "media_type": "IMAGE",
+     "caption": "추석 연휴 배송 안내드립니다 :)\n\n9월 21일 집하 마감\n9월 28일부터 순차 발송됩니다.\n\n연휴 전에 받",
+     "permalink": "https://www.instagram.com/p/DdTUviBS-hG/",
+     "like_count": 3,
+     "comments_count": 0,
+     "views": 105,
+     "reach": 45,
+     "saved": 0,
+     "shares": 0
+    },
+    {
+     "id": "17966171814158650",
+     "timestamp": "2026-09-09T22:48+09:00",
+     "media_type": "VIDEO",
+     "caption": "스마트스토어에서는 아직 만나보실 수 없어요.\n이번 주 아이디어스에서 할인된 가격으로 구매 가능합니다.\n\n별빛",
+     "permalink": "https://www.instagram.com/reel/DdEZuFKSGSL/",
+     "like_count": 15,
+     "comments_count": 0,
+     "views": 472,
+     "reach": 363,
+     "saved": 0,
+     "shares": 0
+    },
+    {
+     "id": "18102733334080296",
+     "timestamp": "2026-09-09T21:32+09:00",
+     "media_type": "CAROUSEL_ALBUM",
+     "caption": "투명하게 반짝이는 별빛 쉐이커 그립톡 ✦\n\n연보라 비즈와 작은 별들을 담아\n움직일 때마다 조금씩 다른 모습으",
+     "permalink": "https://www.instagram.com/p/DdERLXpktLW/",
+     "like_count": 10,
+     "comments_count": 0,
+     "views": 103,
+     "reach": 64,
+     "saved": 1,
+     "shares": 0
+    },
+    {
+     "id": "18110252041843463",
+     "timestamp": "2026-09-07T11:54+09:00",
+     "media_type": "VIDEO",
+     "caption": "가까이서 봐도 이쁘거든요 💜\n\n지금 아이디어스에서 할인중인 아이예요 :)\n\nTHING THAT HIT \"띵댓",
+     "permalink": "https://www.instagram.com/reel/Dc-FTmayV8t/",
+     "like_count": 13,
+     "comments_count": 0,
+     "views": 323,
+     "reach": 218,
+     "saved": 0,
+     "shares": 0
+    },
+    {
+     "id": "17876951313626889",
+     "timestamp": "2026-09-06T19:53+09:00",
+     "media_type": "VIDEO",
+     "caption": "오늘 밤 12시 💜\n\n투표 중 제일 인기 많았던\n퍼플 먼저 보여드릴까합니다 :)\n\n아이디어스에 먼저 만나볼 ",
+     "permalink": "https://www.instagram.com/reel/Dc8Xe98SMhv/",
+     "like_count": 5,
+     "comments_count": 1,
+     "views": 297,
+     "reach": 225,
+     "saved": 0,
+     "shares": 0
+    },
+    {
+     "id": "17873411958572899",
+     "timestamp": "2026-09-02T07:42+09:00",
+     "media_type": "VIDEO",
+     "caption": "바스락 주의⚡️\n[ ASMR ] 포장영상\n\n#resin #핸드메이드 #asmr #키링",
+     "permalink": "https://www.instagram.com/reel/DcwwnWJSk8k/",
+     "like_count": 13,
+     "comments_count": 0,
+     "views": 564,
+     "reach": 430,
+     "saved": 0,
+     "shares": 0
     }
    ],
-   "errors": [
-    "연결 시험(04:57) 때 받은 값이에요. 인사이트는 첫 게시물만, 팔로워 수는 요청하지 않았어요. 08:50 자동 실행이 최근 10개로 다시 채워요."
-   ]
+   "errors": []
   }
  ]
 }
