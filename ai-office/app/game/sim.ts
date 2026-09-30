@@ -128,6 +128,8 @@ export type Snapshot = {
   meetingTitle: string | null;
   /** 회의 중 대표 의견을 기다리는 중 (지시창 입력 = 의견) */
   opinionPending: boolean;
+  /** 실제 업무(Claude) 연결 중 */
+  realMode: boolean;
   /** 오늘 대표가 회의에서 낸 의견 */
   ceoOpinions: { meeting: string; text: string }[];
   chat: ChatEntry[];
@@ -215,6 +217,8 @@ export class Company {
   briefingReady = false;
   meetingTitle: string | null = null;
   private opinionOpen = false;
+  /** 실제 업무 연결: null = 시뮬레이션만, 숫자 = Claude가 실제로 도달한 단계(PHASES 인덱스) */
+  private realGate: number | null = null;
   private ceoOpinions: { meeting: string; text: string }[] = [];
   onBriefing: (() => void) | null = null;
   /** 대표 지시창 */
@@ -419,6 +423,7 @@ export class Company {
     this.sitAtDesk(seri);
 
     // ② 시장조사
+    yield* this.gate(2);
     this.phaseIndex = 2;
     yield* this.runDept("research", "레진 소품 트렌드·행사 공식 출처 확인", 6.5, "공식 출처 확인한 후보만 정리했어요.");
 
@@ -431,6 +436,7 @@ export class Company {
     this.sitAtDesk(researcher);
 
     // ③ 전체 성과 회의 — 성과 리뷰실 주재, 팀장 전원 + 후킹 전담. 시장조사 결과 공유도 여기서
+    yield* this.gate(3);
     this.phaseIndex = 3;
     this.deptStatus.review = "진행 중";
     const reviewer = this.agentById.get("review-lead")!;
@@ -460,15 +466,18 @@ export class Company {
     this.pushLog("📈", "전체 성과 회의 완료 — 전 부서가 성과를 공유하고 반영할 점을 한 줄씩 정했어요", "mint");
 
     // ④ 아이디어 10개
+    yield* this.gate(4);
     this.phaseIndex = 4;
     yield* this.runDept("strategy1", "성과 회의 근거로 아이디어 10개 · 100점 채점", 7, this.ceoOpinions.length ? "대표님 의견까지 반영해서 10개 넘겼어요." : "성과 근거 달아서 10개 넘겼어요.");
 
     // ⑥ 브랜드 QA
+    yield* this.gate(5);
     this.phaseIndex = 5;
     yield* this.runDept("qa", "브랜드명 표기·가격·중복·금칙어 검사", 5.5, "검수 끝났어요. 반려 사유 적어뒀어요.");
     this.pushLog("🛡️", "브랜드 검수: 통과·반려 건수와 사유를 기록했어요.", "lav");
 
     // ⑦ TOP 3 선정
+    yield* this.gate(6);
     this.phaseIndex = 6;
     const areum = this.agentById.get("strategy1-lead")!;
     this.stand(areum);
@@ -478,6 +487,7 @@ export class Company {
     this.sitAtDesk(areum);
 
     // ⑧ 대표 승인 회의
+    yield* this.gate(7);
     this.phaseIndex = 7;
     this.deptStatus.strategy2 = "승인 대기";
     this.approvalPending = true;
@@ -530,10 +540,12 @@ export class Company {
     this.unlock([...approvers, ceo]);
 
     // ⑨ 대본 작성
+    yield* this.gate(8);
     this.phaseIndex = 8;
     yield* this.runDept("strategy2", "릴스 대본·캐러셀 문구 작성", 7, "대본 2종 썼어요. 대표님 최종 확인 부탁드려요.");
 
     // ⑩ 제작 인수인계 → 릴스·캐러셀 동시 작업
+    yield* this.gate(9);
     this.phaseIndex = 9;
     // 후킹 전담(기획 2팀 팀원)이 첫 1~3초 후킹 3안을 붙여 제작팀에 전달 — 없으면 팀장이 전달
     const hooker = STAFF.find((s) => s.deptId === "strategy2" && s.rank === "member");
@@ -553,6 +565,7 @@ export class Company {
     this.pushLog("🎬", "릴스 편집본 · 캐러셀 이미지 제작 완료 (원본은 그대로 보존)", "mint");
 
     // ⑩ 결과물 저장 — 제작팀
+    yield* this.gate(10);
     this.phaseIndex = 10;
     this.pushLog("📦", "제작팀: 오늘 결과물을 media/·scripts/ 에 새 파일로 저장했어요", "mint");
     yield 1.2;
@@ -567,6 +580,7 @@ export class Company {
     this.deptStatus.finance = "완료";
 
     // ⑪ 비서실 브리핑 (성과 회의·정산 한 줄 포함)
+    yield* this.gate(11);
     this.phaseIndex = 11;
     this.lock([seri]);
     this.stand(seri);
@@ -587,6 +601,7 @@ export class Company {
     yield this.allFree([seri]);
     this.unlock([seri]);
 
+    yield* this.gate(12);
     this.phaseIndex = 12;
     this.dayComplete = true;
     this.running = false;
@@ -1143,6 +1158,25 @@ export class Company {
   }
 
   // ── 대표 액션 ────────────────────────────────────────────
+  /** 실제 업무(Claude)와 연결 — 화면은 Claude가 실제로 도달한 단계까지만 진행한다 */
+  setRealGate(n: number | null) {
+    this.realGate = n;
+    if (n === null) return;
+    if (n >= 4 && this.opinionOpen) this.opinionOpen = false;
+    if (n >= 8 && this.approvalPending) this.approve();
+  }
+
+  get realMode() {
+    return this.realGate !== null;
+  }
+
+  private *gate(n: number): Generator<number | (() => boolean), void, void> {
+    if (this.realGate === null || this.realGate >= n) return;
+    this.turbo = false;
+    this.pushLog("⏳", `실제 업무 기다리는 중 — ${PHASES[n]} (Claude 작업 중)`, "lav");
+    yield () => this.realGate === null || this.realGate >= n;
+  }
+
   approve() {
     if (!this.approvalPending) return;
     this.approved = true;
@@ -1542,6 +1576,7 @@ export class Company {
       log: this.log.slice(0, 24),
       meetingTitle: this.meetingTitle,
       opinionPending: this.opinionOpen,
+      realMode: this.realGate !== null,
       ceoOpinions: [...this.ceoOpinions],
       chat: this.chat.slice(-24),
       focusMode: this.focusMode,

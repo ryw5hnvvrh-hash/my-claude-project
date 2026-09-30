@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRealOffice, type RealOffice } from "./real";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard from "./InstaDashboard";
 import {
@@ -74,6 +75,13 @@ export default function Home() {
     error: "",
   });
   const publishedRef = useRef(false);
+  const real = useRealOffice();
+
+  // 실제 업무 연결 중이면 화면은 Claude가 도달한 단계까지만 진행한다
+  const realPhase = real.doc?.phase ?? null;
+  useEffect(() => {
+    if (engine.realMode && realPhase !== null) engine.setRealGate(realPhase);
+  }, [engine, realPhase]);
 
   useEffect(() => {
     let raf = 0;
@@ -167,10 +175,19 @@ export default function Home() {
     [engine],
   );
 
-  const start = () => {
+  const start = (el?: Element | null) => {
     engine.start();
     setBriefing(false);
     setView("live");
+    if (real.connected) {
+      // 실제 업무: Claude에게 "업무 시작"을 보내고, 화면은 실제 진행 단계에 맞춰 움직인다
+      engine.setRealGate(real.doc?.phase ?? 1);
+      void real.send("업무 시작", el ?? null).then((ok) =>
+        showToast(ok ? "Claude에게 업무 시작을 보냈어요 — 실제 업무가 시작돼요" : "Claude에게 보내지 못했어요 — 시뮬레이션만 돌아요"),
+      );
+      if (!real.doc) engine.pushLog("🧠", "실제 업무 모드 — Claude가 시작하면 단계가 차례로 열려요", "yellow");
+      return;
+    }
     showToast(`07:00 — AI 직원 ${STAFF.length}명이 출근합니다 ✨`);
   };
 
@@ -244,6 +261,7 @@ export default function Home() {
             selectedId={selectedId}
             onSelect={onSelect}
             onStart={start}
+            real={real}
             onApprove={approve}
             onDuty={onDuty}
             onPublish={() => void sendReport(false)}
@@ -259,7 +277,7 @@ export default function Home() {
             filter={filter}
             setFilter={setFilter}
             snap={snap}
-            onStart={start}
+            onStart={() => start()}
             onApprove={approve}
             onSelect={(id) => setSelectedId(id)}
             integrations={integrations}
@@ -312,14 +330,16 @@ function LiveView({
   onPublish,
   publishBusy,
   publishResult,
+  real,
 }: {
+  real: RealOffice;
   engine: Company;
   snap: Snapshot;
   follow: boolean;
   setFollow: (value: boolean) => void;
   selectedId: string | null;
   onSelect: (agent: Agent) => void;
-  onStart: () => void;
+  onStart: (el?: Element | null) => void;
   onApprove: () => void;
   onDuty: number;
   onPublish: () => void;
@@ -346,8 +366,8 @@ function LiveView({
       </header>
 
       <section className="live-bar">
-        <button className="btn btn-primary" onClick={onStart} disabled={snap.running}>
-          {snap.running ? "직원들이 일하는 중…" : snap.dayComplete ? "다시 출근시키기" : "오늘 업무 시작하기"}
+        <button className="btn btn-primary" onClick={(e) => onStart(e.currentTarget)} disabled={snap.running || real.sending}>
+          {snap.running ? "직원들이 일하는 중…" : snap.dayComplete ? "다시 출근시키기" : real.connected ? "오늘 업무 시작하기 · 실제" : "오늘 업무 시작하기"}
         </button>
         <button className="btn btn-ghost" onClick={() => engine.togglePause()}>
           {snap.paused ? "▶ 재생" : "⏸ 일시정지"}
@@ -408,7 +428,8 @@ function LiveView({
         <OfficeWorld engine={engine} snap={snap} selectedId={selectedId} follow={follow} onSelect={onSelect} />
 
         <aside className="live-rail">
-          <CeoConsole engine={engine} snap={snap} />
+          <RealPanel real={real} snap={snap} />
+          <CeoConsole engine={engine} snap={snap} real={real} />
 
           <section className="win rail-card" id="ceo-approval">
             <div className="win-bar">
@@ -416,7 +437,9 @@ function LiveView({
               <span className="window-controls">—　▢　✕</span>
             </div>
             <div className={`win-body approval-body ${snap.approvalPending ? "pending" : ""}`}>
-              {snap.approvalPending ? (
+              {snap.realMode && real.doc?.top3?.length ? (
+                <RealTop3 real={real} />
+              ) : snap.approvalPending ? (
                 <>
                   <div className="approval-top">
                     <span className="mini-badge yellow">TOP 1 제안 · {SAMPLE_PROPOSAL.score}</span>
@@ -519,10 +542,14 @@ const QUICK_ORDERS = [
   { label: "다솜님 반영", command: "다솜님 반영해줘" },
 ];
 
-function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
+function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; real: RealOffice }) {
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState<{ id: number; text: string }[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const realChat = real.doc?.chat ?? [];
+  const opinionAsk = snap.opinionPending || real.doc?.waiting === "opinion";
   const logRef = useRef<HTMLDivElement>(null);
-  const count = snap.chat.length;
+  const count = snap.chat.length + realChat.length + pending.length;
 
   useEffect(() => {
     const el = logRef.current;
@@ -532,9 +559,25 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
   const send = (text: string) => {
     const value = text.trim();
     if (!value) return;
-    engine.command(value);
     setDraft("");
+    if (snap.realMode) {
+      // 실제 업무 중: 지시·의견은 Claude에게 간다 (화면 속 대본 답변 대신 실제 답)
+      const id = Date.now();
+      setPending((list) => [...list, { id, text: value }]);
+      void real.send(value, formRef.current).then((ok) => {
+        if (!ok) setPending((list) => list.filter((p) => p.id !== id));
+      });
+      return;
+    }
+    engine.command(value);
   };
+
+  // Claude가 받은 말은 대기 줄에서 지운다
+  useEffect(() => {
+    if (!pending.length) return;
+    const got = new Set(realChat.filter((c) => c.from === "ceo").map((c) => c.text));
+    setPending((list) => list.filter((p) => !got.has(p.text)));
+  }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="win rail-card console-card" id="ceo-console">
@@ -551,18 +594,36 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
         </div>
 
         <div className="console-log" ref={logRef}>
-          {snap.chat.map((entry) => (
-            <div key={entry.id} className={`console-line ${entry.from}`}>
-              <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
-              <p>{entry.text}</p>
-              <small>{entry.time}</small>
-            </div>
-          ))}
+          {snap.realMode
+            ? realChat.map((entry, i) => (
+                <div key={`r${i}`} className={`console-line ${entry.from}`}>
+                  <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
+                  <p>{entry.text}</p>
+                  <small>{entry.t}</small>
+                </div>
+              ))
+            : snap.chat.map((entry) => (
+                <div key={entry.id} className={`console-line ${entry.from}`}>
+                  <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
+                  <p>{entry.text}</p>
+                  <small>{entry.time}</small>
+                </div>
+              ))}
+          {snap.realMode
+            ? pending.map((p) => (
+                <div key={p.id} className="console-line ceo">
+                  <b>대표님</b>
+                  <p>{p.text}</p>
+                  <small>Claude에게 전달 중…</small>
+                </div>
+              ))
+            : null}
         </div>
+        {snap.realMode && real.lastError ? <p className="real-error">{real.lastError}</p> : null}
 
-        {snap.opinionPending ? (
+        {opinionAsk ? (
           <div className="opinion-call">
-            <b>🎤 대표 의견 시간 — {snap.meetingTitle}</b>
+            <b>🎤 대표 의견 시간 — {snap.meetingTitle ?? "전체 성과 회의"}</b>
             <span>아래 칸에 의견을 적어 ‘의견’을 누르면 회의에 반영돼요.</span>
             <button onClick={() => send("의견 없음")}>의견 없음 · 계속 진행</button>
           </div>
@@ -577,6 +638,7 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
         </div>
 
         <form
+          ref={formRef}
           className="console-input"
           onSubmit={(event) => {
             event.preventDefault();
@@ -586,13 +648,129 @@ function CeoConsole({ engine, snap }: { engine: Company; snap: Snapshot }) {
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={snap.opinionPending ? "예: 오늘은 키링 위주로 가요 / 포장 장면 더 살려줘" : "예: 다솜님 반영해줘 / 기획 2팀 둘러봐"}
-            aria-label={snap.opinionPending ? "대표 의견 입력" : "대표 지시 입력"}
+            placeholder={opinionAsk ? "예: 오늘은 키링 위주로 가요 / 포장 장면 더 살려줘" : "예: 다솜님 반영해줘 / 기획 2팀 둘러봐"}
+            aria-label={opinionAsk ? "대표 의견 입력" : "대표 지시 입력"}
           />
-          <button type="submit">{snap.opinionPending ? "의견" : "지시"}</button>
+          <button type="submit" disabled={real.sending}>{opinionAsk ? "의견" : "지시"}</button>
         </form>
       </div>
     </section>
+  );
+}
+
+const WAIT_TEXT: Record<string, string> = {
+  opinion: "성과 회의 — 대표님 의견을 기다려요",
+  top3: "TOP 3 — 대표님 선택을 기다려요",
+  script: "대본·후킹 — 대표님 확정을 기다려요",
+};
+
+/** 실제 업무 현황 — Claude가 office/today 에 적은 그대로 보여준다 */
+function RealPanel({ real, snap }: { real: RealOffice; snap: Snapshot }) {
+  const doc = real.doc;
+  const link =
+    real.sendState === "available"
+      ? { tone: "mint", text: "Claude 연결됨" }
+      : real.sendState === "unknown"
+        ? { tone: "lav", text: "연결 확인 중…" }
+        : real.sendState === "no_session"
+          ? { tone: "lav", text: "Claude 대화 창이 연결 안 됨" }
+          : real.sendState === "writers_only"
+            ? { tone: "lav", text: "편집 권한이 있어야 보낼 수 있어요" }
+            : { tone: "lav", text: "claude.ai에서 열어야 연결돼요 · 지금은 시뮬레이션만" };
+  const state = doc?.status === "waiting" ? "yellow" : doc?.status === "working" ? "pink" : "mint";
+  return (
+    <section className="win rail-card real-card">
+      <div className="win-bar">
+        <span>🧠 real.work — 실제 업무 · Claude</span>
+        <span className="window-controls">—　▢　✕</span>
+      </div>
+      <div className="win-body real-body">
+        <div className="console-status">
+          <span className={`mini-badge ${link.tone}`}>{link.text}</span>
+          {doc ? (
+            <span className={`mini-badge ${state}`}>
+              {doc.status === "waiting" ? "대표님 확인 필요" : doc.status === "working" ? "Claude 작업 중" : "대기"}
+            </span>
+          ) : null}
+        </div>
+        {doc ? (
+          <>
+            <p className="real-step">
+              <b>{doc.waiting ? WAIT_TEXT[doc.waiting] ?? doc.step : doc.step}</b>
+              {doc.updatedAt ? <small>{doc.updatedAt} 갱신</small> : null}
+            </p>
+            {doc.meeting ? (
+              <div className="real-meeting">
+                {doc.meeting.followers ? <span>👥 팔로워 {doc.meeting.followers}</span> : null}
+                {(doc.meeting.lines ?? []).map((line) => (
+                  <span key={line}>· {line}</span>
+                ))}
+                {doc.meeting.repeat ? <span>🔁 반복할 점: {doc.meeting.repeat}</span> : null}
+                {doc.meeting.change ? <span>🛠 바꿀 점: {doc.meeting.change}</span> : null}
+              </div>
+            ) : null}
+            <ul className="feed-list real-feed">
+              {(doc.feed ?? []).slice(-8).reverse().map((f, i) => (
+                <li key={i}>
+                  <b>{f.t}</b>
+                  <i>{f.icon}</i>
+                  <span>{f.text}</span>
+                </li>
+              ))}
+            </ul>
+            {doc.briefing?.length ? (
+              <div className="real-meeting">
+                <b>📋 비서실 브리핑</b>
+                {doc.briefing.map((line) => (
+                  <span key={line}>· {line}</span>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="real-step">
+            <b>오늘 실제 업무 기록이 아직 없어요.</b>
+            <small>
+              {real.connected
+                ? "‘오늘 업무 시작하기 · 실제’를 누르면 Claude가 실제 업무를 시작하고, 여기와 사무실 화면이 실제 진행에 맞춰 움직여요."
+                : snap.running
+                  ? "지금 화면은 시뮬레이션이에요."
+                  : "claude.ai 앱에서 이 페이지를 열면 Claude와 연결돼요."}
+            </small>
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** 실제 TOP 3 — 대표가 고르면 Claude에게 바로 간다 */
+function RealTop3({ real }: { real: RealOffice }) {
+  const doc = real.doc!;
+  const choosing = doc.waiting === "top3";
+  return (
+    <>
+      <div className="approval-top">
+        <span className={`mini-badge ${choosing ? "yellow" : "mint"}`}>{choosing ? "오늘 TOP 3 · 골라주세요" : "오늘 TOP 3"}</span>
+      </div>
+      <div className="real-top3">
+        {(doc.top3 ?? []).map((t) => (
+          <div key={t.rank} className="real-top">
+            <b>
+              {t.rank}위 · {t.title}
+            </b>
+            <small>
+              {t.format} · {t.score}점 — {t.why}
+            </small>
+            {choosing ? (
+              <button className="btn approve-button" disabled={real.sending} onClick={(e) => void real.send(`TOP 3 중 ${t.rank}번으로 할게요`, e.currentTarget)}>
+                {t.rank}번으로 하기
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -787,7 +965,7 @@ function DashboardView({
             <p>AI는 비서, 결정은 대표님. {teams.length}개 팀 {STAFF.length}명의 조사부터 제작·저장·브리핑까지 한 흐름으로 관리해요.</p>
           </div>
           <div className="hero-actions">
-            <button className="btn btn-primary" onClick={onStart} disabled={snap.running}>
+            <button className="btn btn-primary" onClick={() => onStart()} disabled={snap.running}>
               {snap.running ? "AI 팀원들이 근무 중…" : "오늘 업무 시작하기"}
             </button>
             <span className="trust-copy">실제 전송·게시·결제는 대표 승인 후 진행해요</span>
