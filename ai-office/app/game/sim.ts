@@ -425,7 +425,7 @@ export class Company {
     // ② 시장조사
     yield* this.gate(2);
     this.phaseIndex = 2;
-    yield* this.runDept("research", "레진 소품 트렌드·행사 공식 출처 확인", 6.5, "공식 출처 확인한 후보만 정리했어요.");
+    yield* this.runDept("research", "트렌드·행사 확인 → 계정 성과 비교 → 조회수×썸네일 분석", 6.5, "비교 계정이랑 썸네일까지 정리했어요.");
 
     // ② 브랜드 분석 — 시장조사팀이 같이 맡음. 08:50 인스타 API 파일로 하고, 파일이 없으면 만들지 않는다
     const researcher = this.agentById.get("research-lead")!;
