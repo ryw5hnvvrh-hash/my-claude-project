@@ -5,3 +5,6 @@ finance/source/
 # 촬영본 영상 원본 — 드라이브에 보관, 저장소에는 올리지 않음(용량)
 media/raw/*.mov
 media/raw/*.mp4
+
+# 비교 계정 캡처 원본 — 드라이브에만 보관
+research/competitors/source/
