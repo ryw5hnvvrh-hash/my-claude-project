@@ -815,10 +815,10 @@ export class Company {
   }
 
   /** 지시창에 들어온 한 줄을 해석해 보고하거나 실제로 지시를 실행한다 */
-  command(raw: string) {
+  command(raw: string, echo = true) {
     const text = raw.trim();
     if (!text) return;
-    this.pushChat("ceo", CEO.name, text);
+    if (echo) this.pushChat("ceo", CEO.name, text);
     const q = text.toLowerCase();
 
     // ⓪ 회의 중 대표 의견 시간 — 이때 들어온 말은 지시가 아니라 의견으로 받는다
@@ -863,6 +863,73 @@ export class Company {
       SECRETARY,
       "이렇게 물어보시면 제일 빨라요 — “현황 보고” / “왜 늦어져?” / “시장조사팀 뭐해?” / “다솜님 반영해줘” / “순찰 돌아” / “회의 소집” / “집중 모드” / “지금 브리핑”.",
     );
+  }
+
+  // ── 자연스러운 대화 (페이지가 Claude에게 받은 답을 화면에 옮긴다) ─────────
+  /** 이름(또는 호칭)으로 직원 찾기. 못 찾으면 비서실장 */
+  findAgent(name: string): Agent {
+    const n = name.replace(/\s|님$/g, "");
+    return (
+      this.agents.find((a) => a.name === n || a.callsign?.replace(/님$/, "") === n || n.includes(a.name)) ??
+      this.agentById.get(DEPT_LEAD.secretary.id)!
+    );
+  }
+
+  /** 회의 중 대표 의견 기록 (대화형 답과 함께 쓴다). "의견 없음"이면 그냥 닫는다 */
+  recordOpinion(text: string) {
+    if (!this.opinionOpen) return;
+    if (!/^(의견 ?없음|없어|없어요|패스|넘어가|계속 ?진행|괜찮아)/.test(text.trim())) {
+      this.ceoOpinions.push({ meeting: this.meetingTitle ?? "회의", text });
+      this.pushLog("📝", `${this.meetingTitle ?? "회의"} — 대표 의견: “${text}”`, "pink");
+    }
+    if (this.realGate === null) this.opinionOpen = false;
+  }
+
+  /** 대표가 말한 한 줄을 지시창에 남긴다 (답은 speakAs 로 따로 온다) */
+  ceoSays(text: string) {
+    this.pushChat("ceo", CEO.name, text);
+  }
+
+  /** 해당 직원이 말풍선과 지시창으로 답한다 */
+  speakAs(name: string, text: string) {
+    const agent = this.findAgent(name);
+    const label = agent.rank === "ceo" ? CEO.name : `${agent.name} · ${roomOf(agent.deptId).name}`;
+    this.pushChat("staff", label, text);
+    if (agent.status !== "출근 전") {
+      this.say(agent, text.length > 34 ? text.slice(0, 32) + "…" : text, 4);
+      if (!this.locked.has(agent.id) && !this.busy(agent)) agent.anim = "talk";
+      if (agent.rank !== "ceo") this.spotlightRoom(agent.deptId, 6);
+    }
+  }
+
+  /** 대화 중 나온 실제 동작 (집중 모드·소집·순찰 등) */
+  act(action: string, dept?: string | null) {
+    switch (action) {
+      case "focus_on": return this.setFocusMode(true);
+      case "focus_off": return this.setFocusMode(false);
+      case "recall": return this.recallAll(true);
+      case "boost": return this.boost();
+      case "convene": return this.convene();
+      case "brief": return this.briefNow();
+      case "patrol": return this.running ? this.patrolNow(dept && DEPT_LEAD[dept] ? dept : null) : undefined;
+      case "cheer": return this.cheer();
+      case "opinion_done":
+        if (this.opinionOpen && this.realGate === null) this.opinionOpen = false;
+        return;
+      default: return;
+    }
+  }
+
+  /** 대화에 넣을 지금 사무실 상황 요약 */
+  describe(): string {
+    const phase = PHASES[this.phaseIndex] ?? "";
+    const lines = [
+      `시계 ${this.clockText()} · 단계 ${phase}${this.meetingTitle ? ` · 회의 중(${this.meetingTitle})` : ""}${this.approvalPending ? " · TOP 3 대표 결재 대기" : ""}${this.opinionOpen ? " · 회의 중 대표 의견 시간" : ""}${this.focusMode ? " · 집중 모드" : ""}`,
+      `부서 상태: ${Object.entries(this.deptStatus).map(([d, st]) => `${roomOf(d).name} ${st}`).join(", ")}`,
+      `직원 지금: ${this.agents.filter((a) => a.rank !== "ceo").map((a) => `${a.name}(${a.status}${a.status === "업무 중" ? ": " + a.taskLabel : ""})`).join(", ")}`,
+    ];
+    if (this.ceoOpinions.length) lines.push(`오늘 대표 의견: ${this.ceoOpinions.map((o) => o.text).join(" / ")}`);
+    return lines.join("\n");
   }
 
   /** 회의 중 대표 의견 받기 — 해당 부서 팀장(없으면 회의 주재자)이 받아서 반영을 약속한다 */

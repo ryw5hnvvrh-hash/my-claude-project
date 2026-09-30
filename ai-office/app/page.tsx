@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRealOffice, type RealOffice } from "./real";
+import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard from "./InstaDashboard";
 import {
@@ -544,40 +545,77 @@ const QUICK_ORDERS = [
 
 function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; real: RealOffice }) {
   const [draft, setDraft] = useState("");
-  const [pending, setPending] = useState<{ id: number; text: string }[]>([]);
+  const [thinking, setThinking] = useState(false);
+  const [talkOff, setTalkOff] = useState(false);
+  const [retry, setRetry] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
   const realChat = real.doc?.chat ?? [];
   const opinionAsk = snap.opinionPending || real.doc?.waiting === "opinion";
-  const logRef = useRef<HTMLDivElement>(null);
-  const count = snap.chat.length + realChat.length + pending.length;
+  const count = snap.chat.length;
 
   useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [count]);
+  }, [count, thinking]);
+
+  // 총괄비서(Claude)의 실제 답을 지시창으로 옮긴다
+  const seenReal = useRef(0);
+  useEffect(() => {
+    if (realChat.length < seenReal.current) seenReal.current = 0;
+    for (const c of realChat.slice(seenReal.current)) {
+      if (c.from === "staff") engine.pushChat("staff", "총괄비서", c.text);
+    }
+    seenReal.current = realChat.length;
+  }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const forwardToClaude = (text: string) => {
+    if (!real.connected) return;
+    void real.send(text, formRef.current).then((ok) => {
+      if (!ok) setRetry(text);
+      else engine.pushChat("staff", "총괄비서", "받았어요. 실제로 반영하고 결과를 여기와 실제 업무 칸에 올릴게요.");
+    });
+  };
 
   const send = (text: string) => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || thinking) return;
     setDraft("");
+    setRetry(null);
+    // 실제 업무가 대표 확인을 기다리는 중이면(의견·TOP 3·대본) 곧바로 총괄비서에게 보낸다
+    const mustForward = snap.realMode && !!real.doc?.waiting;
+    if (mustForward) forwardToClaude(value);
+    if (opinionAsk) engine.recordOpinion(value);
+
+    if (real.sample && !talkOff) {
+      engine.ceoSays(value);
+      setThinking(true);
+      askStaff(real.sample, value, {
+        office: engine.describe(),
+        real: real.doc,
+        brief: real.brief,
+        history: engine.snapshot().chat.map((c) => ({ from: c.from, name: c.name, text: c.text })),
+      })
+        .then((r) => {
+          engine.speakAs(r.speaker, r.reply);
+          if (r.action && r.action !== "none") engine.act(r.action, r.dept);
+          if (r.forward && !mustForward && real.connected) forwardToClaude(value);
+        })
+        .catch((e: { code?: string }) => {
+          if (e?.code === "not_granted") setTalkOff(true);
+          if (snap.realMode && !mustForward) forwardToClaude(value);
+          else engine.command(value, false);
+        })
+        .finally(() => setThinking(false));
+      return;
+    }
     if (snap.realMode) {
-      // 실제 업무 중: 지시·의견은 Claude에게 간다 (화면 속 대본 답변 대신 실제 답)
-      const id = Date.now();
-      setPending((list) => [...list, { id, text: value }]);
-      void real.send(value, formRef.current).then((ok) => {
-        if (!ok) setPending((list) => list.filter((p) => p.id !== id));
-      });
+      engine.ceoSays(value);
+      if (!mustForward) forwardToClaude(value);
       return;
     }
     engine.command(value);
   };
-
-  // Claude가 받은 말은 대기 줄에서 지운다
-  useEffect(() => {
-    if (!pending.length) return;
-    const got = new Set(realChat.filter((c) => c.from === "ceo").map((c) => c.text));
-    setPending((list) => list.filter((p) => !got.has(p.text)));
-  }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="win rail-card console-card" id="ceo-console">
@@ -590,36 +628,33 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
           <span className={`mini-badge ${snap.focusMode ? "yellow" : "mint"}`}>
             {snap.focusMode ? "집중 모드 ON" : "평시 운영"}
           </span>
+          <span className={`mini-badge ${real.sample && !talkOff ? "mint" : "lav"}`}>
+            {real.sample && !talkOff ? "직원 대화 ON" : "기본 대답"}
+          </span>
           {snap.busyWithOrder ? <span className="mini-badge lav">지시 처리 중…</span> : null}
         </div>
 
         <div className="console-log" ref={logRef}>
-          {snap.realMode
-            ? realChat.map((entry, i) => (
-                <div key={`r${i}`} className={`console-line ${entry.from}`}>
-                  <b>{entry.from === "ceo" ? "대표님" : "총괄비서"}</b>
-                  <p>{entry.text}</p>
-                  <small>{entry.t}</small>
-                </div>
-              ))
-            : snap.chat.map((entry) => (
-                <div key={entry.id} className={`console-line ${entry.from}`}>
-                  <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
-                  <p>{entry.text}</p>
-                  <small>{entry.time}</small>
-                </div>
-              ))}
-          {snap.realMode
-            ? pending.map((p) => (
-                <div key={p.id} className="console-line ceo">
-                  <b>대표님</b>
-                  <p>{p.text}</p>
-                  <small>Claude에게 전달 중…</small>
-                </div>
-              ))
-            : null}
+          {snap.chat.map((entry) => (
+            <div key={entry.id} className={`console-line ${entry.from}`}>
+              <b>{entry.from === "ceo" ? "대표님" : entry.name}</b>
+              <p>{entry.text}</p>
+              <small>{entry.time}</small>
+            </div>
+          ))}
+          {thinking ? (
+            <div className="console-line staff typing">
+              <b>…</b>
+              <p>답을 생각하는 중이에요</p>
+            </div>
+          ) : null}
         </div>
-        {snap.realMode && real.lastError ? <p className="real-error">{real.lastError}</p> : null}
+        {retry ? (
+          <button className="btn btn-ghost retry-send" onClick={() => { const t = retry; setRetry(null); forwardToClaude(t); }}>
+            📨 총괄비서에게 다시 보내기
+          </button>
+        ) : null}
+        {real.lastError ? <p className="real-error">{real.lastError}</p> : null}
 
         {opinionAsk ? (
           <div className="opinion-call">
@@ -631,7 +666,7 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
 
         <div className="console-quick">
           {QUICK_ORDERS.map((item) => (
-            <button key={item.label} onClick={() => send(item.command)}>
+            <button key={item.label} onClick={() => send(item.command)} disabled={thinking}>
               {item.label}
             </button>
           ))}
@@ -648,10 +683,10 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={opinionAsk ? "예: 오늘은 키링 위주로 가요 / 포장 장면 더 살려줘" : "예: 다솜님 반영해줘 / 기획 2팀 둘러봐"}
+            placeholder={opinionAsk ? "예: 오늘은 키링 위주로 가요 / 포장 장면 더 살려줘" : "무엇이든 물어보거나 말씀하세요 · 예: 희선님, 어제 캐러셀 어땠어요?"}
             aria-label={opinionAsk ? "대표 의견 입력" : "대표 지시 입력"}
           />
-          <button type="submit" disabled={real.sending}>{opinionAsk ? "의견" : "지시"}</button>
+          <button type="submit" disabled={thinking || real.sending}>{opinionAsk ? "의견" : "말하기"}</button>
         </form>
       </div>
     </section>

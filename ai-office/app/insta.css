@@ -74,3 +74,5 @@
 .real-top b{font-size:13px}
 .real-top small{font-size:11px;color:var(--ink-soft);line-height:1.5}
 .real-top .btn{min-height:36px;padding:6px 10px}
+.console-line.typing p{opacity:.6;font-style:italic}
+.retry-send{justify-self:start;padding:6px 12px;font-size:11px}

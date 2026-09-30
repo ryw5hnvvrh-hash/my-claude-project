@@ -32,6 +32,11 @@ export type RealDoc = {
   updatedAt?: string;
 };
 
+/** 페이지에서 Claude에게 바로 묻는 함수 (대표의 Claude 사용량을 쓴다) */
+export type SampleFn = ((input: string, opts?: Record<string, unknown>) => Promise<{ text: string }>) & {
+  json: <T>(input: string, opts?: Record<string, unknown>) => Promise<T>;
+};
+
 type SendState = "unknown" | "available" | "writers_only" | "no_session" | "off";
 
 type CommentsApi = {
@@ -71,6 +76,8 @@ export function useRealOffice() {
   const [sendState, setSendState] = useState<SendState>("unknown");
   const [sending, setSending] = useState(false);
   const [lastError, setLastError] = useState("");
+  const [brief, setBrief] = useState<string>("");
+  const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
   const commentsRef = useRef<CommentsApi | null>(null);
 
   useEffect(() => {
@@ -89,6 +96,20 @@ export function useRealOffice() {
         (snap) => setDoc(snap.exists ? ((snap.data() as RealDoc) ?? null) : null),
         () => setDoc(null),
       );
+      // Claude가 적어 두는 회사 사정 요약 — 직원 대답의 근거로 쓴다
+      const briefRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/brief");
+      const unsubBrief = briefRef.onSnapshot(
+        (snap) => setBrief(snap.exists ? String((snap.data() as { text?: string })?.text ?? "") : ""),
+        () => setBrief(""),
+      );
+      const prev = unsub;
+      unsub = () => {
+        prev?.();
+        unsubBrief();
+      };
+    });
+    claude.use("sample").then((fn) => {
+      if (alive && fn) setSampleFn(() => fn as SampleFn);
     });
     claude.use("comments").then((api) => {
       if (!alive) return;
@@ -145,7 +166,7 @@ export function useRealOffice() {
 
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;

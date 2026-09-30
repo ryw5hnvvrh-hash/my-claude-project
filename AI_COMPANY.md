@@ -231,6 +231,8 @@
   - `office/today` 필드: `date`(KST YYYY-MM-DD), `phase`(§4 표 번호 = 화면 단계: 2 시장조사 · 3 성과 회의 · 4 아이디어 · 5 검수 · 6 TOP 3 · 7 대표 선택 · 8 대본 · 9 제작 · 10 저장 · 11 브리핑 · 12 종료), `status`(working/waiting/idle), `waiting`(opinion/top3/script/null), `step`(지금 하는 일 한 줄), `feed`[{t,icon,text}], `chat`[{t,from:ceo|staff,name,text}] — 받은 대표 말과 Claude의 답을 같이 적는다. Claude의 답은 이름을 **총괄비서**로 쓴다(대표 결정 2026-09-30), `meeting`{followers,lines,repeat,change}, `top3`[{rank,title,format,score,why}], `briefing`[줄], `updatedAt`.
   - 화면의 사무실은 `phase` 까지만 진행하고 멈춰 기다린다. ③ 회의에서 `waiting:"opinion"` 이면 화면에 의견 칸이 뜬다. 의견을 받으면 `phase` 를 4로 올려야 화면 회의가 끝난다. TOP 3 는 `phase:7, waiting:"top3"` 로 올리면 화면에 고르기 버튼이 뜨고, 선택을 받으면 8로 올린다.
   - 대화에서 직접 "업무 시작"이라고 해도 같은 방식으로 진행하고 `office/today` 를 똑같이 갱신한다.
+  - **직원 대화 (2026-09-30)**: 지시창에 대표가 쓴 말은 대표의 Claude(sample, 빠른 모델)가 받아 "그 상황의 그 직원"이 답한다. 근거는 ① 지금 화면 속 사무실 상황 ② `office/today` ③ `office/brief`(회사 사정 요약)뿐이다. 거기 없는 숫자는 말하지 않는다. 실제 작업이 필요한 말이면 답과 함께 총괄비서(이 대화)에게 넘긴다.
+  - **Claude 할 일: `office/brief` 를 최신으로 유지한다.** 업무를 진행하거나 새 숫자·결정이 생기면 `text` 에 한 덩어리 요약(브랜드·우리 계정 성과·오늘 진행·정산·시장조사·운영)을 다시 쓴다(ArtifactData set, 버전 고정). 직원들이 틀린 말을 하면 대부분 이 요약이 낡아서다.
 - claude.ai 밖(파일로 열기 등)에서는 연결이 없어 시뮬레이션만 돈다. 화면 속 회의에도 대표 의견 시간이 있어, 지시창에 쓴 말이 의견으로 들어간다.
 - 08:50 인스타 숫자 가져오기와 일요일 17:00 주간 보고는 그대로 자동으로 돈다.
 
