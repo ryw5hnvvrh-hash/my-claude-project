@@ -48,4 +48,5 @@
 ## 최종본
 - `media/edit/2026-09-30_reels_butterfly-packing_final.mp4` (9.8초 · 후킹 2안 0~2.8초 · 원본 소리 · 가운데 위 '띵댓힛' · 일반 색)
 - 캡션 첫 줄은 후킹 2안으로 바꿈. 게시는 대표가 직접.
+- 21:05 대표 확정: 브랜드 표기 'THING THAT HIT'(Cactus 10, #FFFFFF), 자막 콩콩체 15 #FFFFFF — 대표가 캡컷에서 넣음. 자막 파일도 THING THAT HIT로 바꿈.
 - 20:58 대표 요청(폰트 교체)으로 캡컷 편집용 파일 추가: 글자 없는 영상 `media/edit/2026-09-30_reels_butterfly-packing_clean.mp4`(일반 색·원본 소리) + 자막 `..._자막.srt`. 글자는 대표가 캡컷에서 원하는 폰트로 넣는다.
