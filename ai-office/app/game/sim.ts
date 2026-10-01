@@ -584,6 +584,25 @@ export class Company {
     yield* this.deliver("finance-lead", "secretary", "오늘 정산 확인 결과예요. 없으면 '없습니다'로 넣어주세요.", "네, 브리핑에 넣겠습니다.");
     this.deptStatus.finance = "완료";
 
+    // ⑪ 직전 — 전체 회의: 내일 촬영 주제 (대표 결정 2026-10-01). 비서실장 주재, 대표 의견 시간 포함
+    const hookIds2 = STAFF.filter((st) => st.deptId === "strategy2" && st.rank === "member").map((st) => st.id);
+    yield* this.meeting(
+      "내일 촬영 주제 회의",
+      [...DEPT_ROOMS.map((room) => DEPT_LEAD[room.id].id), ...hookIds2],
+      [
+        ["secretary-lead", "마지막 보고 전에 내일 뭘 찍을지 같이 정하겠습니다."],
+        ["review-lead", "이번 주 릴스 몇 개 남았는지, 반응 좋았던 장면부터 말씀드릴게요."],
+        ["research-lead", "요즘 유행 디자인·색 중에 내일 찍을 만한 걸 골라왔어요."],
+        ["strategy1-lead", "촬영 가능한 후보 2~3개로 좁혔어요. 재료·몰드 있는지 확인 부탁드려요."],
+        ["strategy2-lead", "아~ 정해지면 장면 순서랑 캡션 방향 바로 잡을게요."],
+        ...hookIds2.map((id) => [id, "첫 1초 장면을 촬영 리스트 맨 위에 넣을게요."] as [string, string]),
+        ["reels-lead", "굳는 시간 있으면 오늘 밤·내일로 나눠서 촬영 리스트 짤게요."],
+        ["carousel-lead", "주말 게시물 사진이 필요하면 같이 적겠습니다."],
+        ["finance-lead", "필요한 재료 중 주문할 게 있으면 바로 말씀드릴게요."],
+      ],
+    );
+    this.pushLog("🎥", "내일 촬영 주제 회의 완료 — 촬영 리스트(scripts/<내일>_shotlist.md)를 마지막 보고에 붙여요", "mint");
+
     // ⑪ 비서실 브리핑 (성과 회의·정산 한 줄 포함)
     yield* this.gate(11);
     this.phaseIndex = 11;
