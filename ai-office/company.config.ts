@@ -161,7 +161,7 @@ export type StaffEntry = {
 
 export const STAFF_LIST: StaffEntry[] = [
   // ① 시장조사팀
-  { dept: "research", rank: "lead", name: "이희승", role: "시장조사 팀장", callsign: "희승님",
+  { dept: "research", rank: "lead", name: "이승희", role: "시장조사 팀장", callsign: "승희님",
     colors: ["#6b3d34", "#fff3b0", "#ff8fc0"],
     thoughts: ["출처 없는 건 미확인으로 적습니다.", "공식 페이지부터 확인하겠습니다."] },
   { dept: "research", rank: "member", name: "김세민", role: "시장조사팀 · 브랜드 분석·비교 계정", callsign: "세민님",
