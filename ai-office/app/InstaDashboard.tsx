@@ -31,7 +31,17 @@ type Snapshot = {
   errors: string[];
 };
 
-const snapshots = (insightsData as { snapshots: Snapshot[] }).snapshots;
+const baked = (insightsData as { snapshots: Snapshot[] }).snapshots;
+
+/** 빌드 때 넣은 숫자 + 업무 시작 때 총괄비서가 db(office/insta)에 올린 숫자. 같은 날짜면 db 쪽을 쓴다 */
+function mergeSnapshots(live?: Snapshot[] | null): Snapshot[] {
+  const byDate = new Map<string, Snapshot>();
+  for (const s of baked) byDate.set(s.date, s);
+  for (const s of live ?? []) if (s?.date && s.account && Array.isArray(s.posts)) byDate.set(s.date, { ...s, errors: s.errors ?? [] });
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export type { Snapshot as InstaSnapshot };
 
 const TYPE_LABEL: Record<string, string> = {
   CAROUSEL_ALBUM: "캐러셀",
@@ -136,7 +146,7 @@ function BarChart({
 }
 
 /** 날짜별 팔로워 — 이틀 이상 쌓이면 선으로 */
-function FollowerTrend({ setTip }: { setTip: (t: Tip) => void }) {
+function FollowerTrend({ setTip, snapshots }: { setTip: (t: Tip) => void; snapshots: Snapshot[] }) {
   const points = snapshots
     .filter((s) => s.account.followers_count != null)
     .map((s) => ({ date: s.date, v: s.account.followers_count as number }));
@@ -216,7 +226,8 @@ function ChartCard({
   );
 }
 
-export default function InstaDashboard() {
+export default function InstaDashboard({ live }: { live?: Snapshot[] | null }) {
+  const snapshots = mergeSnapshots(live);
   const latest = snapshots[snapshots.length - 1];
 
   if (!latest) {
@@ -292,7 +303,7 @@ export default function InstaDashboard() {
         </ChartCard>
       </div>
 
-      <ChartCard title="📈 팔로워 추이">{(setTip) => <FollowerTrend setTip={setTip} />}</ChartCard>
+      <ChartCard title="📈 팔로워 추이">{(setTip) => <FollowerTrend setTip={setTip} snapshots={snapshots} />}</ChartCard>
 
       <section className="win">
         <div className="win-bar">

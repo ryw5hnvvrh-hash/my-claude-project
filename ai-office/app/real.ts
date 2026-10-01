@@ -32,6 +32,16 @@ export type RealDoc = {
   updatedAt?: string;
 };
 
+/** 업무 시작 때 Claude가 office/dashboard 에 쓰는 대시보드 숫자 */
+export type RealDashboard = {
+  date?: string;
+  updatedAt?: string;
+  metrics?: { label: string; value: string; note?: string; tone?: string }[];
+  integrations?: { name: string; status: string; tone?: string }[];
+  schedule?: { title: string; desc: string };
+  notes?: string[];
+};
+
 /** 페이지에서 Claude에게 바로 묻는 함수 (대표의 Claude 사용량을 쓴다) */
 export type SampleFn = ((input: string, opts?: Record<string, unknown>) => Promise<{ text: string }>) & {
   json: <T>(input: string, opts?: Record<string, unknown>) => Promise<T>;
@@ -77,6 +87,8 @@ export function useRealOffice() {
   const [sending, setSending] = useState(false);
   const [lastError, setLastError] = useState("");
   const [brief, setBrief] = useState<string>("");
+  const [dashboard, setDashboard] = useState<RealDashboard | null>(null);
+  const [insta, setInsta] = useState<unknown[] | null>(null);
   const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
   const commentsRef = useRef<CommentsApi | null>(null);
 
@@ -102,10 +114,26 @@ export function useRealOffice() {
         (snap) => setBrief(snap.exists ? String((snap.data() as { text?: string })?.text ?? "") : ""),
         () => setBrief(""),
       );
+      // 업무 시작 때 Claude가 새로 올리는 대시보드·인스타 숫자 — 다시 배포하지 않아도 화면이 바뀐다
+      const dashRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/dashboard");
+      const unsubDash = dashRef.onSnapshot(
+        (snap) => setDashboard(snap.exists ? ((snap.data() as RealDashboard) ?? null) : null),
+        () => setDashboard(null),
+      );
+      const instaRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/insta");
+      const unsubInsta = instaRef.onSnapshot(
+        (snap) => {
+          const list = snap.exists ? (snap.data() as { snapshots?: unknown[] })?.snapshots : null;
+          setInsta(Array.isArray(list) ? list : null);
+        },
+        () => setInsta(null),
+      );
       const prev = unsub;
       unsub = () => {
         prev?.();
         unsubBrief();
+        unsubDash();
+        unsubInsta();
       };
     });
     claude.use("sample").then((fn) => {
@@ -166,7 +194,7 @@ export function useRealOffice() {
 
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;

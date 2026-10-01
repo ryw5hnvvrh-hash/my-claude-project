@@ -2,10 +2,10 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRealOffice, type RealOffice } from "./real";
+import { useRealOffice, type RealOffice, type RealDashboard } from "./real";
 import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
-import InstaDashboard from "./InstaDashboard";
+import InstaDashboard, { type InstaSnapshot } from "./InstaDashboard";
 import {
   buildReport,
   fetchIntegrations,
@@ -270,7 +270,7 @@ export default function Home() {
             publishResult={publishState.result}
           />
         ) : view === "insta" ? (
-          <InstaDashboard />
+          <InstaDashboard live={real.insta as InstaSnapshot[] | null} />
         ) : (
           <DashboardView
             teams={teams}
@@ -283,6 +283,7 @@ export default function Home() {
             onSelect={(id) => setSelectedId(id)}
             integrations={integrations}
             publishResult={publishState.result}
+            live={real.dashboard}
           />
         )}
 
@@ -939,6 +940,7 @@ function DashboardView({
   onApprove,
   onSelect,
   integrations,
+  live,
   publishResult,
 }: {
   teams: TeamRow[];
@@ -950,6 +952,7 @@ function DashboardView({
   onApprove: () => void;
   onSelect: (id: string) => void;
   integrations: IntegrationStatus | null;
+  live?: RealDashboard | null;
   publishResult: PublishResult | null;
 }) {
   // 서버가 알려준 실제 설정 상태로 표시한다 (연결됐다고 거짓 보고하지 않는다)
@@ -980,7 +983,10 @@ function DashboardView({
         { name: "재무 파일", status: integrations.finance?.need ?? "자료 대기", tone: "lav", href: "" },
       ]
     : [];
-  const rows = [...integrations2Static, ...liveRows];
+  // 업무 시작 때 총괄비서가 올린 실제 연결 상태가 있으면 그것을 쓴다
+  const rows = live?.integrations?.length
+    ? [...integrations2Static, ...live.integrations.map((r) => ({ name: r.name, status: r.status, tone: r.tone ?? "mint", href: "" }))]
+    : [...integrations2Static, ...liveRows];
 
   return (
     <>
@@ -993,7 +999,7 @@ function DashboardView({
         </div>
         <div className="hero-body">
           <div className="hero-copy">
-            <p className="eyebrow">TODAY · 07:00 AUTO START</p>
+            <p className="eyebrow">{live?.date ? `TODAY · ${live.date} · ${live.updatedAt ?? ""} 업데이트` : "TODAY · 대표님 출근하면 시작"}</p>
             <h1>
               오늘 회사가 어떻게 움직이는지 <em className="highlight">한눈에</em> 보여드려요
             </h1>
@@ -1007,6 +1013,18 @@ function DashboardView({
           </div>
         </div>
       </header>
+
+      {live?.metrics?.length ? (
+        <section className="summary-grid" aria-label="오늘 실제 숫자">
+          {live.metrics.slice(0, 5).map((m) => (
+            <article className={`metric ${m.tone ?? "white"}`} key={m.label}>
+              <span>{m.label}</span>
+              <strong>{m.value}</strong>
+              <small>{m.note ?? ""}</small>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       <section className="summary-grid" aria-label="오늘 업무 요약">
         <article className="metric yellow">
@@ -1047,8 +1065,8 @@ function DashboardView({
               <div className="schedule-card">
                 <div>
                   <span className="tiny-label">NEXT RUN</span>
-                  <strong>매일 오전 7:00</strong>
-                  <p>컴퓨터 지시 없이 하루 업무 시작</p>
+                  <strong>{live?.schedule?.title ?? "대표님 '업무 시작' 때"}</strong>
+                  <p>{live?.schedule?.desc ?? "08:50 인스타 숫자 자동 · 일요일 17:00 주간 보고"}</p>
                 </div>
                 <span className="toggle-on">ON</span>
               </div>
