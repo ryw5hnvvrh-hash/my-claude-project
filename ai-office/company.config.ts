@@ -53,7 +53,7 @@ export const CEO_PROFILE = {
 };
 
 /**
- * 부서 9개.
+ * 부서 10개 (2026-10-01 상품관리팀 추가 — 사무실 4번째 줄).
  * id = 고정(엔진용) / name·short·icon = 자유롭게 변경
  * task = 오늘 하는 일 / report = 팀장 한줄보고
  *
@@ -133,6 +133,14 @@ export const DEPARTMENTS = [
     task: "부서별 한 줄 보고 → 대표 브리핑",
     report: "승인할 것과 단순 공유를 나눠서 대표님께 브리핑했어요.",
   },
+  {
+    id: "product",
+    name: "상품관리팀",
+    short: "product.shelf",
+    icon: "🏷️",
+    task: "신상품 상품명·설명 · 상세 사진 · 가격 후보 · 두 플랫폼 등록 묶음",
+    report: "신상품 등록에 필요한 글·사진·가격 후보를 두 플랫폼 묶음으로 준비했어요. 등록은 대표님이 해주세요.",
+  },
 ] as const;
 
 /**
@@ -156,6 +164,9 @@ export const STAFF_LIST: StaffEntry[] = [
   { dept: "research", rank: "lead", name: "이희승", role: "시장조사 팀장", callsign: "희승님",
     colors: ["#6b3d34", "#fff3b0", "#ff8fc0"],
     thoughts: ["출처 없는 건 미확인으로 적습니다.", "공식 페이지부터 확인하겠습니다."] },
+  { dept: "research", rank: "member", name: "김세민", role: "시장조사팀 · 브랜드 분석·비교 계정", callsign: "세민님",
+    colors: ["#3b2f2a", "#b8f0dd", "#ff8fc0"],
+    thoughts: ["아 이걸 또 비교해요? …네, 하고 있어요.", "말은 이래도 숫자는 다 맞춰놨거든요.", "캡처 좀 더 주시면 안 돼요? 아 알겠어요, 있는 걸로 할게요."] },
 
 
   // ② 기획 1팀
@@ -180,6 +191,9 @@ export const STAFF_LIST: StaffEntry[] = [
   { dept: "reels", rank: "lead", name: "하민", role: "제작팀 · 릴스 담당", callsign: "하민님",
     colors: ["#2c2638", "#ff8fc0", "#ff8fc0"],
     thoughts: ["장면 순서 한 번만 확인 부탁드립니다.", "원본 영상 전달 부탁드립니다."] },
+  { dept: "reels", rank: "member", name: "노아", role: "제작팀 · 스토리·촬영 리스트", callsign: "노아님",
+    colors: ["#4a3a2e", "#ffd4e6", "#c9b8ff"],
+    thoughts: ["대표님은 어떤 각도를 좋아하실까…", "스토리 조각 색감 한 번만 더 맞춰볼게요.", "대표님! 촬영 리스트 보셨어요?"] },
 
   // ⑥ 제작팀 · 캐러셀
   { dept: "carousel", rank: "lead", name: "김석진", role: "제작팀 · 캐러셀 담당", callsign: "석진님",
@@ -202,6 +216,11 @@ export const STAFF_LIST: StaffEntry[] = [
   { dept: "secretary", rank: "lead", name: "박치원", role: "비서실장", callsign: "치원님",
     colors: ["#7a453c", "#c9b8ff", "#c9b8ff"],
     thoughts: ["보고 드리겠습니다 대표님.", "대표님 괜찮으신가요?."] },
+
+  // ⑩ 상품관리팀 (2026-10-01 신설)
+  { dept: "product", rank: "lead", name: "김성열", role: "상품관리 팀장", callsign: "성열님",
+    colors: ["#2f3a3a", "#e8dcc4", "#b8f0dd"],
+    thoughts: ["…", "상세 사진 순서 정리 중입니다.", "가격 후보 세 개, 원가표 붙여뒀습니다."] },
 ];
 
 /**

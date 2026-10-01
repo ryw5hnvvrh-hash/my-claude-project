@@ -5,7 +5,7 @@ import { DEPARTMENTS } from "../../company.config";
 
 export const TILE = 18;
 export const COLS = 74;
-export const ROWS = 58;
+export const ROWS = 72;
 export const WORLD_W = COLS * TILE;
 export const WORLD_H = ROWS * TILE;
 
@@ -36,9 +36,9 @@ export type Room = {
   loiter: Pt[];
 };
 
-/** 부서 방 배치 — 3열 3행 (부서 9개) */
+/** 부서 방 배치 — 3열, 줄은 부서 수만큼 (10번째 상품관리팀은 4번째 줄) */
 const COL_X = [2, 26, 50];
-const ROW_Y = [17, 31, 45];
+const ROW_Y = [17, 31, 45, 59];
 const DEPT_W = 22;
 const DEPT_H = 11;
 
@@ -159,13 +159,18 @@ export const MEETING_SEATS: Pt[] = [
   // 테이블 양 끝 — 전체 성과 회의(9명)용
   { x: 29, y: 7 },
   { x: 42, y: 7 },
+  // 팀원이 늘어난 뒤(2026-10-01) 전체 회의용 추가 자리
+  { x: 29, y: 5 },
+  { x: 42, y: 5 },
+  { x: 29, y: 9 },
+  { x: 42, y: 9 },
 ];
 
 /** 대표 책상 앞 보고 위치 */
 export const CEO_REPORT_SPOT: Pt = { x: 11, y: 9 };
 export const CEO_SEAT: Pt = { x: 11, y: 5 };
 /** 출입구 (출근·퇴근) */
-export const ENTRANCE: Pt = { x: 36, y: 57 };
+export const ENTRANCE: Pt = { x: 36, y: 71 };
 
 export const DEPT_ROOMS: Room[] = DEPT_LAYOUT.map((_, i) => deptRoom(i));
 export const ROOMS: Room[] = [CEO_ROOM, MEETING_ROOM, LOUNGE_ROOM, ...DEPT_ROOMS];
@@ -208,8 +213,8 @@ for (const room of DEPT_ROOMS) {
 
 // 복도 가장자리·방 사이 화분 (걷는 길은 막지 않는 자리)
 for (const [x, y] of [
-  [1, 15], [1, 29], [1, 43], [1, 56],
-  [72, 15], [72, 29], [72, 43], [72, 56],
+  [1, 15], [1, 29], [1, 43], [1, 57], [1, 70],
+  [72, 15], [72, 29], [72, 43], [72, 57], [72, 70],
   [21, 3], [21, 11], [50, 3], [50, 11],
 ]) {
   PROPS.push({ kind: "plant", x, y, w: 1, h: 1, variant: "tall" });

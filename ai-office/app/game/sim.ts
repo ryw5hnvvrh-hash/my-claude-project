@@ -566,7 +566,12 @@ export class Company {
 
     this.startDept("reels", "media/ 원본 복제 → 릴스 편집", 8);
     this.startDept("carousel", "원본 사진 복제 → 캐러셀 제작", 8);
-    yield () => this.deptStatus.reels === "완료" && this.deptStatus.carousel === "완료";
+    // 상품관리팀(2026-10-01 신설): 신상품 등록 묶음 점검 — 제작과 함께 진행
+    if (DEPT_LEAD.product) this.startDept("product", "신상품 등록 묶음 점검", 6);
+    yield () =>
+      this.deptStatus.reels === "완료" &&
+      this.deptStatus.carousel === "완료" &&
+      (!DEPT_LEAD.product || this.deptStatus.product === "완료");
     this.pushLog("🎬", "릴스 편집본 · 캐러셀 이미지 제작 완료 (원본은 그대로 보존)", "mint");
 
     // ⑩ 결과물 저장 — 제작팀
