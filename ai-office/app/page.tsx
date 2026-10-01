@@ -564,7 +564,7 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
   useEffect(() => {
     if (realChat.length < seenReal.current) seenReal.current = 0;
     for (const c of realChat.slice(seenReal.current)) {
-      if (c.from === "staff") engine.pushChat("staff", "총괄비서", c.text);
+      if (c.from === "staff") engine.pushChat("staff", c.name || "총괄비서", c.text, c.t);
     }
     seenReal.current = realChat.length;
   }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps

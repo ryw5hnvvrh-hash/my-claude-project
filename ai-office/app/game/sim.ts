@@ -199,6 +199,11 @@ function rand<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/** 지금 한국 시각 HH:MM */
+function kstNow() {
+  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+}
+
 export class Company {
   agents: Agent[] = [];
   agentById = new Map<string, Agent>();
@@ -809,8 +814,10 @@ export class Company {
   }
 
   // ── 대표 지시창 ──────────────────────────────────────────
-  pushChat(from: "ceo" | "staff", name: string, text: string) {
-    this.chat.push({ id: this.logSeq++, time: this.clockText(), from, name, text });
+  pushChat(from: "ceo" | "staff", name: string, text: string, time?: string) {
+    // 실제 업무 모드에서는 화면 속 시계가 아니라 실제 시각(KST)을 찍는다
+    const stamp = time ?? (this.realMode ? kstNow() : this.clockText());
+    this.chat.push({ id: this.logSeq++, time: stamp, from, name, text });
     if (this.chat.length > 60) this.chat.shift();
   }
 
@@ -882,7 +889,13 @@ export class Company {
       this.ceoOpinions.push({ meeting: this.meetingTitle ?? "회의", text });
       this.pushLog("📝", `${this.meetingTitle ?? "회의"} — 대표 의견: “${text}”`, "pink");
     }
-    if (this.realGate === null) this.opinionOpen = false;
+    if (this.canCloseOpinion()) this.opinionOpen = false;
+  }
+
+  /** 아침 성과 회의(실제 3단계)의 의견 시간은 Claude가 다음 단계로 넘어갈 때 닫는다.
+   *  실제 업무가 이미 그 뒤라면(긴급 소집 회의 등) 대표 답으로 바로 닫는다 — 안 그러면 '지시 처리 중'에 멈춘다 */
+  private canCloseOpinion() {
+    return this.realGate === null || this.realGate >= 4;
   }
 
   /** 대표가 말한 한 줄을 지시창에 남긴다 (답은 speakAs 로 따로 온다) */
@@ -914,7 +927,7 @@ export class Company {
       case "patrol": return this.running ? this.patrolNow(dept && DEPT_LEAD[dept] ? dept : null) : undefined;
       case "cheer": return this.cheer();
       case "opinion_done":
-        if (this.opinionOpen && this.realGate === null) this.opinionOpen = false;
+        if (this.opinionOpen && this.canCloseOpinion()) this.opinionOpen = false;
         return;
       default: return;
     }
