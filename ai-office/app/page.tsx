@@ -6,6 +6,7 @@ import { useRealOffice, type RealOffice, type RealDashboard } from "./real";
 import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard, { type InstaSnapshot } from "./InstaDashboard";
+import ReportBoard, { type ReportDoc } from "./ReportBoard";
 import {
   buildReport,
   fetchIntegrations,
@@ -18,7 +19,7 @@ import { CEO, DEPT_BRIEF, DEPT_LEAD, STAFF } from "./game/staff";
 import { DEPT_ROOMS } from "./game/world";
 import { COMPANY, SAMPLE_PROPOSAL, STORAGE_LINK } from "../company.config";
 
-type View = "live" | "dashboard" | "insta";
+type View = "live" | "dashboard" | "insta" | "report";
 
 /** 서버 없이 여는 한 장짜리 버전(static/main.tsx)인지 — 이때는 보고 발행 서버가 없다 */
 const isServerless = () =>
@@ -240,6 +241,9 @@ export default function Home() {
             <button className={view === "insta" ? "active" : ""} onClick={() => setView("insta")}>
               📸 인스타
             </button>
+            <button className={view === "report" ? "active" : ""} onClick={() => setView("report")}>
+              📰 업무 보고
+            </button>
             <button
               className={`todo-tab ${todo ? "urgent" : ""}`}
               onClick={() => {
@@ -271,6 +275,8 @@ export default function Home() {
             publishBusy={publishState.busy}
             publishResult={publishState.result}
           />
+        ) : view === "report" ? (
+          <ReportBoard data={real.report as ReportDoc | null} />
         ) : view === "insta" ? (
           <InstaDashboard live={real.insta as InstaSnapshot[] | null} />
         ) : (
@@ -286,6 +292,8 @@ export default function Home() {
             integrations={integrations}
             publishResult={publishState.result}
             live={real.dashboard}
+            report={real.report as ReportDoc | null}
+            onOpenReport={() => setView("report")}
           />
         )}
 
@@ -944,6 +952,8 @@ function DashboardView({
   onSelect,
   integrations,
   live,
+  report,
+  onOpenReport,
   publishResult,
 }: {
   teams: TeamRow[];
@@ -956,6 +966,8 @@ function DashboardView({
   onSelect: (id: string) => void;
   integrations: IntegrationStatus | null;
   live?: RealDashboard | null;
+  report?: ReportDoc | null;
+  onOpenReport?: () => void;
   publishResult: PublishResult | null;
 }) {
   // 서버가 알려준 실제 설정 상태로 표시한다 (연결됐다고 거짓 보고하지 않는다)
@@ -1016,6 +1028,14 @@ function DashboardView({
           </div>
         </div>
       </header>
+
+      {report?.latest ? (
+        <button className="win report-banner" onClick={onOpenReport}>
+          <span>📰 {report.latest.date} 업무 보고</span>
+          <b>{report.latest.summary ?? report.latest.title}</b>
+          <i>{report.latest.checked ? "✅ 확인 완료" : "대표 확인 전 · 열어보기 →"}</i>
+        </button>
+      ) : null}
 
       {live?.metrics?.length ? (
         <section className="summary-grid" aria-label="오늘 실제 숫자">

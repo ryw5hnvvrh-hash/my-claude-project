@@ -89,6 +89,7 @@ export function useRealOffice() {
   const [brief, setBrief] = useState<string>("");
   const [dashboard, setDashboard] = useState<RealDashboard | null>(null);
   const [insta, setInsta] = useState<unknown[] | null>(null);
+  const [report, setReport] = useState<unknown | null>(null);
   const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
   const commentsRef = useRef<CommentsApi | null>(null);
 
@@ -128,12 +129,19 @@ export function useRealOffice() {
         },
         () => setInsta(null),
       );
+      // 업무 보고 대시보드 — 업무가 끝날 때·다음 날 업무 시작 때 총괄비서가 쓴다
+      const reportRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/report");
+      const unsubReport = reportRef.onSnapshot(
+        (snap) => setReport(snap.exists ? (snap.data() ?? null) : null),
+        () => setReport(null),
+      );
       const prev = unsub;
       unsub = () => {
         prev?.();
         unsubBrief();
         unsubDash();
         unsubInsta();
+        unsubReport();
       };
     });
     claude.use("sample").then((fn) => {
@@ -194,7 +202,7 @@ export function useRealOffice() {
 
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;
