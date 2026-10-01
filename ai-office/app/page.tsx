@@ -208,6 +208,8 @@ export default function Home() {
           name: room.name,
           room: room.short,
           lead,
+          // 팀장 외 팀원(예: 기획 2팀 후킹 전담 윤다솜)도 카드에 함께 보인다
+          members: STAFF.filter((st) => st.deptId === room.id && st.rank === "member"),
           status,
           ...DEPT_BRIEF[room.id],
         };
@@ -925,6 +927,7 @@ type TeamRow = {
   name: string;
   room: string;
   lead: (typeof DEPT_LEAD)[string];
+  members: (typeof STAFF)[number][];
   status: DeptStatus;
   task: string;
   report: string;
@@ -1129,14 +1132,25 @@ function DashboardView({
                 {filteredTeams.map((team) => (
                   <button className="team-card" key={team.id} onClick={() => onSelect(team.lead.id)}>
                     <span className={`status-dot ${statusClass[team.status]}`} aria-hidden="true" />
-                    <span className="mini-pixel">
-                      <PixelEmployee hair={team.lead.hair} shirt={team.lead.shirt} accent={team.lead.accent} />
+                    <span className="mini-pixels">
+                      <span className="mini-pixel">
+                        <PixelEmployee hair={team.lead.hair} shirt={team.lead.shirt} accent={team.lead.accent} />
+                      </span>
+                      {team.members.map((m) => (
+                        <span className="mini-pixel" key={m.id} title={`${m.name} · ${m.role}`}>
+                          <PixelEmployee hair={m.hair} shirt={m.shirt} accent={m.accent} />
+                        </span>
+                      ))}
                     </span>
                     <span className="team-copy">
                       <b>
-                        {team.lead.name} · {team.name}
+                        {team.lead.name}
+                        {team.members.length ? ` · ${team.members.map((m) => m.name).join(" · ")}` : ""} · {team.name}
                       </b>
                       <small>{team.task}</small>
+                      {team.members.length ? (
+                        <small>{team.members.map((m) => `${m.name}: ${m.role}`).join(" / ")}</small>
+                      ) : null}
                     </span>
                     <span className={`status-pill ${statusClass[team.status]}`}>{team.status}</span>
                   </button>

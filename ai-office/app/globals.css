@@ -152,7 +152,7 @@ a.integration-row:hover { border-color: var(--pink-deep); }
 .team-card {
   position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 9px;
   min-height: 70px;
   align-items: center;
@@ -526,6 +526,7 @@ footer a { color: var(--pink-deep); font-weight: 900; text-decoration: none; }
 .pixel-hair { position: absolute; z-index: 4; top: 2px; left: 7px; width: 29px; height: 12px; border: 2px solid var(--ink); background: var(--pixel-hair); box-shadow: -3px 8px 0 -1px var(--pixel-hair), 21px 8px 0 -1px var(--pixel-hair); }
 .pixel-headset { position: absolute; z-index: 5; top: 12px; right: 4px; width: 5px; height: 11px; border: 2px solid var(--ink); background: var(--mint); }
 .mini-pixel { display: grid; width: 38px; height: 42px; place-items: end center; overflow: hidden; border: 1.5px solid var(--ink); border-radius: 7px; background: var(--pink-bg); }
+.mini-pixels { display: flex; gap: 3px; }
 .mini-pixel .pixel-employee { transform: scale(.58); transform-origin: bottom center; }
 
 .office-bottom { margin-top: 10px; margin-bottom: 0; }
