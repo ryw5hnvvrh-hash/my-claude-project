@@ -526,8 +526,9 @@ export class Company {
     yield 2.2;
     this.say(ceo, "확인해볼게요.", 2.4);
 
-    // 대표가 승인 버튼을 누를 때까지 대기
-    yield () => this.approved;
+    // 대표가 승인 버튼을 누를 때까지 대기 — 실제 업무가 이미 대본 단계(8) 이후면 실제로 결정된 것이라 바로 넘어간다
+    yield () => this.approved || (this.realGate !== null && this.realGate >= 8);
+    this.approved = true;
 
     this.approvalPending = false;
     this.meetingTitle = null;
@@ -740,7 +741,9 @@ export class Company {
 
     // ★ 대표 의견 시간 — 지시창에 의견을 쓰거나 "의견 없음"을 누를 때까지 회의가 멈춘다
     let heardOpinion = false;
-    if (ceoJoins) {
+    // 실제 업무가 이미 이 단계를 지났으면(예: 오후에 업무 시작) 지난 회의에서 대표 의견을 기다리지 않는다 — 화면이 멈추지 않게
+    const pastInReal = this.realGate !== null && this.realGate > this.phaseIndex;
+    if (ceoJoins && !pastInReal) {
       const host = this.agentById.get(lines[0]?.[0] ?? DEPT_LEAD.secretary.id)!;
       host.anim = "talk";
       this.say(host, "대표님, 의견 있으시면 말씀해주세요!", 4);
