@@ -379,7 +379,7 @@ function LiveView({
 
       <section className="live-bar">
         <button className="btn btn-primary" onClick={(e) => onStart(e.currentTarget)} disabled={snap.running || real.sending}>
-          {snap.running ? "직원들이 일하는 중…" : snap.dayComplete ? "다시 출근시키기" : real.connected ? "오늘 업무 시작하기 · 실제" : "오늘 업무 시작하기"}
+          {snap.running ? (snap.gateWaiting ? "실제 업무 끝나길 기다리는 중…" : "직원들이 일하는 중…") : snap.dayComplete ? "다시 출근시키기" : real.connected ? "오늘 업무 시작하기 · 실제" : "오늘 업무 시작하기"}
         </button>
         <button className="btn btn-ghost" onClick={() => engine.togglePause()}>
           {snap.paused ? "▶ 재생" : "⏸ 일시정지"}

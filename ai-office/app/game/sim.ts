@@ -130,6 +130,8 @@ export type Snapshot = {
   opinionPending: boolean;
   /** 실제 업무(Claude) 연결 중 */
   realMode: boolean;
+  /** 실제 업무가 다음 단계에 도달하길 기다리는 중 */
+  gateWaiting: boolean;
   /** 오늘 대표가 회의에서 낸 의견 */
   ceoOpinions: { meeting: string; text: string }[];
   chat: ChatEntry[];
@@ -224,6 +226,8 @@ export class Company {
   private opinionOpen = false;
   /** 실제 업무 연결: null = 시뮬레이션만, 숫자 = Claude가 실제로 도달한 단계(PHASES 인덱스) */
   private realGate: number | null = null;
+  /** 실제 업무가 아직 도달하지 않은 단계 앞에서 기다리는 중이면 그 단계 번호 — 화면에 '대기'로 보여준다 */
+  private gateWaiting: number | null = null;
   private ceoOpinions: { meeting: string; text: string }[] = [];
   onBriefing: (() => void) | null = null;
   /** 대표 지시창 */
@@ -275,6 +279,7 @@ export class Company {
     this.spotlightUntil = 0;
     this.elapsed = 0;
     this.approvalSince = null;
+    this.gateWaiting = null;
 
     const seats = new Map<string, Pt[]>();
     for (const room of DEPT_ROOMS) seats.set(room.id, room.desks.map((d) => d.seat));
@@ -1280,8 +1285,10 @@ export class Company {
   private *gate(n: number): Generator<number | (() => boolean), void, void> {
     if (this.realGate === null || this.realGate >= n) return;
     this.turbo = false;
-    this.pushLog("⏳", `실제 업무 기다리는 중 — ${PHASES[n]} (Claude 작업 중)`, "lav");
+    this.gateWaiting = n;
+    this.pushLog("⏳", `${PHASES[this.phaseIndex]} 끝 — 다음 '${PHASES[n]}'은(는) 실제 업무가 끝나면 넘어가요`, "lav");
     yield () => this.realGate === null || this.realGate >= n;
+    this.gateWaiting = null;
   }
 
   approve() {
@@ -1667,7 +1674,12 @@ export class Company {
       turbo: this.turbo,
       dayComplete: this.dayComplete,
       phase:
-        this.phaseIndex === 7 && this.approved ? "승인 완료 · 자리 복귀" : PHASES[this.phaseIndex] ?? "",
+        this.gateWaiting !== null
+          ? `${PHASES[this.phaseIndex]} 끝 · ${PHASES[this.gateWaiting]} 대기`
+          : this.phaseIndex === 7 && this.approved
+            ? "승인 완료 · 자리 복귀"
+            : PHASES[this.phaseIndex] ?? "",
+      gateWaiting: this.gateWaiting !== null,
       phaseIndex: this.phaseIndex,
       approvalPending: this.approvalPending,
       approved: this.approved,
