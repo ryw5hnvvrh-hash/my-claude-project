@@ -969,7 +969,7 @@ export class Company {
   describe(): string {
     const phase = PHASES[this.phaseIndex] ?? "";
     const lines = [
-      `시계 ${this.clockText()} · 단계 ${phase}${this.meetingTitle ? ` · 회의 중(${this.meetingTitle})` : ""}${this.approvalPending ? " · TOP 3 대표 결재 대기" : ""}${this.opinionOpen ? " · 회의 중 대표 의견 시간" : ""}${this.focusMode ? " · 집중 모드" : ""}`,
+      `시계 ${this.clockText()} · 단계 ${phase}${this.meetingTitle ? ` · 회의 중(${this.meetingTitle})` : ""}${this.approvalPending ? " · TOP 3 대표 결재 대기" : ""}${this.opinionOpen ? " · 회의 중 대표 의견 시간" : ""}${this.focusMode ? " · 집중 모드" : ""}${this.gateWaiting !== null ? ` · 실제 업무 대기: ${this.gateWaitLine()}` : ""}`,
       `부서 상태: ${Object.entries(this.deptStatus).map(([d, st]) => `${roomOf(d).name} ${st}`).join(", ")}`,
       `직원 지금: ${this.agents.filter((a) => a.rank !== "ceo").map((a) => `${a.name}(${a.status}${a.status === "업무 중" ? ": " + a.taskLabel : ""})`).join(", ")}`,
     ];
@@ -1017,6 +1017,8 @@ export class Company {
       lines.push("오늘 업무는 모두 끝났어요.");
     } else if (this.meetingTitle) {
       lines.push(`회의 진행 중 — ${this.meetingTitle}`);
+    } else if (this.gateWaiting !== null) {
+      lines.push(this.gateWaitLine());
     } else {
       lines.push("지금은 앞 단계 결과를 넘기는 중이라 잠깐 비어 있어요. 곧 다음 팀이 붙습니다.");
     }
@@ -1030,8 +1032,18 @@ export class Company {
     this.speakSecretary("현황 정리해서 올렸어요.");
   }
 
+  /** 실제 업무 대기 중일 때 무엇을 기다리는지 한 줄로 */
+  private gateWaitLine() {
+    const n = this.gateWaiting ?? this.phaseIndex + 1;
+    if (n >= 11) {
+      return `화면 속 오늘 일은 다 끝났어요. ‘${PHASES[n]}’은 실제 업무 끝 보고(노션 업무 보고·내일 촬영 리스트)가 올라가면 넘어가요. 마치실 때 “업무 끝”이라고 말씀해 주세요.`;
+    }
+    return `화면 속 일은 끝났고, 실제 업무가 ‘${PHASES[n]}’ 단계에 오면 바로 넘어가요. 멈춘 게 아니라 기다리는 중이에요.`;
+  }
+
   private reportDelay() {
     const lines: string[] = [];
+    if (this.gateWaiting !== null) lines.push(this.gateWaitLine());
 
     if (this.approvalPending) {
       const waited = Math.max(1, Math.round(this.elapsed - (this.approvalSince ?? this.elapsed)));
@@ -1325,7 +1337,8 @@ export class Company {
 
     const raw = Math.min(rawDt, 0.05);
     const dt = raw * (this.turbo ? TURBO_SPEED : this.speed);
-    if (this.running) this.clockMinutes += dt * SIM_MIN_PER_SEC;
+    // 실제 업무를 기다리는 동안엔 화면 시계를 멈춘다(밤 12시를 넘겨 00:02처럼 보이던 문제)
+    if (this.running && this.gateWaiting === null) this.clockMinutes += dt * SIM_MIN_PER_SEC;
 
     this.occupancy.clear();
     for (const agent of this.agents) {
