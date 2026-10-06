@@ -2,7 +2,8 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRealOffice, type RealOffice, type RealDashboard } from "./real";
+import { useRealOffice, todayKst, type RealOffice, type RealDashboard, type ResearchDoc } from "./real";
+import ResearchCard from "./ResearchCard";
 import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard, { type InstaSnapshot } from "./InstaDashboard";
@@ -85,6 +86,23 @@ export default function Home() {
   useEffect(() => {
     if (engine.realMode && realPhase !== null) engine.setRealGate(realPhase);
   }, [engine, realPhase]);
+
+  // 업무 시작하면 시장조사팀장이 오늘 키워드를 지시창에 보고한다 (하루 한 번, 오늘 보고가 있을 때만)
+  const announcedResearch = useRef("");
+  const research = real.research;
+  useEffect(() => {
+    if (!snap.running || !research?.date || research.date !== todayKst()) return;
+    const key = `${research.date}|${research.updatedAt ?? ""}`;
+    if (announcedResearch.current === key) return;
+    announcedResearch.current = key;
+    const words = (research.keywords ?? []).map((k) => k.word).filter(Boolean);
+    if (!words.length) return;
+    const lead = DEPT_LEAD.research?.name ?? "시장조사팀";
+    const lines = [`대표님, 시장조사팀 ${lead}입니다. 오늘 아침 조사한 요새 떠오르는 키워드 보고드려요.`];
+    (research.keywords ?? []).slice(0, 6).forEach((k, i) => lines.push(`${i + 1}. ${k.word}${k.trend ? ` (${k.trend})` : ""}${k.why ? ` — ${k.why}` : ""}`));
+    if (research.pick) lines.push(`⭐ 오늘 써볼 만한 것: ${research.pick}`);
+    engine.pushChat("staff", lead, lines.join("\n"));
+  }, [snap.running, research, engine]);
 
   useEffect(() => {
     let raf = 0;
@@ -311,6 +329,7 @@ export default function Home() {
               dbReady: real.dbReady,
               save: real.saveCalendar,
             }}
+            research={real.research}
           />
         )}
 
@@ -457,6 +476,7 @@ function LiveView({
         <OfficeWorld engine={engine} snap={snap} selectedId={selectedId} follow={follow} onSelect={onSelect} />
 
         <aside className="live-rail">
+          <ResearchCard data={real.research} today={todayKst()} leadName={DEPT_LEAD.research?.name ?? ""} compact />
           <RealPanel real={real} snap={snap} />
           <CeoConsole engine={engine} snap={snap} real={real} />
 
@@ -621,7 +641,7 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
       askStaff(real.sample, value, {
         office: engine.describe(),
         real: real.doc,
-        brief: real.brief,
+        brief: [real.brief, researchLine(real.research)].filter(Boolean).join("\n"),
         history: engine.snapshot().chat.map((c) => ({ from: c.from, name: c.name, text: c.text })),
       })
         .then((r) => {
@@ -973,6 +993,7 @@ function DashboardView({
   onOpenReport,
   publishResult,
   calendar,
+  research,
 }: {
   teams: TeamRow[];
   filteredTeams: TeamRow[];
@@ -988,6 +1009,7 @@ function DashboardView({
   onOpenReport?: () => void;
   publishResult: PublishResult | null;
   calendar?: { live: CalendarDoc | null; liveLoaded: boolean; dbReady: boolean; save: (d: Record<string, unknown>) => Promise<boolean> };
+  research?: ResearchDoc | null;
 }) {
   // 서버가 알려준 실제 설정 상태로 표시한다 (연결됐다고 거짓 보고하지 않는다)
   const liveRows = integrations
@@ -1067,6 +1089,8 @@ function DashboardView({
           ))}
         </section>
       ) : null}
+
+      <ResearchCard data={research ?? null} today={todayKst()} leadName={DEPT_LEAD.research?.name ?? ""} />
 
       {calendar ? (
         <section className="dash-calendar" aria-label="콘텐츠 캘린더">
@@ -1313,4 +1337,10 @@ function DashboardView({
       </p>
     </>
   );
+}
+
+/** 직원 대답의 근거로 쓰는 오늘 키워드 한 줄 */
+function researchLine(r: ResearchDoc | null): string {
+  if (!r?.date || r.date !== todayKst() || !r.keywords?.length) return "";
+  return `시장조사팀 오늘 키워드(${r.date}): ${r.keywords.map((k) => `${k.word}${k.why ? `(${k.why})` : ""}`).join(", ")}${r.pick ? ` / 써볼 것: ${r.pick}` : ""}`;
 }

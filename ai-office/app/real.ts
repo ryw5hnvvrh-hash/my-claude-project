@@ -42,6 +42,17 @@ export type RealDashboard = {
   notes?: string[];
 };
 
+/** 시장조사팀이 매일 아침 쓰는 "요새 떠오르는 키워드" (db 문서 office/research) */
+export type ResearchKeyword = { word: string; trend?: string; why?: string; use?: string; source?: string; url?: string };
+export type ResearchDoc = {
+  date?: string;
+  updatedAt?: string;
+  summary?: string;
+  keywords?: ResearchKeyword[];
+  pick?: string;
+  note?: string;
+};
+
 /** 페이지에서 Claude에게 바로 묻는 함수 (대표의 Claude 사용량을 쓴다) */
 export type SampleFn = ((input: string, opts?: Record<string, unknown>) => Promise<{ text: string }>) & {
   json: <T>(input: string, opts?: Record<string, unknown>) => Promise<T>;
@@ -57,7 +68,7 @@ type CommentsApi = {
 
 const THREAD_KEY = "thth-office-thread";
 
-function todayKst() {
+export function todayKst() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
 }
 
@@ -93,6 +104,7 @@ export function useRealOffice() {
   // 콘텐츠 캘린더 — 대표가 화면에서 쓰고, Claude도 읽고 채운다 (db 문서 office/calendar)
   const [calendar, setCalendar] = useState<unknown | null>(null);
   const [calendarLoaded, setCalendarLoaded] = useState(false);
+  const [research, setResearch] = useState<ResearchDoc | null>(null);
   const dbRef = useRef<{ doc(p: string): { set(d: Record<string, unknown>): Promise<void> } } | null>(null);
   const calendarWrite = useRef<Promise<unknown>>(Promise.resolve());
   const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
@@ -149,8 +161,15 @@ export function useRealOffice() {
         },
         () => setCalendarLoaded(true),
       );
+      // 시장조사팀 아침 키워드 보고
+      const researchRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/research");
+      const unsubResearch = researchRef.onSnapshot(
+        (snap) => setResearch(snap.exists ? ((snap.data() as ResearchDoc) ?? null) : null),
+        () => setResearch(null),
+      );
       const prev = unsub;
       unsub = () => {
+        unsubResearch();
         prev?.();
         unsubBrief();
         unsubDash();
@@ -232,7 +251,7 @@ export function useRealOffice() {
 
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report, calendar, calendarLoaded, saveCalendar };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report, calendar, calendarLoaded, saveCalendar, research };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;

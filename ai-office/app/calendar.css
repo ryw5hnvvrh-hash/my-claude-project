@@ -175,3 +175,29 @@ button.cc-stat[aria-pressed="true"] { border-color: var(--cc-red); background: v
 /* 위쪽 메뉴 띠가 붙어 있어서, 달력은 그 아래에 붙는다 */
 .dash-calendar .cc-cal, .cc .cc-cal { top: 84px; max-height: calc(100vh - 96px); }
 @media (max-width: 900px) { .dash-calendar .cc-cal, .cc .cc-cal { max-height: none; } }
+
+/* 🔎 시장조사팀 오늘의 키워드 — ResearchCard.tsx */
+.rk { margin: 0 0 18px; font-size: 13px; }
+.rk .win-bar { display: flex; justify-content: space-between; gap: 8px; }
+.rk-time { opacity: .6; font-size: 11px; white-space: nowrap; }
+.rk-empty { margin: 0; opacity: .65; }
+.rk-summary { margin: 0 0 10px; font-weight: 700; }
+.rk-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; counter-reset: rk; }
+.rk-list li { counter-increment: rk; background: #fff; border: 1px solid #ece7f3; border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.rk-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rk-head b::before { content: counter(rk) ". "; opacity: .45; }
+.rk-head b { font-size: 14px; word-break: break-word; }
+.rk-trend { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #eeeef2; color: #5b5568; }
+.rk-trend.t-급상승, .rk-trend.t-상승 { background: #ffe4ef; color: #c2185b; }
+.rk-trend.t-신규 { background: #e3f6f3; color: #11796b; }
+.rk-trend.t-시즌 { background: #fdf0d9; color: #9a6400; }
+.rk-why, .rk-use, .rk-src { margin: 5px 0 0; font-size: 12px; line-height: 1.45; word-break: break-word; }
+.rk-why { opacity: .8; }
+.rk-use { color: #6b3fd1; }
+.rk-src { opacity: .55; font-size: 11px; }
+.rk-src a { color: inherit; }
+.rk-pick { margin: 10px 0 0; font-weight: 700; color: #6b3fd1; }
+.rk-note { margin: 6px 0 0; font-size: 11px; opacity: .55; }
+.rk.compact { margin: 0 0 10px; }
+.rk.compact .rk-list { grid-template-columns: 1fr; gap: 6px; }
+.rk.compact .rk-list li { padding: 7px 10px; }
