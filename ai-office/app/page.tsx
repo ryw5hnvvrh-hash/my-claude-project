@@ -305,6 +305,12 @@ export default function Home() {
             live={real.dashboard}
             report={real.report as ReportDoc | null}
             onOpenReport={() => setView("report")}
+            calendar={{
+              live: real.calendar as CalendarDoc | null,
+              liveLoaded: real.calendarLoaded,
+              dbReady: real.dbReady,
+              save: real.saveCalendar,
+            }}
           />
         )}
 
@@ -966,6 +972,7 @@ function DashboardView({
   report,
   onOpenReport,
   publishResult,
+  calendar,
 }: {
   teams: TeamRow[];
   filteredTeams: TeamRow[];
@@ -980,6 +987,7 @@ function DashboardView({
   report?: ReportDoc | null;
   onOpenReport?: () => void;
   publishResult: PublishResult | null;
+  calendar?: { live: CalendarDoc | null; liveLoaded: boolean; dbReady: boolean; save: (d: Record<string, unknown>) => Promise<boolean> };
 }) {
   // 서버가 알려준 실제 설정 상태로 표시한다 (연결됐다고 거짓 보고하지 않는다)
   const liveRows = integrations
@@ -1057,6 +1065,12 @@ function DashboardView({
               <small>{m.note ?? ""}</small>
             </article>
           ))}
+        </section>
+      ) : null}
+
+      {calendar ? (
+        <section className="dash-calendar" aria-label="콘텐츠 캘린더">
+          <CalendarBoard live={calendar.live} liveLoaded={calendar.liveLoaded} dbReady={calendar.dbReady} save={calendar.save} />
         </section>
       ) : null}
 

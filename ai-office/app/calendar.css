@@ -158,3 +158,10 @@ button.cc-stat[aria-pressed="true"] { border-color: var(--cc-red); background: v
   .cc-memo { display: none; }
   .cc-cal-head h2 { font-size: 15px; min-width: 0; }
 }
+
+/* 대시보드 안에 넣었을 때 */
+.dash-calendar { margin: 0 0 18px; }
+
+/* 위쪽 메뉴 띠가 붙어 있어서, 달력은 그 아래에 붙는다 */
+.dash-calendar .cc-cal, .cc .cc-cal { top: 84px; max-height: calc(100vh - 96px); }
+@media (max-width: 900px) { .dash-calendar .cc-cal, .cc .cc-cal { max-height: none; } }
