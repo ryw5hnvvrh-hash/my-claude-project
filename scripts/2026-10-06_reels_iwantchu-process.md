@@ -36,3 +36,7 @@ I · W · A · N · T · Y · O · U
 - `media/edit/2026-10-06_reels_iwantchu-process_v3_clean.mp4` (6.1초) + `_v3_자막.srt`
 - 0~3.4초 글자 채우기 / 3.4~4.4초 흔들기 / 4.4~6.1초 어제 릴스 1.8~3.5초(폰에 붙이고 손 떼는 데까지)
 - 자막: 0~2.5초 후킹 1안 · 4.4~6.1초 10.13 OPEN
+
+## ✅ 최종 (대표 21:09 "제작 확인, 소리는 없애줘")
+- `media/edit/2026-10-06_reels_iwantchu-process_final_clean.mp4` (6.1초, 소리 없음) + `_final_자막.srt` (= v3 자막)
+- 게시 대기
