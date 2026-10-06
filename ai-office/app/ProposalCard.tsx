@@ -19,16 +19,20 @@ const SRC_CLASS: Record<string, string> = { 계획: "p-plan", 키워드: "p-kw",
 export default function ProposalCard({ data, connected, sending, lastError, send, onApproved }: Props) {
   const [note, setNote] = useState("");
   const [sent, setSent] = useState("");
+  // 한 번 누르면 바로 잠근다 — 두 번 눌러 결재가 두 번 가지 않게
+  const [locked, setLocked] = useState(false);
   const done = data.status === "결재 완료" && !!data.chosen;
   const items = data.items ?? [];
 
   const choose = (rank: number, el: Element) => {
+    if (locked) return;
+    setLocked(true);
     const it = items.find((x) => x.rank === rank);
     void send(`[결재] 오늘 TOP 3 중 ${rank}번 「${it?.title ?? ""}」으로 할게요.`, el).then((ok) => {
       if (ok) {
         setSent(`${rank}번 결재를 보냈어요. 총괄비서가 대본 단계로 넘겨요.`);
         onApproved?.();
-      }
+      } else setLocked(false);
     });
   };
   const sendNote = (el: Element) => {
@@ -81,7 +85,7 @@ export default function ProposalCard({ data, connected, sending, lastError, send
             {t.why ? <p className="pc-why">{t.why}</p> : null}
             {t.scene ? <p className="pc-scene">🎬 {t.scene}</p> : null}
             {!done ? (
-              <button className="btn approve-button" disabled={!connected || sending} onClick={(e) => choose(t.rank, e.currentTarget)}>
+              <button className="btn approve-button" disabled={!connected || sending || locked} onClick={(e) => choose(t.rank, e.currentTarget)}>
                 {t.rank}번 결재
               </button>
             ) : null}
