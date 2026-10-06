@@ -7,6 +7,7 @@ import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard, { type InstaSnapshot } from "./InstaDashboard";
 import ReportBoard, { type ReportDoc } from "./ReportBoard";
+import CalendarBoard, { type CalendarDoc } from "./CalendarBoard";
 import {
   buildReport,
   fetchIntegrations,
@@ -19,7 +20,7 @@ import { CEO, DEPT_BRIEF, DEPT_LEAD, STAFF } from "./game/staff";
 import { DEPT_ROOMS } from "./game/world";
 import { COMPANY, SAMPLE_PROPOSAL, STORAGE_LINK } from "../company.config";
 
-type View = "live" | "dashboard" | "insta" | "report";
+type View = "live" | "dashboard" | "insta" | "report" | "calendar";
 
 /** 서버 없이 여는 한 장짜리 버전(static/main.tsx)인지 — 이때는 보고 발행 서버가 없다 */
 const isServerless = () =>
@@ -244,6 +245,9 @@ export default function Home() {
             <button className={view === "report" ? "active" : ""} onClick={() => setView("report")}>
               📰 업무 보고
             </button>
+            <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}>
+              📅 캘린더
+            </button>
             <button
               className={`todo-tab ${todo ? "urgent" : ""}`}
               onClick={() => {
@@ -274,6 +278,13 @@ export default function Home() {
             onPublish={() => void sendReport(false)}
             publishBusy={publishState.busy}
             publishResult={publishState.result}
+          />
+        ) : view === "calendar" ? (
+          <CalendarBoard
+            live={real.calendar as CalendarDoc | null}
+            liveLoaded={real.calendarLoaded}
+            dbReady={real.dbReady}
+            save={real.saveCalendar}
           />
         ) : view === "report" ? (
           <ReportBoard data={real.report as ReportDoc | null} />

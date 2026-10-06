@@ -1,0 +1,160 @@
+/* 📅 콘텐츠 캘린더 — CalendarBoard.tsx */
+.cc {
+  --cc-accent: #8b5cf6;
+  --cc-line: #ece7f3;
+  --cc-red: #e5484d;
+  --cc-red-soft: #fff0f0;
+  --cc-orange: #f2811d;
+  --cc-orange-soft: #fff4ea;
+  --cc-green: #2f9e5b;
+  --cc-green-soft: #eaf7ef;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 13px;
+}
+.cc .win-body { padding: 14px; }
+.cc-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--cc-orange-soft);
+  color: #9a4b07;
+  border: 1px solid #f7d5b4;
+  font-size: 12px;
+}
+
+/* 숫자 4칸 */
+.cc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.cc-stat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: #fff; border: 1px solid var(--cc-line); border-radius: 14px; padding: 12px 14px; text-align: left;
+  font: inherit; color: inherit;
+}
+.cc-stat span { font-size: 12px; opacity: .75; }
+.cc-stat b { font-size: 28px; font-weight: 800; line-height: 1.1; }
+.cc-stat small { font-size: 11px; opacity: .55; }
+.cc-stat.ad b { color: var(--cc-orange); }
+.cc-stat.done b { color: var(--cc-green); }
+.cc-stat.redo b { color: var(--cc-red); }
+button.cc-stat { cursor: pointer; transition: transform .08s, border-color .15s, background .15s; }
+button.cc-stat:hover { border-color: #f4c3c5; }
+button.cc-stat:active { transform: translateY(1px) scale(.99); }
+button.cc-stat[aria-pressed="true"] { border-color: var(--cc-red); background: var(--cc-red-soft); }
+
+/* 2단 */
+.cc-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
+.cc-cal {
+  position: sticky; top: 12px;
+  max-height: calc(100vh - 24px);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cc-cal-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--cc-line); background: #fff; }
+.cc-cal-head h2 { margin: 0 6px; font-size: 17px; font-weight: 800; min-width: 108px; text-align: center; }
+.cc-spacer { flex: 1; }
+.cc-scroll { overflow: auto; flex: 1; min-height: 0; background: #fff; }
+
+.cc-btn {
+  border: 1px solid var(--cc-line); background: #fff; border-radius: 10px; padding: 6px 11px;
+  cursor: pointer; font: inherit; font-weight: 700; color: inherit;
+  transition: transform .08s, background .15s, border-color .15s, box-shadow .15s;
+}
+.cc-btn:hover { border-color: #d9d0e8; background: #fcfbff; box-shadow: 0 1px 6px rgba(36, 32, 46, .06); }
+.cc-btn:active { transform: translateY(1px) scale(.98); }
+.cc-btn.primary { background: var(--cc-accent); border-color: var(--cc-accent); color: #fff; }
+.cc-btn.orange { background: var(--cc-orange); border-color: var(--cc-orange); color: #fff; }
+.cc-btn.primary:hover, .cc-btn.orange:hover { filter: brightness(1.06); }
+.cc-btn.full { width: 100%; padding: 10px 12px; }
+.cc-btn.sm { padding: 2px 7px; font-size: 11px; border-radius: 8px; }
+.cc-btn.ok { color: var(--cc-green); border-color: #bfe5cd; }
+.cc-btn.ok:hover { background: var(--cc-green-soft); }
+.cc-btn.x { margin-left: auto; opacity: .7; }
+.cc-btn.x:hover { color: var(--cc-red); border-color: #f4c3c5; opacity: 1; }
+
+.cc-weekdays, .cc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cc-weekdays { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--cc-line); }
+.cc-weekdays div { padding: 7px 8px 5px; font-size: 11px; font-weight: 700; opacity: .6; }
+.cc-weekdays .sun { color: #d6626a; opacity: 1; }
+.cc-weekdays .sat { color: #5a7fd6; opacity: 1; }
+.cc-grid { grid-auto-rows: minmax(112px, auto); }
+.cc-cell { border-right: 1px solid var(--cc-line); border-bottom: 1px solid var(--cc-line); padding: 5px; min-width: 0; transition: background .12s; }
+.cc-cell:nth-child(7n) { border-right: none; }
+.cc-cell.other { background: #fcfbfe; }
+.cc-cell.other .cc-d { opacity: .35; }
+.cc-cell.other .cc-item { opacity: .55; }
+.cc-cell.today { box-shadow: inset 0 0 0 2px var(--cc-accent); border-radius: 6px; }
+.cc-cell.today .cc-d { background: var(--cc-accent); color: #fff; }
+.cc-cell.over { background: #f4efff; }
+.cc-d { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+
+.cc-item {
+  background: #fff; border: 1px solid var(--cc-line); border-radius: 9px; padding: 5px 6px; margin-bottom: 5px;
+  font-size: 11.5px; cursor: grab; box-shadow: 0 1px 2px rgba(36, 32, 46, .04);
+}
+.cc-item:active { cursor: grabbing; }
+.cc-title { font-weight: 700; word-break: break-word; margin-top: 3px; }
+.cc-memo { opacity: .55; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-acts { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+.cc-item.done { background: var(--cc-green-soft); border-color: #bfe5cd; }
+.cc-item.done .cc-title { color: #23784a; }
+.cc-item.overdue { border: 1.5px solid var(--cc-red); background: var(--cc-red-soft); }
+.cc-item.ad { background: var(--cc-orange-soft); border-color: #f7cfa8; cursor: default; }
+.cc-item.ad.addone { opacity: .5; }
+
+.cc-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+.cc-badge.f-릴스 { background: #ffe4ef; color: #c2185b; }
+.cc-badge.f-캐러셀 { background: #e6efff; color: #2f5fc4; }
+.cc-badge.f-스토리 { background: #f0e8ff; color: #6b3fd1; }
+.cc-badge.f-기타 { background: #eeeef2; color: #5b5568; }
+.cc-badge.ad { background: var(--cc-orange); color: #fff; }
+
+.cc-redo { border-top: 1px solid var(--cc-line); padding: 12px 14px; background: #fffafa; }
+.cc-redo h3 { margin: 0 0 8px; font-size: 13px; color: var(--cc-red); }
+.cc-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--cc-line); border-radius: 10px; background: #fff; margin-bottom: 6px; }
+.cc-row.redo { border-color: #f4c3c5; }
+.cc-row.addone { opacity: .5; }
+.cc-date { font-weight: 800; font-size: 12px; min-width: 40px; }
+.cc-main { flex: 1; min-width: 0; }
+.cc-main .t { font-weight: 700; word-break: break-word; }
+.cc-main .s { opacity: .55; font-size: 11px; word-break: break-word; }
+.cc-empty { opacity: .55; font-size: 12px; margin: 4px 2px; }
+.cc-pad { padding: 16px; }
+
+/* 입력 칸 */
+.cc-side { display: flex; flex-direction: column; gap: 16px; }
+.cc-form { display: flex; flex-direction: column; gap: 9px; }
+.cc-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; }
+.cc-form label i { font-style: normal; font-weight: 400; opacity: .55; }
+.cc-form input, .cc-form select, .cc-form textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--cc-line); border-radius: 10px; padding: 8px 10px;
+  background: #fff; font: inherit; font-weight: 400; color: inherit; outline: none;
+}
+.cc-form textarea { resize: vertical; min-height: 52px; }
+.cc-form input:focus, .cc-form select:focus, .cc-form textarea:focus { border-color: var(--cc-accent); box-shadow: 0 0 0 3px rgba(139, 92, 246, .16); }
+.cc-ads .cc-form input:focus, .cc-ads .cc-form select:focus, .cc-ads .cc-form textarea:focus { border-color: var(--cc-orange); box-shadow: 0 0 0 3px rgba(242, 129, 29, .16); }
+.cc-msg { min-height: 16px; margin: 0; font-size: 12px; color: var(--cc-red); }
+.cc-adlist { margin-top: 6px; }
+
+.cc-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0;
+  background: #24202e; color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 13px;
+  transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; white-space: nowrap;
+}
+.cc-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 좁은 화면: 달력 위, 입력 칸 아래 */
+@media (max-width: 900px) {
+  .cc-layout { grid-template-columns: 1fr; }
+  .cc-cal { position: static; max-height: none; }
+  .cc-scroll { overflow: visible; }
+  .cc-weekdays { position: static; }
+}
+@media (max-width: 600px) {
+  .cc-stats { grid-template-columns: repeat(2, 1fr); }
+  .cc-stat b { font-size: 24px; }
+  .cc-grid { grid-auto-rows: minmax(80px, auto); }
+  .cc-cell { padding: 3px; }
+  .cc-item { padding: 3px 4px; font-size: 10.5px; }
+  .cc-memo { display: none; }
+  .cc-cal-head h2 { font-size: 15px; min-width: 0; }
+}

@@ -90,6 +90,11 @@ export function useRealOffice() {
   const [dashboard, setDashboard] = useState<RealDashboard | null>(null);
   const [insta, setInsta] = useState<unknown[] | null>(null);
   const [report, setReport] = useState<unknown | null>(null);
+  // 콘텐츠 캘린더 — 대표가 화면에서 쓰고, Claude도 읽고 채운다 (db 문서 office/calendar)
+  const [calendar, setCalendar] = useState<unknown | null>(null);
+  const [calendarLoaded, setCalendarLoaded] = useState(false);
+  const dbRef = useRef<{ doc(p: string): { set(d: Record<string, unknown>): Promise<void> } } | null>(null);
+  const calendarWrite = useRef<Promise<unknown>>(Promise.resolve());
   const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
   const commentsRef = useRef<CommentsApi | null>(null);
 
@@ -104,6 +109,7 @@ export function useRealOffice() {
     claude.use("db").then((db) => {
       if (!alive || !db) return;
       setDbReady(true);
+      dbRef.current = db as { doc(p: string): { set(d: Record<string, unknown>): Promise<void> } };
       const ref = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/today");
       unsub = ref.onSnapshot(
         (snap) => setDoc(snap.exists ? ((snap.data() as RealDoc) ?? null) : null),
@@ -135,6 +141,14 @@ export function useRealOffice() {
         (snap) => setReport(snap.exists ? (snap.data() ?? null) : null),
         () => setReport(null),
       );
+      const calRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/calendar");
+      const unsubCal = calRef.onSnapshot(
+        (snap) => {
+          setCalendar(snap.exists ? (snap.data() ?? null) : null);
+          setCalendarLoaded(true);
+        },
+        () => setCalendarLoaded(true),
+      );
       const prev = unsub;
       unsub = () => {
         prev?.();
@@ -142,6 +156,7 @@ export function useRealOffice() {
         unsubDash();
         unsubInsta();
         unsubReport();
+        unsubCal();
       };
     });
     claude.use("sample").then((fn) => {
@@ -200,9 +215,24 @@ export function useRealOffice() {
     }
   }, []);
 
+  /** 캘린더 전체를 한 번에 저장 — 같은 문서에는 한 번에 하나씩만 쓴다 */
+  const saveCalendar = useCallback((data: Record<string, unknown>) => {
+    const db = dbRef.current;
+    if (!db) return Promise.resolve(false);
+    const next = calendarWrite.current.then(() =>
+      db
+        .doc("office/calendar")
+        .set(data)
+        .then(() => true)
+        .catch(() => false),
+    );
+    calendarWrite.current = next;
+    return next;
+  }, []);
+
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report, calendar, calendarLoaded, saveCalendar };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;

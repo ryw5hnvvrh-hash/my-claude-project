@@ -3,6 +3,7 @@ import "./globals.css";
 import "./office.css";
 import "./theme-nature.css";
 import "./insta.css";
+import "./calendar.css";
 import { COMPANY } from "../company.config";
 
 export const metadata: Metadata = {
