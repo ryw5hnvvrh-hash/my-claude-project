@@ -13,9 +13,9 @@ export type CalendarDoc = { plans?: CalPlan[]; ads?: CalAd[]; updatedAt?: string
 
 /* ■ 설정 */
 const FORMATS = ["릴스", "캐러셀", "스토리", "기타"];
-// 계획 등록에만 "배송"(택배 발송·입고·마감)이 더 있다. 광고 포맷은 그대로.
-const PLAN_FORMATS = ["릴스", "캐러셀", "스토리", "배송", "기타"];
-const doneLabel = (f: string) => (f === "배송" ? "발송 완료" : "게시 완료");
+// 계획 등록에만 "배송"(택배 발송·입고·마감)과 "개인"(아이폰·구글 캘린더 개인 일정)이 더 있다. 광고 포맷은 그대로.
+const PLAN_FORMATS = ["릴스", "캐러셀", "스토리", "배송", "개인", "기타"];
+const doneLabel = (f: string) => (f === "배송" ? "발송 완료" : f === "개인" ? "완료" : "게시 완료");
 const WEEK_START: "일" | "월" = "월";
 const KEY_PLANS = "myplan-calendar-v1";
 const KEY_ADS = "myplan-ads-v1";
@@ -133,7 +133,8 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
     [useDb, save],
   );
 
-  const isOverdue = useCallback((p: CalPlan) => !p.done && p.date < today, [today]);
+  // 개인 일정은 지나도 "다시 배치" 대상이 아니다
+  const isOverdue = useCallback((p: CalPlan) => !p.done && p.format !== "개인" && p.date < today, [today]);
 
   /* 달력 칸 */
   const startIdx = WEEK_START === "월" ? 1 : 0;
