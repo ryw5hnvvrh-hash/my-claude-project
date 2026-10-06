@@ -105,6 +105,7 @@ button.cc-stat[aria-pressed="true"] { border-color: var(--cc-red); background: v
 .cc-badge.f-릴스 { background: #ffe4ef; color: #c2185b; }
 .cc-badge.f-캐러셀 { background: #e6efff; color: #2f5fc4; }
 .cc-badge.f-스토리 { background: #f0e8ff; color: #6b3fd1; }
+.cc-badge.f-배송 { background: #e3f6f3; color: #11796b; }
 .cc-badge.f-기타 { background: #eeeef2; color: #5b5568; }
 .cc-badge.ad { background: var(--cc-orange); color: #fff; }
 

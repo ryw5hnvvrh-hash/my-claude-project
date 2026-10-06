@@ -140,6 +140,7 @@
   .badge.f-릴스 { background: #ffe4ef; color: #c2185b; }
   .badge.f-캐러셀 { background: #e6efff; color: #2f5fc4; }
   .badge.f-스토리 { background: #f0e8ff; color: #6b3fd1; }
+  .badge.f-배송 { background: #e3f6f3; color: #11796b; }
   .badge.f-기타 { background: #eeeef2; color: #5b5568; }
   .badge.ad { background: var(--orange); color: #fff; }
 
@@ -248,7 +249,7 @@
           <div class="field"><label for="pTitle">내용</label><input id="pTitle" placeholder="예: 협찬 촬영 / 라이브 방송"></div>
           <div class="field"><label for="pDate">날짜</label><input id="pDate" type="date"></div>
           <div class="field"><label for="pFormat">포맷</label><select id="pFormat"></select></div>
-          <div class="field"><label for="pMemo">메모 <span class="opt">(선택 · 준비할 것·시간)</span></label><textarea id="pMemo" rows="2"></textarea></div>
+          <div class="field"><label for="pMemo">메모 <span class="opt" id="pMemoHint">(선택 · 준비할 것·시간)</span></label><textarea id="pMemo" rows="2"></textarea></div>
           <div class="form-msg" id="pMsg"></div>
           <button type="submit" class="btn primary full">달력에 올리기</button>
         </form>
@@ -281,6 +282,7 @@ const CONFIG = {
   SERVICE_NAME: "THING THAT HIT 콘텐츠 캘린더",
   OWNER: "@thth_lll",
   FORMATS: ["릴스", "캐러셀", "스토리", "기타"],
+  PLAN_FORMATS: ["릴스", "캐러셀", "스토리", "배송", "기타"], // 계획 등록에만 배송
   WEEK_START: "월"            // "일" 또는 "월"
 };
 
@@ -342,14 +344,19 @@ document.getElementById("weekdays").innerHTML = Array.from({ length: 7 }, (_, i)
   return `<div class="${cls}">${DAY_NAMES[idx]}</div>`;
 }).join("");
 
-for (const id of ["pFormat", "aFormat"]) {
-  document.getElementById(id).innerHTML = CONFIG.FORMATS.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+for (const [id, list] of [["pFormat", CONFIG.PLAN_FORMATS], ["aFormat", CONFIG.FORMATS]]) {
+  document.getElementById(id).innerHTML = list.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
 }
+document.getElementById("pFormat").addEventListener("change", e => {
+  const ship = e.target.value === "배송";
+  document.getElementById("pMemoHint").textContent = ship ? "(선택 · 택배사·건수·마감 시간)" : "(선택 · 준비할 것·시간)";
+  document.getElementById("pMemo").placeholder = ship ? "예: 아이원츄 예약분 12건 · 우체국 · 16시 마감" : "";
+});
 document.getElementById("pDate").value = todayStr();
 document.getElementById("aDate").value = todayStr();
 
 // 뱃지 색은 릴스·캐러셀·스토리·기타 4가지. 그 밖의 포맷 이름은 기타 색으로 보인다.
-const badgeClass = f => ["릴스", "캐러셀", "스토리", "기타"].includes(f) ? `f-${f}` : "f-기타";
+const badgeClass = f => CONFIG.PLAN_FORMATS.includes(f) ? `f-${f}` : "f-기타";
 
 /* ── 달력 그리기 ── */
 function render() {
@@ -390,7 +397,7 @@ function planCard(p) {
     <div class="acts">
       ${p.done
         ? `<button type="button" class="btn small" data-act="undo" data-id="${p.id}">되돌리기</button>`
-        : `<button type="button" class="btn small ok" data-act="done" data-id="${p.id}">게시 완료</button>`}
+        : `<button type="button" class="btn small ok" data-act="done" data-id="${p.id}">${p.format === "배송" ? "발송 완료" : "게시 완료"}</button>`}
       <button type="button" class="btn small x" data-act="del" data-id="${p.id}" aria-label="지우기">×</button>
     </div>
   </div>`;
@@ -423,7 +430,7 @@ function renderRedo() {
         <span class="date">${shortDate(p.date)}</span>
         <div class="main"><div class="t"><span class="badge ${badgeClass(p.format)}">${esc(p.format)}</span> ${esc(p.title)}</div>
         ${p.memo ? `<div class="s">${esc(p.memo)}</div>` : ""}</div>
-        <button type="button" class="btn small ok" data-act="done" data-id="${p.id}">게시 완료</button>
+        <button type="button" class="btn small ok" data-act="done" data-id="${p.id}">${p.format === "배송" ? "발송 완료" : "게시 완료"}</button>
         <button type="button" class="btn small x" data-act="del" data-id="${p.id}" aria-label="지우기">×</button>
       </div>`).join("")
     : `<div class="empty">아직 없어요</div>`;

@@ -13,6 +13,9 @@ export type CalendarDoc = { plans?: CalPlan[]; ads?: CalAd[]; updatedAt?: string
 
 /* ■ 설정 */
 const FORMATS = ["릴스", "캐러셀", "스토리", "기타"];
+// 계획 등록에만 "배송"(택배 발송·입고·마감)이 더 있다. 광고 포맷은 그대로.
+const PLAN_FORMATS = ["릴스", "캐러셀", "스토리", "배송", "기타"];
+const doneLabel = (f: string) => (f === "배송" ? "발송 완료" : "게시 완료");
 const WEEK_START: "일" | "월" = "월";
 const KEY_PLANS = "myplan-calendar-v1";
 const KEY_ADS = "myplan-ads-v1";
@@ -36,7 +39,7 @@ const inMonth = (s: string, y: number, m: number) => {
   const d = parseYmd(s);
   return d.getFullYear() === y && d.getMonth() === m;
 };
-const badgeClass = (f: string) => (FORMATS.includes(f) ? `f-${f}` : "f-기타");
+const badgeClass = (f: string) => (PLAN_FORMATS.includes(f) ? `f-${f}` : "f-기타");
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function readLocal<T>(key: string): T[] | null {
@@ -70,7 +73,7 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
   // 계획 입력
   const [pTitle, setPTitle] = useState("");
   const [pDate, setPDate] = useState(today);
-  const [pFormat, setPFormat] = useState(FORMATS[0]);
+  const [pFormat, setPFormat] = useState(PLAN_FORMATS[0]);
   const [pMemo, setPMemo] = useState("");
   const [pMsg, setPMsg] = useState("");
   // 광고 입력
@@ -349,7 +352,7 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
                               </button>
                             ) : (
                               <button type="button" className="cc-btn sm ok" onClick={() => setDone(p.id, true)}>
-                                게시 완료
+                                {doneLabel(p.format)}
                               </button>
                             )}
                             <button type="button" className="cc-btn sm x" onClick={() => delPlan(p)} aria-label="지우기">
@@ -387,7 +390,7 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
                         {p.memo ? <div className="s">{p.memo}</div> : null}
                       </div>
                       <button type="button" className="cc-btn sm ok" onClick={() => setDone(p.id, true)}>
-                        게시 완료
+                        {doneLabel(p.format)}
                       </button>
                       <button type="button" className="cc-btn sm x" onClick={() => delPlan(p)} aria-label="지우기">
                         ×
@@ -419,14 +422,19 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
               <label>
                 포맷
                 <select value={pFormat} onChange={(e) => setPFormat(e.target.value)}>
-                  {FORMATS.map((f) => (
+                  {PLAN_FORMATS.map((f) => (
                     <option key={f}>{f}</option>
                   ))}
                 </select>
               </label>
               <label>
-                메모 <i>(선택 · 준비할 것·시간)</i>
-                <textarea rows={2} value={pMemo} onChange={(e) => setPMemo(e.target.value)} />
+                메모 <i>{pFormat === "배송" ? "(선택 · 택배사·건수·마감 시간)" : "(선택 · 준비할 것·시간)"}</i>
+                <textarea
+                  rows={2}
+                  value={pMemo}
+                  onChange={(e) => setPMemo(e.target.value)}
+                  placeholder={pFormat === "배송" ? "예: 아이원츄 예약분 12건 · 우체국 · 16시 마감" : undefined}
+                />
               </label>
               <p className="cc-msg">{pMsg}</p>
               <button type="submit" className="cc-btn primary full">
