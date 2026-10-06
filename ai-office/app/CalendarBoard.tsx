@@ -192,20 +192,17 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
 
   /* 카드 버튼 */
   const setDone = (id: string, done: boolean) => persist(plans.map((p) => (p.id === id ? { ...p, done } : p)), ads);
-  const delPlan = (p: CalPlan) => {
-    if (!window.confirm(`"${p.title}" 계획을 지울까요?`)) return;
-    persist(
-      plans.filter((x) => x.id !== p.id),
-      ads,
-    );
-  };
+  // 지우기 확인 — 오피스는 아티팩트 틀 안에서 돌아서 브라우저 confirm 창이 막힌다(늘 "아니오"). 그래서 화면 안 확인 창을 쓴다.
+  const [askDel, setAskDel] = useState<{ kind: "plan" | "ad"; id: string; title: string } | null>(null);
+  const delPlan = (p: CalPlan) => setAskDel({ kind: "plan", id: p.id, title: p.title });
   const toggleAd = (id: string) => persist(plans, ads.map((a) => (a.id === id ? { ...a, done: !a.done } : a)));
-  const delAd = (a: CalAd) => {
-    if (!window.confirm(`"${a.title}" 광고 일정을 지울까요?`)) return;
-    persist(
-      plans,
-      ads.filter((x) => x.id !== a.id),
-    );
+  const delAd = (a: CalAd) => setAskDel({ kind: "ad", id: a.id, title: a.title });
+  const confirmDel = () => {
+    if (!askDel) return;
+    if (askDel.kind === "plan") persist(plans.filter((x) => x.id !== askDel.id), ads);
+    else persist(plans, ads.filter((x) => x.id !== askDel.id));
+    setAskDel(null);
+    showToast("지웠어요");
   };
 
   /* 드래그로 날짜 옮기기 */
@@ -507,6 +504,26 @@ export default function CalendarBoard({ live, liveLoaded, dbReady, save }: Props
           </section>
         </aside>
       </div>
+
+      {askDel ? (
+        <div className="cc-modal" role="dialog" aria-modal="true" onClick={() => setAskDel(null)}>
+          <div className="cc-modal-box" onClick={(e) => e.stopPropagation()}>
+            <p>
+              <b>"{askDel.title}"</b>
+              <br />
+              {askDel.kind === "plan" ? "계획을 지울까요?" : "광고 일정을 지울까요?"}
+            </p>
+            <div className="cc-modal-acts">
+              <button type="button" className="cc-btn" onClick={() => setAskDel(null)} autoFocus>
+                취소
+              </button>
+              <button type="button" className="cc-btn danger" onClick={confirmDel}>
+                지우기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className={`cc-toast${toast ? " show" : ""}`} role="status" aria-live="polite">
         {toast}
