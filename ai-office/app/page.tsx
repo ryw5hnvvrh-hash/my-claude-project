@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRealOffice, todayKst, type RealOffice, type RealDashboard, type ResearchDoc } from "./real";
 import ResearchCard from "./ResearchCard";
+import ProposalCard from "./ProposalCard";
 import { askStaff } from "./talk";
 import OfficeWorld from "./game/OfficeWorld";
 import InstaDashboard, { type InstaSnapshot } from "./InstaDashboard";
@@ -19,7 +20,7 @@ import {
 import { Company, PHASES, type Agent, type DeptStatus, type Snapshot } from "./game/sim";
 import { CEO, DEPT_BRIEF, DEPT_LEAD, STAFF } from "./game/staff";
 import { DEPT_ROOMS } from "./game/world";
-import { COMPANY, SAMPLE_PROPOSAL, STORAGE_LINK } from "../company.config";
+import { COMPANY, STORAGE_LINK } from "../company.config";
 
 type View = "live" | "dashboard" | "insta" | "report" | "calendar";
 
@@ -330,6 +331,7 @@ export default function Home() {
               save: real.saveCalendar,
             }}
             research={real.research}
+            realOffice={real}
           />
         )}
 
@@ -486,23 +488,30 @@ function LiveView({
               <span className="window-controls">—　▢　✕</span>
             </div>
             <div className={`win-body approval-body ${snap.approvalPending ? "pending" : ""}`}>
-              {snap.realMode && real.doc?.top3?.length ? (
+              {real.proposals?.date === todayKst() && real.proposals.items?.length ? (
+                <ProposalCard
+                  data={real.proposals}
+                  connected={real.connected}
+                  sending={real.sending}
+                  lastError={real.lastError}
+                  send={real.send}
+                  onApproved={() => {
+                    if (snap.approvalPending) onApprove();
+                  }}
+                />
+              ) : snap.realMode && real.doc?.top3?.length ? (
                 <RealTop3 real={real} />
               ) : snap.approvalPending ? (
                 <>
                   <div className="approval-top">
-                    <span className="mini-badge yellow">TOP 1 제안 · {SAMPLE_PROPOSAL.score}</span>
-                    <span className="score blink">결재 대기</span>
+                    <span className="mini-badge yellow">결재 대기 · 오늘 TOP 3 아직 없음</span>
                   </div>
-                  <h3>{SAMPLE_PROPOSAL.title}</h3>
-                  <p>회의실에서 {["research", "strategy1", "qa"].map((d) => DEPT_LEAD[d]?.name).join("·")}이(가) 대표님을 기다리고 있어요.</p>
-                  <div className="reason-list">
-                    {SAMPLE_PROPOSAL.points.map((point, i) => (
-                      <span key={point}>{"①②③④⑤"[i]} {point}</span>
-                    ))}
-                  </div>
-                  <button className="btn approve-button" onClick={onApprove}>
-                    이 콘텐츠 승인하기
+                  <h3>오늘 TOP 3가 아직 안 올라왔어요</h3>
+                  <p>
+                    기획 1팀이 우리 계획 + 시장조사팀 키워드 + 대표님 의견으로 매일 아침 TOP 3를 새로 올려요. 지시창에 의견을 남기시면 반영해서 다시 올려요.
+                  </p>
+                  <button className="btn" onClick={onApprove}>
+                    화면 진행만 계속하기
                   </button>
                 </>
               ) : (
@@ -994,6 +1003,7 @@ function DashboardView({
   publishResult,
   calendar,
   research,
+  realOffice,
 }: {
   teams: TeamRow[];
   filteredTeams: TeamRow[];
@@ -1010,6 +1020,7 @@ function DashboardView({
   publishResult: PublishResult | null;
   calendar?: { live: CalendarDoc | null; liveLoaded: boolean; dbReady: boolean; save: (d: Record<string, unknown>) => Promise<boolean> };
   research?: ResearchDoc | null;
+  realOffice?: RealOffice;
 }) {
   // 서버가 알려준 실제 설정 상태로 표시한다 (연결됐다고 거짓 보고하지 않는다)
   const liveRows = integrations
@@ -1235,19 +1246,26 @@ function DashboardView({
                 <span className="window-controls">—　▢　✕</span>
               </div>
               <div className="win-body approval-body">
-                <div className="approval-top">
-                  <span className="mini-badge yellow">TOP 1 제안</span>
-                  <span className="score">{SAMPLE_PROPOSAL.score}</span>
-                </div>
-                <h3>{SAMPLE_PROPOSAL.title}</h3>
-                <p>{SAMPLE_PROPOSAL.summary}</p>
-                <button
-                  className={`btn approve-button ${snap.approved ? "approved" : ""}`}
-                  onClick={onApprove}
-                  disabled={!snap.approvalPending}
-                >
-                  {snap.approved ? "승인 완료 · 제작팀 전달됨" : snap.approvalPending ? "이 콘텐츠 승인하기" : "대기 중인 안건 없음"}
-                </button>
+                {realOffice?.proposals?.date === todayKst() && realOffice.proposals.items?.length ? (
+                  <ProposalCard
+                    data={realOffice.proposals}
+                    connected={realOffice.connected}
+                    sending={realOffice.sending}
+                    lastError={realOffice.lastError}
+                    send={realOffice.send}
+                    onApproved={() => {
+                      if (snap.approvalPending) onApprove();
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div className="approval-top">
+                      <span className="mini-badge yellow">오늘 TOP 3 아직 없음</span>
+                    </div>
+                    <h3>오늘 TOP 3가 아직 안 올라왔어요</h3>
+                    <p>기획 1팀이 우리 계획 + 시장조사팀 키워드 + 대표님 의견으로 매일 아침 새로 올려요.</p>
+                  </>
+                )}
               </div>
             </section>
 
