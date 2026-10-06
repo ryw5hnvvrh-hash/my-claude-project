@@ -363,4 +363,4 @@
 ## 📅 콘텐츠 캘린더 (오피스 탭, 2026-10-06 신설)
 - 오피스 '📅 캘린더' 탭 = db 문서 `office/calendar` {plans:[{id,title,date,format,memo,done}], ads:[{id,brand,title,date,format,memo,done}]}. 대표가 화면에서 등록·드래그·게시 완료를 누르면 이 문서가 바뀐다.
 - 총괄비서: 게시 일정이 확정·변경되면 캘린더에도 반영하고(ArtifactData, 버전 고정), 업무 시작 때 캘린더를 읽어 오늘 계획을 확인한다. 게시 완료는 인스타에서 게시가 확인됐을 때만 찍는다(대표가 직접 누른 건 그대로 둔다).
-- 파일로 열면(db 없음) 이 브라우저 localStorage(myplan-calendar-v1 / myplan-ads-v1)에만 저장된다. 단독 파일 버전: `tools/content-calendar/index.html`.
+- 파일로 열면(db 없음) 이 브라우저 localStorage(myplan-calendar-v1 / myplan-ads-v1)에만 저장된다.
