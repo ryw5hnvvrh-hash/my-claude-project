@@ -604,7 +604,8 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const [talkOff, setTalkOff] = useState(false);
-  const [retry, setRetry] = useState<string | null>(null);
+  // 보내지 못한 지시를 모아 둔다 — 버튼 한 번으로 한꺼번에 다시 보낸다
+  const [retry, setRetry] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const realChat = real.doc?.chat ?? [];
@@ -626,22 +627,30 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
     seenReal.current = realChat.length;
   }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 대표가 지시창에 쓴 말은 모두 총괄비서(Claude)에게 보낸다.
+  // 반드시 대표의 클릭·전송 안에서 바로 불러야 한다 (나중에 부르면 브라우저가 막는다).
   const forwardToClaude = (text: string) => {
     if (!real.connected) return;
     void real.send(text, formRef.current).then((ok) => {
-      if (!ok) setRetry(text);
+      if (!ok) setRetry((list) => [...list, text]);
       else engine.pushChat("staff", "총괄비서", "받았어요. 실제로 반영하고 결과를 여기와 실제 업무 칸에 올릴게요.");
     });
+  };
+
+  const resendAll = () => {
+    const list = retry;
+    if (!list.length) return;
+    setRetry([]);
+    forwardToClaude(list.length === 1 ? list[0] : `[다시 보냄]\n${list.map((t) => `- ${t}`).join("\n")}`);
   };
 
   const send = (text: string) => {
     const value = text.trim();
     if (!value || thinking) return;
     setDraft("");
-    setRetry(null);
-    // 실제 업무가 대표 확인을 기다리는 중이면(의견·TOP 3·대본) 곧바로 총괄비서에게 보낸다
-    const mustForward = snap.realMode && !!real.doc?.waiting;
-    if (mustForward) forwardToClaude(value);
+    // 모든 말을 곧바로(클릭 안에서) 총괄비서에게 보낸다. 직원 대화는 화면 속 반응일 뿐이다.
+    const forwarded = real.connected;
+    if (forwarded) forwardToClaude(value);
     if (opinionAsk) engine.recordOpinion(value);
 
     if (real.sample && !talkOff) {
@@ -656,19 +665,16 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
         .then((r) => {
           engine.speakAs(r.speaker, r.reply);
           if (r.action && r.action !== "none") engine.act(r.action, r.dept);
-          if (r.forward && !mustForward && real.connected) forwardToClaude(value);
         })
         .catch((e: { code?: string }) => {
           if (e?.code === "not_granted") setTalkOff(true);
-          if (snap.realMode && !mustForward) forwardToClaude(value);
-          else engine.command(value, false);
+          if (!forwarded) engine.command(value, false);
         })
         .finally(() => setThinking(false));
       return;
     }
-    if (snap.realMode) {
+    if (snap.realMode || forwarded) {
       engine.ceoSays(value);
-      if (!mustForward) forwardToClaude(value);
       return;
     }
     engine.command(value);
@@ -706,9 +712,9 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
             </div>
           ) : null}
         </div>
-        {retry ? (
-          <button className="btn btn-ghost retry-send" onClick={() => { const t = retry; setRetry(null); forwardToClaude(t); }}>
-            📨 총괄비서에게 다시 보내기
+        {retry.length ? (
+          <button className="btn btn-ghost retry-send" onClick={resendAll}>
+            📨 못 보낸 지시 {retry.length}개 다시 보내기
           </button>
         ) : null}
         {real.lastError ? <p className="real-error">{real.lastError}</p> : null}
