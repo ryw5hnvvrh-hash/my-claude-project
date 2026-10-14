@@ -6,9 +6,8 @@ WrapStyle: 2
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Hook,Noto Sans KR,88,&H00442A1E,&H00442A1E,&H00FFFFFF,&H00000000,1,0,0,0,100,100,0,0,1,2.5,0,2,60,60,300,1
-Style: Sub,Noto Sans KR Medium,62,&H00442A1E,&H00442A1E,&H00FFFFFF,&H00000000,0,0,0,0,100,100,0,0,1,2.5,0,2,60,60,300,1
+Style: Cute,Jua,96,&H00FFFFFF,&H00FFFFFF,&H00D9A38F,&H40B07A6A,0,0,0,0,100,100,4,0,1,7,3,2,60,60,560,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,0:00:05.43,Hook,,0,0,0,,{\fad(150,200)}깔끔한 폰꾸 찾고 있다면
+Dialogue: 0,0:00:00.00,0:00:05.43,Cute,,0,0,0,,{\fad(120,200)}꾸민 듯 안 꾸민 듯!\N투명 나비 그립톡
