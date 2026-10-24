@@ -43,7 +43,8 @@ def main(day: str, out: str):
     d = date.fromisoformat(day)
     yday = (d - timedelta(days=1)).isoformat()
     posts = today.get("posts") or []
-    yposts = [p for p in posts if (p.get("timestamp") or "")[:10] == yday]
+    # 자정 넘겨 올린 게시물(새벽 6시 전)도 어제 게시물로 친다 — timestamp 는 KST
+    yposts = [p for p in posts if f"{yday}T06:00" <= (p.get("timestamp") or "")[:16] < f"{day}T06:00"]
     if yposts:
         p = yposts[0]
         bits = [f"도달 {p['reach']:,}" if p.get("reach") is not None else None,
