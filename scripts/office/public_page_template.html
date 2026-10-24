@@ -1,0 +1,200 @@
+<title>THING THAT HIT 대시보드</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column on phones, two columns from ~760px; gate screen first, dashboard after a name */
+:root {
+  --bg: #f6f5fa; --panel: #ffffff; --ink: #1f1c2b; --muted: #6b6680; --line: #e3e0ee;
+  --accent: #7d6bc8; --accent-soft: #ece8fa; --ok: #2f8a5b; --bad: #c2453b; --warn: #b07a12;
+  --display: "Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15131c; --panel: #1f1c29; --ink: #eeebf7; --muted: #a39dba; --line: #332f42;
+  --accent: #a796ee; --accent-soft: #2b2640; --ok: #5cc28d; --bad: #ec7b70; --warn: #e2b04e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15131c; --panel: #1f1c29; --ink: #eeebf7; --muted: #a39dba; --line: #332f42;
+  --accent: #a796ee; --accent-soft: #2b2640; --ok: #5cc28d; --bad: #ec7b70; --warn: #e2b04e; color-scheme: dark }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: 16px; padding-right: 16px; box-sizing: border-box;
+  display: grid; gap: 20px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 36px); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.handle { color: var(--muted); font-size: 13px; }
+.take { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
+.updated { font-size: 12px; color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.panel h2 { font-size: 16px; font-weight: 700; margin: 0; }
+.panel .note { font-size: 12px; color: var(--muted); margin: 2px 0 12px; }
+.tiles { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.tile .lbl { font-size: 12px; color: var(--muted); }
+.tile .big { font-family: var(--display); font-size: 30px; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.up { color: var(--ok) !important; } .down { color: var(--bad) !important; }
+.two { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .two { grid-template-columns: 1fr 1fr; } }
+.chart svg { display: block; width: 100%; height: auto; }
+.list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .d { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .t { min-width: 0; overflow-wrap: anywhere; }
+.row .t a { color: inherit; text-decoration-color: var(--line); }
+.row .t small { display: block; color: var(--muted); font-size: 12px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.done { color: var(--ok); } .pill.past { color: var(--muted); } .pill.next { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.nums { display: flex; gap: 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; margin-top: 2px; }
+.nums b { color: var(--ink); font-weight: 700; }
+/* gate */
+.gate { min-height: 70vh; display: grid; place-items: center; }
+.gate .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px 22px; width: min(100%, 380px); box-sizing: border-box; display: grid; gap: 14px; text-align: left; }
+.gate h1 { font-size: 28px; }
+.gate p { margin: 0; color: var(--muted); font-size: 14px; }
+.gate label { font-size: 13px; font-weight: 500; }
+.gate input { font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.gate input:focus-visible, .btn:focus-visible, .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { font: inherit; font-weight: 700; padding: 12px 14px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: default; }
+.err { color: var(--bad); font-size: 13px; min-height: 1.2em; }
+.hello { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.link { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
+@media (prefers-reduced-motion: no-preference) { .fade { animation: fade .35s ease-out both; } @keyframes fade { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
+</style>
+
+<div class="wrap">
+  <section class="gate" id="gate">
+    <div class="card">
+      <div class="handle">@thth_lll</div>
+      <h1>THING THAT HIT 대시보드</h1>
+      <p>이름만 적으면 바로 볼 수 있어요.</p>
+      <label for="name">이름</label>
+      <input id="name" type="text" autocomplete="name" maxlength="20" placeholder="예: 김민지">
+      <div class="err" id="err" role="alert"></div>
+      <button class="btn" id="join" type="button">시작하기</button>
+    </div>
+  </section>
+
+  <main id="dash" hidden>
+    <div class="wrap" style="padding:0">
+      <div class="hello"><span id="hello"></span><button class="link" id="logout" type="button">이름 바꾸기</button></div>
+      <header>
+        <div class="handle">@thth_lll · 레진 핸드메이드</div>
+        <h1>THING THAT HIT 대시보드</h1>
+        <p class="take" id="take"></p>
+        <div class="updated" id="updated"></div>
+      </header>
+      <section class="tiles" id="tiles" aria-label="요약"></section>
+      <div class="two">
+        <section class="panel" id="followers-card"><h2>팔로워 추이</h2><p class="note">매일 아침 08:50 기준</p><div class="chart" id="fchart"></div></section>
+        <section class="panel" id="plan-card"><h2>콘텐츠 일정</h2><p class="note">지난 7일 ~ 앞으로 2주 · 릴스 23:00, 스토리 21:00</p><ul class="list" id="plan"></ul></section>
+      </div>
+      <section class="panel" id="posts-card"><h2>최근 게시물</h2><p class="note">최근 10개 · 숫자는 누적</p><ul class="list" id="posts"></ul></section>
+    </div>
+  </main>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const nf = new Intl.NumberFormat('ko-KR');
+  const KEY = 'thth-dash-name';
+  const store = { get() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } },
+                  set(v) { try { localStorage.setItem(KEY, v); } catch (e) {} },
+                  clear() { try { localStorage.removeItem(KEY); } catch (e) {} } };
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+
+  function show(name) {
+    $('gate').hidden = true; $('dash').hidden = false; $('dash').classList.add('fade');
+    $('hello').textContent = `${name}님, 반가워요`;
+  }
+  function gate() { $('dash').hidden = true; $('gate').hidden = false; $('name').value = ''; }
+  $('join').addEventListener('click', () => {
+    const v = $('name').value.trim();
+    if (v.length < 1) { $('err').textContent = '이름을 적어주세요.'; return; }
+    $('err').textContent = ''; store.set(v); show(v);
+  });
+  $('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('join').click(); });
+  $('logout').addEventListener('click', () => { store.clear(); gate(); });
+
+  // summary
+  const f = D.followers.slice().sort((a, b) => a.day < b.day ? -1 : 1);
+  const last = f[f.length - 1];
+  const lastDate = last ? new Date(last.day) : null;
+  const weekAgo = lastDate ? f.filter((r) => (lastDate - new Date(r.day)) / 864e5 >= 7).pop() : null;
+  const chg = weekAgo ? last.followers - weekAgo.followers : null;
+  const posts = D.posts.slice().sort((a, b) => a.posted < b.posted ? 1 : -1);
+  const top = D.posts.reduce((m, r) => (r.views ?? -1) > (m.views ?? -1) ? r : m, {});
+  const saved = D.posts.reduce((s, r) => s + (r.saved || 0), 0);
+  const md = (s) => s ? `${+s.slice(5, 7)}/${+s.slice(8, 10)}` : '';
+  $('take').textContent = last ? `${md(last.day)} 아침 기준 팔로워 ${nf.format(last.followers)}명${chg === null ? '' : `, 지난 7일 ${chg >= 0 ? '+' : ''}${chg}명`}. 가장 많이 본 게시물은 「${top.title || '—'}」.` : '';
+  $('updated').textContent = `마지막 갱신 ${D.updated}`;
+
+  const tiles = [
+    ['팔로워', last ? nf.format(last.followers) : '—', chg === null ? '' : `${chg >= 0 ? '+' : ''}${chg} · 지난 7일`, chg > 0 ? 'up' : chg < 0 ? 'down' : ''],
+    ['가장 최근 게시물 조회', posts[0] && posts[0].views != null ? nf.format(posts[0].views) : '—', posts[0] ? `${md(posts[0].posted)} 올림` : '', ''],
+    ['가장 많이 본 게시물', top.views != null ? nf.format(top.views) : '—', top.title || '', ''],
+    ['저장 합계', nf.format(saved), '최근 10개', ''],
+  ];
+  tiles.forEach(([l, b, s, c]) => { const t = el('div', 'tile'); t.append(el('div', 'lbl', l), el('div', 'big', b), el('div', 'sub ' + c, s)); $('tiles').append(t); });
+
+  // followers chart (SVG, scaled to the box)
+  function drawChart() {
+    const box = $('fchart'); box.replaceChildren();
+    if (!f.length) { box.append(el('p', 'note', '아직 기록이 없어요')); return; }
+    const W = Math.max(280, box.clientWidth || 320), H = 200, ml = 34, mr = 40, mt = 10, mb = 24;
+    const xs = f.map((r) => new Date(r.day).getTime()), ys = f.map((r) => r.followers);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys) - 2, y1 = Math.max(...ys) + 2;
+    const X = (t) => ml + (x1 === x0 ? 0 : (t - x0) / (x1 - x0)) * (W - ml - mr);
+    const Y = (v) => mt + (1 - (v - y0) / (y1 - y0 || 1)) * (H - mt - mb);
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `팔로워 ${ys[0]}명에서 ${ys[ys.length - 1]}명`);
+    const mk = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+    const step = Math.max(1, Math.ceil((y1 - y0) / 4));
+    for (let v = Math.ceil(y0); v <= y1; v += step) {
+      mk('line', { x1: ml, x2: W - mr, y1: Y(v), y2: Y(v), stroke: 'var(--line)' });
+      mk('text', { x: ml - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--muted)' }).textContent = v;
+    }
+    [f[0], f[Math.floor(f.length / 2)], f[f.length - 1]].forEach((r, i) => {
+      mk('text', { x: X(new Date(r.day).getTime()), y: H - 6, 'text-anchor': ['start', 'middle', 'end'][i], 'font-size': 11, fill: 'var(--muted)' }).textContent = md(r.day);
+    });
+    mk('path', { d: f.map((r, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(r.followers).toFixed(1)}`).join(''), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    const lx = X(xs[xs.length - 1]), ly = Y(ys[ys.length - 1]);
+    mk('circle', { cx: lx, cy: ly, r: 4, fill: 'var(--accent)' });
+    mk('text', { x: lx + 6, y: ly + 4, 'font-size': 12, fill: 'var(--ink)' }).textContent = ys[ys.length - 1];
+    box.append(svg);
+  }
+  drawChart();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawChart, 150); });
+
+  // plan
+  D.plan.forEach((p) => {
+    const li = el('li', 'row');
+    const t = el('div', 't', p.title); t.append(el('small', '', p.format));
+    const cls = p.status === '완료' ? 'done' : p.status === '지남' ? 'past' : 'next';
+    li.append(el('div', 'd', md(p.date)), t, el('span', 'pill ' + cls, p.status));
+    $('plan').append(li);
+  });
+
+  // posts
+  posts.forEach((p) => {
+    const li = el('li', 'row');
+    const t = el('div', 't');
+    if (/^https:\/\/www\.instagram\.com\//.test(p.link || '')) { const a = el('a', '', p.title); a.href = p.link; a.target = '_blank'; a.rel = 'noopener'; t.append(a); }
+    else t.append(document.createTextNode(p.title));
+    const n = el('div', 'nums');
+    [['조회', p.views], ['좋아요', p.likes], ['저장', p.saved]].forEach(([k, v]) => { const s = el('span', '', k + ' '); s.append(el('b', '', v == null ? '—' : nf.format(v))); n.append(s); });
+    t.append(n);
+    li.append(el('div', 'd', md(p.posted)), t, el('span', 'pill', p.format));
+    $('posts').append(li);
+  });
+
+  const saved0 = store.get();
+  if (saved0) show(saved0);
+})();
+</script>
