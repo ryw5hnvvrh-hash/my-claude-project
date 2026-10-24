@@ -1,0 +1,222 @@
+/* ═══════════════════════════════════════════════════════════
+   NATURE THEME — 원목·크림·세이지 그린·화분
+   globals.css / office.css 위에 덮어씌우는 테마입니다.
+   색을 바꾸려면 아래 :root 토큰만 고치면 됩니다.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* 기존 토큰 이름은 그대로 두고 값만 자연 톤으로 바꿉니다 (pink = 주 강조색) */
+  --pink: #8fb573;        /* 잎사귀 연두 */
+  --pink-deep: #5e8a47;   /* 짙은 잎 */
+  --pink-bg: #efe4cf;     /* 크림 종이 */
+  --pink-line: #d6c2a0;   /* 연한 나무결 선 */
+  --ink: #4a3322;         /* 월넛 */
+  --ink-soft: #7a5f48;
+  --ink-faint: #a88e74;
+  --lav: #d9d0ee;
+  --mint: #d3e8bd;        /* 세이지 */
+  --yellow: #f5e6b8;      /* 크림 옐로 */
+  --win: #fffaf0;
+  --shadow: 5px 5px 0 rgba(74, 51, 34, 0.22);
+  --wood-dark: #6b4a30;
+  --wood: #a2744b;
+  --wood-light: #c99a66;
+  --oak-a: #e2bd8b;
+  --oak-b: #d8b07c;
+  --plant: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 20' shape-rendering='crispEdges'%3E%3Crect x='7' y='1' width='2' height='3' fill='%233f7a3a'/%3E%3Crect x='4' y='3' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='9' y='3' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='2' y='5' width='4' height='2' fill='%233f7a3a'/%3E%3Crect x='10' y='5' width='4' height='2' fill='%233f7a3a'/%3E%3Crect x='5' y='5' width='6' height='3' fill='%238fc46a'/%3E%3Crect x='3' y='7' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='10' y='7' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='6' y='8' width='4' height='3' fill='%233f7a3a'/%3E%3Crect x='1' y='9' width='3' height='2' fill='%238fc46a'/%3E%3Crect x='12' y='9' width='3' height='2' fill='%238fc46a'/%3E%3Crect x='4' y='10' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='9' y='10' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='7' y='11' width='2' height='2' fill='%233f7a3a'/%3E%3Crect x='3' y='13' width='10' height='2' fill='%23d38451'/%3E%3Crect x='4' y='15' width='8' height='4' fill='%23b86a3c'/%3E%3Crect x='5' y='19' width='6' height='1' fill='%238e4f2c'/%3E%3Crect x='4' y='15' width='1' height='4' fill='%239c5832'/%3E%3C/svg%3E");
+  --plant-tall: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 28' shape-rendering='crispEdges'%3E%3Crect x='9' y='0' width='2' height='4' fill='%233f7a3a'/%3E%3Crect x='5' y='2' width='4' height='3' fill='%236fae4f'/%3E%3Crect x='11' y='2' width='4' height='3' fill='%236fae4f'/%3E%3Crect x='2' y='5' width='6' height='3' fill='%238fc46a'/%3E%3Crect x='12' y='5' width='6' height='3' fill='%238fc46a'/%3E%3Crect x='6' y='6' width='8' height='4' fill='%233f7a3a'/%3E%3Crect x='1' y='9' width='5' height='3' fill='%236fae4f'/%3E%3Crect x='14' y='9' width='5' height='3' fill='%236fae4f'/%3E%3Crect x='5' y='10' width='4' height='3' fill='%238fc46a'/%3E%3Crect x='11' y='10' width='4' height='3' fill='%238fc46a'/%3E%3Crect x='8' y='12' width='4' height='4' fill='%233f7a3a'/%3E%3Crect x='3' y='13' width='3' height='3' fill='%233f7a3a'/%3E%3Crect x='14' y='13' width='3' height='3' fill='%233f7a3a'/%3E%3Crect x='9' y='16' width='2' height='3' fill='%233f7a3a'/%3E%3Crect x='4' y='19' width='12' height='2' fill='%23d38451'/%3E%3Crect x='5' y='21' width='10' height='6' fill='%23b86a3c'/%3E%3Crect x='6' y='27' width='8' height='1' fill='%238e4f2c'/%3E%3Crect x='5' y='21' width='1' height='6' fill='%239c5832'/%3E%3C/svg%3E");
+  --vine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 30' shape-rendering='crispEdges'%3E%3Crect x='5' y='0' width='2' height='30' fill='%235b8f45'/%3E%3Crect x='2' y='3' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='7' y='6' width='3' height='2' fill='%238fc46a'/%3E%3Crect x='2' y='10' width='3' height='2' fill='%233f7a3a'/%3E%3Crect x='7' y='13' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='2' y='17' width='3' height='2' fill='%238fc46a'/%3E%3Crect x='7' y='20' width='3' height='2' fill='%233f7a3a'/%3E%3Crect x='2' y='24' width='3' height='2' fill='%236fae4f'/%3E%3Crect x='7' y='27' width='3' height='2' fill='%238fc46a'/%3E%3C/svg%3E");
+}
+
+html { background: var(--pink-bg); }
+body {
+  background-color: var(--pink-bg);
+  background-image: radial-gradient(rgba(122, 95, 72, .16) 1.2px, transparent 1.2px);
+}
+button:focus-visible, a:focus-visible { outline-color: rgba(94, 138, 71, .45); }
+
+/* ── 창(패널) : 원목 타이틀바 + 크림 본문 ─────────────── */
+.win { background: var(--win); }
+.win-bar {
+  background: linear-gradient(180deg, var(--wood-light), var(--wood));
+  color: #fff8ea;
+  text-shadow: 0 1px 0 rgba(74, 51, 34, .45);
+}
+.console-card .win-bar { background: linear-gradient(180deg, var(--wood), var(--wood-dark)); }
+.app-nav { background: rgba(255, 250, 240, .95); box-shadow: 4px 4px 0 rgba(74, 51, 34, .16); }
+.brand-chip > span { background: #c9784a; }
+.nav-tabs button { background: var(--win); }
+.nav-tabs button.active { background: var(--mint); }
+.nav-tabs .todo-tab { background: var(--win); }
+
+/* 패널 모서리 화분 장식 */
+.live-hero, .live-bar { position: relative; }
+.live-hero { background: var(--win); padding-right: 64px; }
+.live-hero::after, .live-bar::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  width: 40px;
+  height: 50px;
+  background: var(--plant) no-repeat center bottom / contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.live-bar { padding-right: 56px; }
+.live-bar::after { width: 32px; height: 40px; }
+.live-clock { background: #4a3322; color: #fff4dc; box-shadow: 4px 4px 0 rgba(74, 51, 34, .3); }
+.live-clock span { color: var(--mint); }
+.live-clock small { color: var(--yellow); }
+
+.btn-ghost, .speed-group button { background: var(--win); }
+.speed-group button.skip { background: #f6eedf; }
+.speed-group button.on { background: var(--mint); }
+.live-progress i { background: #f3ead8; }
+.live-progress b { background: linear-gradient(90deg, var(--pink), var(--pink-deep)); }
+.lc.working { color: #fff; }
+
+/* ── 월드 : 원목 바닥 + 창가 + 화분 ─────────────────────── */
+.world-frame { background: var(--wood-dark); }
+.world-viewport {
+  background:
+    radial-gradient(circle at 25% 15%, rgba(143, 181, 115, .20), transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(245, 230, 184, .12), transparent 55%),
+    #4f3624;
+}
+.world-floor {
+  background-color: var(--wood);
+  background-image:
+    linear-gradient(rgba(74, 51, 34, .28) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, transparent 0 107px, rgba(74, 51, 34, .22) 107px 108px),
+    linear-gradient(180deg, #b38356, #9c6d44);
+  background-size: 100% 18px, 108px 100%, 100% 100%;
+  box-shadow: inset 0 0 0 6px #5c4029, inset 0 0 90px rgba(40, 26, 16, .35);
+}
+
+/* .world-stage 를 붙여 상태 클래스(.working 등)의 background 덮어쓰기보다 우선하게 */
+.world-stage .rm.rm {
+  --plank-a: var(--oak-a);
+  --plank-b: var(--oak-b);
+  border-color: #5c4029;
+  border-width: 3px;
+  background-color: var(--plank-a);
+  background-image:
+    linear-gradient(rgba(122, 85, 52, .22) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, var(--plank-a) 0 54px, var(--plank-b) 54px 108px);
+  background-size: 100% 9px, 108px 100%;
+  box-shadow: inset 0 0 0 2px rgba(255, 244, 220, .45), 4px 5px 0 rgba(40, 26, 16, .35);
+}
+.world-stage .rm-ceo { --plank-a: #d9a877; --plank-b: #cf9d6c; }
+.world-stage .rm-meeting { --plank-a: #e6c697; --plank-b: #dcba89; }
+.world-stage .rm-lounge { --plank-a: #dcc59a; --plank-b: #d2ba8d; }
+.world-stage .rm.working { --plank-a: #ecc98f; --plank-b: #e2bd82; }
+.world-stage .rm.done { --plank-a: #d6d49a; --plank-b: #ccca8e; }
+.world-stage .rm.approval { --plank-a: #efc79a; --plank-b: #e5bb8d; }
+.world-stage .rm.blocked { --plank-a: #d8c3a8; --plank-b: #ceb89c; }
+@keyframes roomPulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 244, 220, .45), 0 0 0 0 rgba(143, 181, 115, .7); }
+  50% { box-shadow: inset 0 0 0 2px rgba(255, 244, 220, .45), 0 0 0 9px rgba(143, 181, 115, 0); }
+}
+/* 윗벽 창문 — 하늘과 초록 */
+.rm::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: -3px;
+  height: 7px;
+  border: 2px solid #5c4029;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, #5c4029 22px 24px),
+    linear-gradient(180deg, #cfe7ef 0 45%, #9cc98a 45% 100%);
+  pointer-events: none;
+}
+.rm-ceo::before, .rm-meeting::before, .rm-lounge::before { height: 10px; top: -4px; }
+.rm-head { background: var(--win); border-color: #5c4029; }
+.rm-code { color: rgba(74, 51, 34, .55); }
+.rm-door { background: var(--wood-light); box-shadow: 0 0 0 1.5px #5c4029; }
+.rm-dot.approval { background: #e0894f; }
+
+.pr-desk { background: linear-gradient(#f2dcb8, #d9b68a); border-color: #5c4029; }
+.pr-monitor { background: #2e2a24; box-shadow: inset 0 0 0 2px #a9d48f; }
+.pr-ceo-desk { background: linear-gradient(#9a6b44, #7a5234); border-color: #4a3322; }
+.pr-table { background: linear-gradient(#c99a66, #a97b4d); border-color: #4a3322; }
+.pr-sofa { background: linear-gradient(#b7cf9a, #8fb573); border-color: #4a3322; }
+.pr-coffee { background: #f3e2c4; }
+.pr-screen { background: #2e2a24; color: var(--mint); }
+.pr-whiteboard { background: #fffaf0; }
+.pr-shelf { background: repeating-linear-gradient(90deg, #8a5f3c 0 6px, #a2744b 6px 12px); }
+.pr-cabinet { background: #d9c3a0; }
+.pr-rug { background: repeating-linear-gradient(45deg, #b9cf96 0 8px, #a9c286 8px 16px); opacity: .9; border-radius: 12px; }
+
+/* 화분: 타일 1칸이지만 그림은 위로 크게 */
+.pr-plant { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+.pr-plant::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 28px;
+  height: 36px;
+  transform: translateX(-50%);
+  background: var(--plant) no-repeat center bottom / contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(1px 2px 0 rgba(40, 26, 16, .3));
+}
+.pr-plant.tall::before { width: 34px; height: 48px; background-image: var(--plant-tall); }
+.entrance-mat {
+  border: 2px solid #4a3322;
+  background: #5e8a47;
+  color: #fff4dc;
+  letter-spacing: .08em;
+}
+
+/* 직원 */
+.p-shadow { background: rgba(40, 26, 16, .3); }
+.ag.selected .ag-body::after { border-color: var(--pink-deep); }
+.ag-bubble, .ag-bubble::after { background: var(--win); }
+.ag-bubble.think, .ag-bubble.think::after { background: var(--mint); }
+.ag-tag { background: rgba(255, 250, 240, .94); }
+.ag-tag em { background: var(--pink-deep); }
+.ag:hover .ag-tag { background: var(--pink-deep); color: #fff; }
+.world-hud button { background: rgba(255, 250, 240, .94); }
+.world-hud button.on { background: var(--mint); }
+.world-hint { background: rgba(74, 51, 34, .8); color: #fff4dc; }
+
+/* 월드 상단 덩굴 */
+.world-frame::before, .world-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  z-index: 3;
+  width: 18px;
+  height: 46px;
+  background: var(--vine) no-repeat top / contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.world-frame::before { left: 22px; }
+.world-frame::after { right: 180px; height: 36px; }
+
+/* ── 우측 레일·대시보드 ─────────────────────────────────── */
+.console-log { background: #f7efdf; }
+.console-line.ceo { background: var(--pink-deep); }
+.console-quick button:hover { background: var(--pink-deep); }
+.console-input button { background: var(--pink-deep); }
+.approval-body.pending { background: linear-gradient(var(--win), #f3ead3); }
+.feed-list li { background: #f7efdf; }
+.feed-list li.mint { background: #eaf3dc; }
+.feed-list li.lav { background: #efeaf6; }
+.feed-list li.yellow { background: #fbf3dc; }
+.roster-chip { background: var(--win); }
+.metric.pink, .approval { background: #f1d9bf; }
+.metric.lav, .mini-badge.lav, .blocked { background: #e6e0f3; }
+.schedule-card, .result-row.header, .report-box { background: #f7efdf; }
+.integration-row, .team-card, .reason-list, .briefing-numbers span { background: #fffaf0; border-color: var(--pink-line); }
+.integration-row { border-color: #e2d3b8; }
+.team-card:hover { background: #f7efdf; }
+.team-icon { background: #f3ead8; }
+.status-dot.approval { background: #e0894f; }
+footer { color: var(--ink-soft); }
+.modal-backdrop { background: rgba(74, 51, 34, .3); }
