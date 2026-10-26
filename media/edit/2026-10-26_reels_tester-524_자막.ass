@@ -1,0 +1,16 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cute,Jua,56,&H00FFFFFF,&H00FFFFFF,&H00D9A38F,&H40B07A6A,0,0,0,0,100,100,4,0,1,4,1,2,60,60,400,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.20,0:00:02.75,Cute,,0,0,0,,{\fad(200,150)}팔로워는 120명인데,\N체험단에는 524명이 지원했어요
+Dialogue: 0,0:00:02.85,0:00:07.55,Cute,,0,0,0,,{\fad(150,150)}솔직히 열 명쯤\N지원할 줄 알았어요
+Dialogue: 0,0:00:07.70,0:00:13.60,Cute,,0,0,0,,{\fad(150,150)}세 분께 보낼 그립톡은\N하나씩 다시 확인하고 있어요
+Dialogue: 0,0:00:13.75,0:00:16.70,Cute,,0,0,0,,{\fad(150,300)}지원해 주신 분들은\N어떤 점이 궁금하셨어요?
