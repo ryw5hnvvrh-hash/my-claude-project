@@ -23,3 +23,8 @@
 - 링 없이 얇은 케이스만 쓰면 잘 안 붙는다는 경험담 ([클리앙](https://www.clien.net/service/board/cm_iphonien/19074861))
 - 갤럭시는 자석이 없어 맥세이프 링이 필요, 붙는 것과 고속 무선충전은 별개 ([위키독스 블로그](https://wikidocs.net/blog/@ITgadgets/27971/))
 - 케이스마다 자석 개수·세기가 다르다는 후기 ([zod](https://zod.kr/mobile/5621425))
+
+## 색다른 정보 (대표 10/27: "다 아는 정보 같아, 색다른 거 없나?") → 카드뉴스 v3 `_griptok_story.jpg`
+- 팝소켓 시작: 2010년 미국 볼더의 철학 교수 David Barnett, 이어폰 줄이 엉켜서 아이폰 뒤에 큰 옷 단추 2개를 붙임 · 시제품 약 60개 · 학생들은 줄 감개보다 손잡이로 씀 · 2014년 차고에서 창업 ([Fox Business](https://foxbusiness.com/business-leaders/how-clothing-buttons-became-popsockets), [5280](https://5280.com/popsockets-a-pop-culture-phenomon-from-the-brain-of-a-cu-philosophy-professor)) — 누적 판매량은 출처마다 달라 넣지 않음
+- 애플 안내: 폰과 맥세이프 충전기 사이에 신용카드·출입카드·여권·키를 두지 말 것(마그네틱·RFID 손상) · 이식형 의료기기와는 거리 두기 ([Macworld](https://www.macworld.com/article/331832/magsafe-and-medical-devices-apple-says-keep-them-a-safe-distance-away.html), [AppleInsider](https://appleinsider.com/articles/21/01/24/apple-updates-magsafe-support-with-medical-device-warning)) — 애플 원문 페이지는 직접 확인 못 함
+- 에폭시 레진은 굳을 때 열이 나고, 두껍게 한 번에 부으면 열이 커져 기포·황변 위험 → 나눠 붓기 ([Incure](https://incurelab.com/wp/overheating-the-mix-avoiding-flash-cure-and-severe-bubbling)) — 업체 블로그
