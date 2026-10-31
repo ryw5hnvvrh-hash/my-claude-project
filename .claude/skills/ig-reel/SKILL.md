@@ -23,10 +23,12 @@ python3 beats.py script.txt --target 30     # timed beat sheet before you shoot
 ```
 
 Korean scripts: run `beats.py` with `--wpm 120` (counts eojeol, Korean speaks
-about 2 eojeol per second). `hookscore.py` LENGTH/SPECIFICITY work in Korean,
-but STAKES/ADDRESS/FRONTLOAD and the dealbreakers use English word lists, so
-judge a Korean hook mainly on its LENGTH and SPECIFICITY and do not discard it
-for a low STAKES score.
+about 2 eojeol per second). `hookscore.py` switches to Korean rules when a hook
+contains Hangul: 3-7 eojeol length, Korean stake stems (망했/버렸/아무도/절대...),
+money and counter words (만원/매출/개월...), Korean weak openers and dealbreakers
+(안녕하세요, 오늘은 ~ 보여드릴게요, 스크롤 멈춰). Edit the KO_* lists at the top of
+hookscore.py to tune them. Product nouns (레진, 그립톡) are not counted as
+concrete: put a number or a real name in the hook.
 
 ## Before you write
 
