@@ -71,6 +71,27 @@ export type SampleFn = ((input: string, opts?: Record<string, unknown>) => Promi
   json: <T>(input: string, opts?: Record<string, unknown>) => Promise<T>;
 };
 
+/** 대표가 보낸 말 한 건 — db 컬렉션 office/inbox/msgs 에 남는다 (사라지지 않게) */
+export type InboxStatus = "chat" | "queued" | "sent" | "failed" | "done";
+export type InboxMsg = {
+  id: string;
+  date: string;
+  t: string;
+  text: string;
+  /** chat: 직원이 바로 답함(총괄비서 일 아님) · queued: 보내는 중 · sent: 총괄비서에게 전달됨 · failed: 못 보냄(자동 점검 때 처리) · done: 처리 끝 */
+  status: InboxStatus;
+  kind?: "work" | "chat";
+  reply?: string;
+  error?: string;
+};
+
+/** 팀별 업무 노트 — 총괄비서가 숫자로 배운 것을 적어 두고, 직원 대답·TOP 3가 따른다 (db 문서 office/playbook) */
+export type PlaybookDoc = {
+  updatedAt?: string;
+  rules?: string[];
+  teams?: Record<string, string[]>;
+};
+
 type SendState = "unknown" | "available" | "writers_only" | "no_session" | "off";
 
 type CommentsApi = {
@@ -83,6 +104,26 @@ const THREAD_KEY = "thth-office-thread";
 
 export function todayKst() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
+}
+
+export function nowKst() {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+}
+
+function newMsgId() {
+  const d = new Date();
+  const kst = new Date(d.getTime() + 9 * 3600 * 1000).toISOString().replace(/[-:T]/g, "").slice(0, 14);
+  return `m${kst}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** 실제 작업이 필요한 말인지 — 이런 말만 총괄비서(이 대화)에게 보낸다. 나머지는 직원이 바로 답한다. */
+export function looksLikeWork(text: string) {
+  const t = text.replace(/\s+/g, "");
+  if (/^\[(결재|TOP3의견|TOP 3 의견|다시 보냄)/.test(text)) return true;
+  const strong = /(만들어|고쳐|수정|바꿔|바꾸|찾아|써줘|써주|편집|캡션|대본|올렸|예약|업로드|게시했|찍었|촬영했|드라이브|결재|번으로|판매|출시|주문|입금|삭제|지워|추가|넣어|빼줘|새로|아이디어|업무시작|마무리)/.test(t);
+  const question = /(현황|브리핑|어때|어땠|몇|얼마|알려줘|뭐야|뭐였|뭐해|있어\?|\?$)/.test(t);
+  if (question && !strong) return false;
+  return /(해줘|해주세요|해줄래|부탁|만들어|고쳐|수정|바꿔|바꾸|찾아|올려|올렸|써줘|써주|정리해|확인해|알아봐|조사해|편집|캡션|대본|하자|할게|할래|번으로|결재|예약|업로드|게시했|촬영했|찍었|드라이브|판매|출시|주문|입금|정산|삭제|지워|추가|넣어|빼줘|다시|새로|아이디어|업무시작|업무끝|마무리)/.test(t);
 }
 
 function readThread(): string | null {
@@ -121,6 +162,8 @@ export function useRealOffice() {
   const [proposals, setProposals] = useState<ProposalDoc | null>(null);
   const dbRef = useRef<{ doc(p: string): { set(d: Record<string, unknown>): Promise<void> } } | null>(null);
   const calendarWrite = useRef<Promise<unknown>>(Promise.resolve());
+  const [inbox, setInbox] = useState<InboxMsg[]>([]);
+  const [playbook, setPlaybook] = useState<PlaybookDoc | null>(null);
   const [sampleFn, setSampleFn] = useState<SampleFn | null>(null);
   const commentsRef = useRef<CommentsApi | null>(null);
 
@@ -187,8 +230,25 @@ export function useRealOffice() {
         (snap) => setProposals(snap.exists ? ((snap.data() as ProposalDoc) ?? null) : null),
         () => setProposals(null),
       );
+      // 대표가 보낸 말 — 오늘 것만 보여준다
+      const anyDb = db as { collection(p: string): { where(f: string, o: string, v: unknown): { onSnapshot(n: (s: { docs: { id: string; data(): unknown }[] }) => void, e?: () => void): () => void } } };
+      const unsubInbox = anyDb
+        .collection("office/inbox/msgs")
+        .where("date", "==", todayKst())
+        .onSnapshot(
+          (snap) => setInbox(snap.docs.map((d) => ({ ...(d.data() as InboxMsg), id: d.id })).sort((a, b) => (a.id < b.id ? -1 : 1))),
+          () => setInbox([]),
+        );
+      // 팀별 업무 노트
+      const pbRef = (db as { doc(p: string): { onSnapshot(n: (s: { exists: boolean; data(): unknown }) => void, e?: () => void): () => void } }).doc("office/playbook");
+      const unsubPb = pbRef.onSnapshot(
+        (snap) => setPlaybook(snap.exists ? ((snap.data() as PlaybookDoc) ?? null) : null),
+        () => setPlaybook(null),
+      );
       const prev = unsub;
       unsub = () => {
+        unsubInbox();
+        unsubPb();
         unsubProp();
         unsubResearch();
         prev?.();
@@ -217,18 +277,30 @@ export function useRealOffice() {
     };
   }, []);
 
-  /** 대표 말 한 줄을 Claude에게 보낸다. 반드시 클릭·전송 같은 대표 동작 안에서 부른다. */
-  const send = useCallback(async (text: string, anchorEl: Element | null) => {
+  /** 받은편지함 문서 한 건 쓰기 (실패해도 화면은 계속) */
+  const writeMsg = useCallback(async (msg: InboxMsg, patch?: Partial<InboxMsg>) => {
+    const db = dbRef.current as unknown as { collection(p: string): { doc(id: string): { set(d: Record<string, unknown>): Promise<void>; update(d: Record<string, unknown>): Promise<void> } } } | null;
+    if (!db) return false;
+    const ref = db.collection("office/inbox/msgs").doc(msg.id);
+    try {
+      if (patch) await ref.update(patch as Record<string, unknown>);
+      else await ref.set(msg as unknown as Record<string, unknown>);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  /** 총괄비서에게 실제로 보낸다 (댓글). 반드시 클릭·전송 안에서 바로 부른다. */
+  const relay = useCallback(async (text: string, anchorEl: Element | null) => {
     const api = commentsRef.current;
-    if (!api) return false;
-    setSending(true);
-    setLastError("");
+    if (!api) return { ok: false, code: "off" };
     try {
       const thread = readThread();
       if (thread) {
         try {
           await api.sendToClaude({ threadId: thread, text });
-          return true;
+          return { ok: true, code: "" };
         } catch (e) {
           if ((e as { code?: string }).code !== "not_found") throw e;
         }
@@ -237,23 +309,67 @@ export function useRealOffice() {
       const anchor = await api.anchorFor(el);
       const res = await api.sendToClaude({ anchor, text });
       saveThread(res.threadId);
-      return true;
+      return { ok: true, code: "" };
     } catch (e) {
-      const code = (e as { code?: string }).code ?? "error";
-      setLastError(
-        code === "consent_required"
-          ? "댓글 권한을 허용해야 Claude에게 보낼 수 있어요"
-          : code === "claude_unavailable"
-            ? "지금 Claude에게 보낼 수 없어요 (대화 창이 꺼져 있을 수 있어요)"
-            : code === "rate_limited"
-              ? "너무 빨리 보냈어요. 잠시 뒤에 다시 보내주세요"
-              : `보내지 못했어요 (${code})`,
-      );
-      return false;
-    } finally {
-      setSending(false);
+      return { ok: false, code: (e as { code?: string }).code ?? "error" };
     }
   }, []);
+
+  const errorText = (code: string) =>
+    code === "consent_required"
+      ? "댓글 권한을 허용해야 총괄비서에게 바로 보낼 수 있어요 — 받은편지함에 남겨 두었어요"
+      : code === "claude_unavailable" || code === "off"
+        ? "총괄비서 대화창이 지금 닫혀 있어요 — 받은편지함에 남겨 두었고 자동 점검 때 처리돼요"
+        : code === "rate_limited"
+          ? "너무 빨리 보냈어요 — 받은편지함에 남겨 두었어요"
+          : `바로 보내지 못했어요 (${code}) — 받은편지함에 남겨 두었어요`;
+
+  /**
+   * 대표 말 한 줄 처리. 먼저 받은편지함(db)에 남기고, 작업이 필요한 말이면 총괄비서에게 보낸다.
+   * work=false 면 받은편지함에만 남는다(직원이 바로 답함).
+   */
+  const send = useCallback(
+    async (text: string, anchorEl: Element | null, work = true) => {
+      const msg: InboxMsg = { id: newMsgId(), date: todayKst(), t: nowKst(), text, status: work ? "queued" : "chat", kind: work ? "work" : "chat" };
+      if (!work) {
+        void writeMsg(msg);
+        return true;
+      }
+      setSending(true);
+      setLastError("");
+      // 댓글 보내기를 먼저 시작해야(클릭 직후) 브라우저가 막지 않는다
+      const relayP = relay(`[메시지 ${msg.id}] ${text}`, anchorEl);
+      const saved = await writeMsg(msg);
+      const r = await relayP;
+      if (r.ok) {
+        if (saved) void writeMsg(msg, { status: "sent" });
+        else void writeMsg({ ...msg, status: "sent" });
+      } else {
+        setLastError(errorText(r.code));
+        if (saved) void writeMsg(msg, { status: "failed", error: r.code });
+        else void writeMsg({ ...msg, status: "failed", error: r.code });
+      }
+      setSending(false);
+      return r.ok;
+    },
+    [relay, writeMsg],
+  );
+
+  /** 못 보낸 말 다시 보내기 (대표 클릭 안에서) */
+  const resend = useCallback(
+    async (msgs: InboxMsg[], anchorEl: Element | null) => {
+      if (!msgs.length) return false;
+      setSending(true);
+      setLastError("");
+      const body = msgs.length === 1 ? `[메시지 ${msgs[0].id}] ${msgs[0].text}` : `[다시 보냄]\n${msgs.map((m) => `- [메시지 ${m.id}] ${m.text}`).join("\n")}`;
+      const r = await relay(body, anchorEl);
+      for (const m of msgs) void writeMsg(m, r.ok ? { status: "sent", error: "" } : { status: "failed", error: r.code });
+      if (!r.ok) setLastError(errorText(r.code));
+      setSending(false);
+      return r.ok;
+    },
+    [relay, writeMsg],
+  );
 
   /** 캘린더 전체를 한 번에 저장 — 같은 문서에는 한 번에 하나씩만 쓴다 */
   const saveCalendar = useCallback((data: Record<string, unknown>) => {
@@ -272,7 +388,7 @@ export function useRealOffice() {
 
   const connected = sendState === "available";
   const todayDoc = doc && doc.date === todayKst() ? doc : null;
-  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, brief, sample: sampleFn, dashboard, insta, report, calendar, calendarLoaded, saveCalendar, research, proposals };
+  return { doc: todayDoc, anyDoc: doc, dbReady, sendState, connected, sending, lastError, send, resend, inbox, playbook, brief, sample: sampleFn, dashboard, insta, report, calendar, calendarLoaded, saveCalendar, research, proposals };
 }
 
 export type RealOffice = ReturnType<typeof useRealOffice>;

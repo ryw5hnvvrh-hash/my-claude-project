@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRealOffice, todayKst, type RealOffice, type RealDashboard, type ResearchDoc } from "./real";
+import { useRealOffice, todayKst, looksLikeWork, type RealOffice, type RealDashboard, type ResearchDoc, type InboxMsg, type PlaybookDoc } from "./real";
 import ResearchCard from "./ResearchCard";
 import ProposalCard from "./ProposalCard";
 import { askStaff } from "./talk";
@@ -201,6 +201,13 @@ export default function Home() {
     engine.start();
     setBriefing(false);
     setView("live");
+    // 아침 자동 업무로 오늘 준비(키워드·TOP 3)가 끝나 있으면 총괄비서를 기다리지 않고 바로 보여준다
+    if (real.doc && (real.doc.phase ?? 0) >= 7) {
+      engine.setRealGate(real.doc.phase ?? 7);
+      void real.send("업무 시작", el ?? null, false);
+      showToast("오늘 키워드·TOP 3 준비 끝 — 결재 칸에서 바로 골라주세요");
+      return;
+    }
     if (real.connected) {
       // 실제 업무: Claude에게 "업무 시작"을 보내고, 화면은 실제 진행 단계에 맞춰 움직인다
       engine.setRealGate(real.doc?.phase ?? 1);
@@ -352,6 +359,7 @@ export default function Home() {
       {selected ? (
         <ProfileModal
           agent={selected}
+          notes={real.playbook?.teams?.[selected.deptId] ?? []}
           onClose={() => setSelectedId(null)}
           onAsk={(agent) => {
             setView("live");
@@ -604,13 +612,15 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const [talkOff, setTalkOff] = useState(false);
-  // 보내지 못한 지시를 모아 둔다 — 버튼 한 번으로 한꺼번에 다시 보낸다
-  const [retry, setRetry] = useState<string[]>([]);
+  // 직원이 "총괄비서에게 넘길게요" 했는데 아직 안 보낸 말 — 버튼 한 번으로 보낸다
+  const [handoff, setHandoff] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const realChat = real.doc?.chat ?? [];
   const opinionAsk = snap.opinionPending || real.doc?.waiting === "opinion";
   const count = snap.chat.length;
+  const failed = real.inbox.filter((m) => m.status === "failed" || m.status === "queued");
+  const workMsgs = real.inbox.filter((m) => m.kind === "work").slice(-4);
 
   useEffect(() => {
     const el = logRef.current;
@@ -627,30 +637,34 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
     seenReal.current = realChat.length;
   }, [realChat.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 대표가 지시창에 쓴 말은 모두 총괄비서(Claude)에게 보낸다.
+  // 실제 작업이 필요한 말만 총괄비서에게 보낸다. 먼저 받은편지함에 남기므로 사라지지 않는다.
   // 반드시 대표의 클릭·전송 안에서 바로 불러야 한다 (나중에 부르면 브라우저가 막는다).
-  const forwardToClaude = (text: string) => {
-    if (!real.connected) return;
-    void real.send(text, formRef.current).then((ok) => {
-      if (!ok) setRetry((list) => [...list, text]);
-      else engine.pushChat("staff", "총괄비서", "받았어요. 실제로 반영하고 결과를 여기와 실제 업무 칸에 올릴게요.");
+  const forwardToClaude = (text: string, el?: Element | null) => {
+    void real.send(text, el ?? formRef.current, true).then((ok) => {
+      engine.pushChat(
+        "staff",
+        "총괄비서",
+        ok ? "📨 받았어요. 작업하고 결과를 여기에 올릴게요." : "📮 받은편지함에 남겨 두었어요. 대화창이 열리거나 자동 점검(2시간마다) 때 바로 처리할게요.",
+      );
     });
   };
 
-  const resendAll = () => {
-    const list = retry;
-    if (!list.length) return;
-    setRetry([]);
-    forwardToClaude(list.length === 1 ? list[0] : `[다시 보냄]\n${list.map((t) => `- ${t}`).join("\n")}`);
+  const resendAll = (el: Element) => {
+    if (!failed.length) return;
+    void real.resend(failed, el).then((ok) => {
+      if (ok) engine.pushChat("staff", "총괄비서", `📨 못 보냈던 ${failed.length}개 받았어요.`);
+    });
   };
 
-  const send = (text: string) => {
+  const send = (text: string, chatOnly = false) => {
     const value = text.trim();
     if (!value || thinking) return;
     setDraft("");
-    // 모든 말을 곧바로(클릭 안에서) 총괄비서에게 보낸다. 직원 대화는 화면 속 반응일 뿐이다.
-    const forwarded = real.connected;
-    if (forwarded) forwardToClaude(value);
+    setHandoff(null);
+    const work = !chatOnly && (opinionAsk || looksLikeWork(value));
+    // 작업이면 곧바로(클릭 안에서) 총괄비서에게, 아니면 받은편지함에만 남기고 직원이 바로 답한다
+    if (work) forwardToClaude(value);
+    else void real.send(value, null, false);
     if (opinionAsk) engine.recordOpinion(value);
 
     if (real.sample && !talkOff) {
@@ -660,20 +674,23 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
         office: engine.describe(),
         real: real.doc,
         brief: [real.brief, researchLine(real.research)].filter(Boolean).join("\n"),
+        facts: factsLine(real),
+        playbook: playbookLine(real.playbook),
         history: engine.snapshot().chat.map((c) => ({ from: c.from, name: c.name, text: c.text })),
       })
         .then((r) => {
           engine.speakAs(r.speaker, r.reply);
           if (r.action && r.action !== "none") engine.act(r.action, r.dept);
+          if (r.forward && !work) setHandoff(value);
         })
         .catch((e: { code?: string }) => {
           if (e?.code === "not_granted") setTalkOff(true);
-          if (!forwarded) engine.command(value, false);
+          if (!work) engine.command(value, false);
         })
         .finally(() => setThinking(false));
       return;
     }
-    if (snap.realMode || forwarded) {
+    if (snap.realMode || work) {
       engine.ceoSays(value);
       return;
     }
@@ -712,11 +729,24 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
             </div>
           ) : null}
         </div>
-        {retry.length ? (
-          <button className="btn btn-ghost retry-send" onClick={resendAll}>
-            📨 못 보낸 지시 {retry.length}개 다시 보내기
+        {handoff ? (
+          <button
+            className="btn btn-ghost retry-send"
+            onClick={(e) => {
+              const t = handoff;
+              setHandoff(null);
+              forwardToClaude(t, e.currentTarget);
+            }}
+          >
+            📨 이 말 총괄비서에게도 보내기
           </button>
         ) : null}
+        {failed.length ? (
+          <button className="btn btn-ghost retry-send" onClick={(e) => resendAll(e.currentTarget)} disabled={real.sending}>
+            📨 못 보낸 말 {failed.length}개 다시 보내기
+          </button>
+        ) : null}
+        {workMsgs.length ? <InboxStrip msgs={workMsgs} /> : null}
         {real.lastError ? <p className="real-error">{real.lastError}</p> : null}
 
         {opinionAsk ? (
@@ -729,7 +759,7 @@ function CeoConsole({ engine, snap, real }: { engine: Company; snap: Snapshot; r
 
         <div className="console-quick">
           {QUICK_ORDERS.map((item) => (
-            <button key={item.label} onClick={() => send(item.command)} disabled={thinking}>
+            <button key={item.label} onClick={() => send(item.command, true)} disabled={thinking}>
               {item.label}
             </button>
           ))}
@@ -874,10 +904,12 @@ function RealTop3({ real }: { real: RealOffice }) {
 
 function ProfileModal({
   agent,
+  notes,
   onClose,
   onAsk,
 }: {
   agent: Agent;
+  notes: string[];
   onClose: () => void;
   onAsk: (agent: Agent) => void;
 }) {
@@ -921,6 +953,14 @@ function ProfileModal({
             <span className="tiny-label">한마디</span>
             <strong>{agent.speech ?? agent.thoughts[0]}</strong>
           </div>
+          {notes.length ? (
+            <ul className="pb-notes">
+              <b>📒 우리 팀 업무 노트 (숫자로 배운 것)</b>
+              {notes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          ) : null}
           <div className="profile-actions">
             <button className="btn btn-primary" onClick={() => onAsk(agent)}>
               🎤 지금 뭐 하는지 물어보기
@@ -1364,6 +1404,50 @@ function DashboardView({
 }
 
 /** 직원 대답의 근거로 쓰는 오늘 키워드 한 줄 */
+const INBOX_LABEL: Record<string, string> = { queued: "⏳ 보내는 중", sent: "📨 전달됨", failed: "📮 대기(자동 처리)", done: "✅ 처리됨", chat: "💬" };
+
+function InboxStrip({ msgs }: { msgs: InboxMsg[] }) {
+  return (
+    <div className="inbox-strip" aria-label="총괄비서에게 보낸 말">
+      <b>📮 총괄비서에게 보낸 말</b>
+      {msgs.map((m) => (
+        <div key={m.id} className={`inbox-row s-${m.status}`}>
+          <small>{m.t}</small>
+          <span>{m.text.length > 34 ? `${m.text.slice(0, 34)}…` : m.text}</span>
+          <em>{INBOX_LABEL[m.status] ?? m.status}</em>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** 직원 대답의 근거 — 오늘 숫자·일정·TOP 3·업무 보고를 짧게 */
+function factsLine(real: RealOffice): string {
+  const out: string[] = [];
+  const d = real.dashboard;
+  if (d?.metrics?.length) out.push(`대시보드(${d.date ?? ""} ${d.updatedAt ?? ""}): ${d.metrics.map((m) => `${m.label} ${m.value}${m.note ? ` (${m.note})` : ""}`).join(" / ")}`);
+  const p = real.proposals;
+  if (p?.items?.length) out.push(`TOP 3(${p.date}, ${p.status ?? ""}${p.chosen ? `, ${p.chosen}번 선택` : ""}): ${p.items.map((i) => `${i.rank}. ${i.title}(${i.format}${i.score ? ` ${i.score}점` : ""}) — ${i.why ?? ""}`).join(" / ")}`);
+  const cal = real.calendar as { plans?: { date: string; title: string; format?: string; memo?: string; done?: boolean }[] } | null;
+  if (cal?.plans?.length) {
+    const today = todayKst();
+    const end = new Date(Date.parse(today) + 7 * 864e5).toISOString().slice(0, 10);
+    const week = cal.plans.filter((x) => x.date >= today && x.date <= end).sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (week.length) out.push(`캘린더(오늘~7일): ${week.map((x) => `${x.date.slice(5)} [${x.format ?? ""}] ${x.title}${x.done ? " ✅" : ""}${x.memo ? ` — ${x.memo}` : ""}`).join(" / ")}`);
+  }
+  const r = real.report as { latest?: { date?: string; summary?: string; checked?: boolean; todos?: { text: string; done?: boolean }[] } } | null;
+  if (r?.latest) out.push(`최근 업무 보고(${r.latest.date}, 대표 확인 ${r.latest.checked ? "O" : "X"}): ${r.latest.summary ?? ""} / 확인 필요: ${(r.latest.todos ?? []).filter((t) => !t.done).map((t) => t.text).join(", ")}`);
+  return out.join("\n");
+}
+
+function playbookLine(pb: PlaybookDoc | null): string {
+  if (!pb) return "";
+  const out: string[] = [];
+  if (pb.rules?.length) out.push(`공통: ${pb.rules.join(" / ")}`);
+  for (const [dept, notes] of Object.entries(pb.teams ?? {})) if (notes?.length) out.push(`${dept}: ${notes.join(" / ")}`);
+  return out.join("\n");
+}
+
 function researchLine(r: ResearchDoc | null): string {
   if (!r?.date || r.date !== todayKst() || !r.keywords?.length) return "";
   return `시장조사팀 오늘 키워드(${r.date}): ${r.keywords.map((k) => `${k.word}${k.why ? `(${k.why})` : ""}`).join(", ")}${r.pick ? ` / 써볼 것: ${r.pick}` : ""}`;

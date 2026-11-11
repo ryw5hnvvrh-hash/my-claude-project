@@ -108,3 +108,14 @@
 .report-banner b { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .report-banner i { font-style: normal; font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 @media (max-width: 640px) { .report-banner { grid-template-columns: 1fr; } .report-banner b { white-space: normal; } }
+.inbox-strip{display:grid;gap:4px;border:1.5px dashed var(--pink-line);border-radius:9px;padding:7px 9px;background:#fffdf7}
+.inbox-strip>b{font-size:10px;color:var(--ink-soft)}
+.inbox-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:11px}
+.inbox-row small{color:var(--ink-faint);font-family:Archivo,sans-serif;font-size:9px}
+.inbox-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inbox-row em{font-style:normal;font-size:10px;font-weight:900;white-space:nowrap}
+.inbox-row.s-failed em,.inbox-row.s-queued em{color:#a4442e}
+.inbox-row.s-done em{color:#3d7a3a}
+.pb-notes{margin:10px 0 0;padding:10px 12px;border:1.5px solid var(--pink-line);border-radius:9px;background:#fffdf3;display:grid;gap:4px}
+.pb-notes b{font-size:12px}
+.pb-notes li{font-size:11px;color:var(--ink-soft);line-height:1.5;margin-left:14px;list-style:disc}

@@ -36,7 +36,9 @@ ${ROSTER}
 2. 아래 "지금 사무실 상황"과 "오늘 실제 업무 기록"에 있는 사실만 말한다. 거기 없는 숫자·결과·일정은 지어내지 말고 "확인해서 말씀드릴게요", "아직 자료가 없어요"처럼 말한다.
 3. 1~3문장, 존댓말, 그 사람 말투(예시 참고). 과장·금칙어(마법 같은, 인생템, 품절 대란, 무조건, 세상에 하나뿐인) 금지.
 4. 대표가 사무실 동작을 시키면 action 을 고른다: focus_on(집중 모드), focus_off(집중 해제), recall(자리로), boost(속도 올려), convene(회의 소집), brief(지금 브리핑), patrol(순찰·둘러보기, dept 에 부서 id), cheer(칭찬·격려), opinion_done(회의 중 의견을 말했거나 의견 없음), none.
-5. 대표의 말은 모두 총괄비서에게 자동으로 전달된다. 실제 작업이 필요한 말(무언가를 고치거나 새로 만들거나 찾아오라는 지시, 업무 시작, TOP 3 선택, 회의 의견)이면 forward 를 true 로 하고, 답에는 "총괄비서가 실제로 반영해서 올릴게요"처럼 말하며 결과를 미리 지어내지 않는다. 가벼운 질문·잡담·현황 질문은 forward false.
+5. 숫자·일정·현황·오늘 계획·TOP 3 내용 같은 질문은 아래 자료로 직접, 구체적으로 답한다(숫자는 자료에 있는 것만). "확인해서 말씀드릴게요"로 미루지 말고 자료에 있으면 바로 말한다.
+6. 실제 작업이 필요한 말(무언가를 고치거나 새로 만들거나 찾아오라는 지시, 게시·촬영 알림, TOP 3 선택, 회의 의견)이면 forward 를 true 로 하고, 답에는 "총괄비서에게 넘길게요"처럼 말하며 결과를 미리 지어내지 않는다. 가벼운 질문·잡담·현황 질문은 forward false.
+7. [팀 업무 노트]에 적힌 원칙은 그 팀 직원이 꼭 지킨다(배운 것). 의견을 말할 때 노트를 근거로 든다.
 
 부서 id: research(시장조사팀) strategy1(기획 1팀) qa(브랜드 검수팀) strategy2(기획 2팀) reels(제작팀·릴스) carousel(제작팀·캐러셀) finance(정산팀) review(성과 리뷰실) secretary(비서실)
 
@@ -59,7 +61,7 @@ function realSummary(doc: RealDoc | null): string {
 export async function askStaff(
   sample: SampleFn,
   text: string,
-  ctx: { office: string; real: RealDoc | null; brief: string; history: { from: string; name: string; text: string }[] },
+  ctx: { office: string; real: RealDoc | null; brief: string; facts?: string; playbook?: string; history: { from: string; name: string; text: string }[] },
 ): Promise<TalkResult> {
   const history = ctx.history
     .slice(-10)
@@ -75,6 +77,12 @@ ${realSummary(ctx.real)}
 
 [회사 사정 요약 — 총괄비서가 적어 둔 것]
 ${ctx.brief || "없음"}
+
+[오늘 자료 — 대시보드·캘린더·TOP 3·업무 보고]
+${ctx.facts || "없음"}
+
+[팀 업무 노트 — 숫자로 배운 원칙]
+${ctx.playbook || "없음"}
 
 [최근 지시창 대화]
 ${history || "없음"}
