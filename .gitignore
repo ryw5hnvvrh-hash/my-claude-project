@@ -1,0 +1,13 @@
+
+# 정산 캡처 원본 (주소·전화 일부가 보임) — 드라이브에만 보관
+finance/source/
+
+# 촬영본 영상 원본 — 드라이브에 보관, 저장소에는 올리지 않음(용량)
+media/raw/*.mov
+media/raw/*.mp4
+media/raw/*/
+
+# 비교 계정 캡처 원본 — 드라이브에만 보관
+research/competitors/source/
+# 캡컷용 장면별 변환본(용량 큼) — 저장소 제외
+media/edit/*/
